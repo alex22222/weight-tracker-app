@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model WeightEntry {
+  id        Int      @id @default(autoincrement())
+  weight    Float
+  note      String?
+  date      DateTime
+  createdAt DateTime @default(now())
+}
+
+model UserSettings {
+  id           Int      @id @default(autoincrement())
+  height       Float    @default(170)
+  targetWeight Float    @default(65)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
