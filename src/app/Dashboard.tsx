@@ -2,8 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
-import { Trash2, Plus, Settings, TrendingDown, TrendingUp, Minus, Activity, Target, Scale } from 'lucide-react'
-import { calculateBMI, getBMICategory, getBMIColors, formatShortDate } from '@/lib/utils'
+import { Trash2, Plus, Settings, TrendingDown, TrendingUp, Minus, Activity, Target, Scale, LogOut } from 'lucide-react'
+import { calculateBMI, getBMICategory, getBMIColors, formatShortDate } from '../lib/utils'
+
+interface DashboardProps {
+  onLogout: () => void
+}
 
 interface WeightEntry {
   id: number
@@ -17,7 +21,7 @@ interface ChartData {
   weight: number
 }
 
-export default function Dashboard() {
+export default function Dashboard({ onLogout }: DashboardProps) {
   const [entries, setEntries] = useState<WeightEntry[]>([])
   const [settings, setSettings] = useState({ height: 170, targetWeight: 65 })
   const [weight, setWeight] = useState('')
@@ -149,12 +153,22 @@ export default function Dashboard() {
                 <p className="text-xs text-slate-500">Weight Tracker</p>
               </div>
             </div>
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="p-2 bg-slate-100 hover:bg-emerald-100 rounded-xl transition-colors"
-            >
-              <Settings className="w-5 h-5 text-slate-600" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="p-2 bg-slate-100 hover:bg-emerald-100 rounded-xl transition-colors"
+                title="设置"
+              >
+                <Settings className="w-5 h-5 text-slate-600" />
+              </button>
+              <button
+                onClick={onLogout}
+                className="p-2 bg-slate-100 hover:bg-red-100 rounded-xl transition-colors group"
+                title="退出登录"
+              >
+                <LogOut className="w-5 h-5 text-slate-600 group-hover:text-red-600" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
