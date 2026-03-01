@@ -1,5 +1,6 @@
 // pages/index/index.js
 const util = require('../../utils/util.js')
+const app = getApp()
 
 Page({
   data: {
@@ -7,7 +8,7 @@ Page({
     weight: '',
     note: '',
     date: '',
-    
+
     // 设置
     settings: {
       height: 170,
@@ -16,7 +17,7 @@ Page({
     tempHeight: '170',
     tempTargetWeight: '65',
     showSettings: false,
-    
+
     // 统计数据
     entries: [],
     currentWeight: 0,
@@ -24,15 +25,38 @@ Page({
     bmiCategory: { label: '暂无数据', color: '#94a3b8' },
     bmiStyle: { bg: 'bg-gray-light', color: '#94a3b8', border: '2rpx solid #e2e8f0' },
     weightDiff: 0,
-    
+
     // 图表数据
-    chartData: []
+    chartData: [],
+
+    // 用户信息
+    currentUser: null
   },
 
   onLoad() {
+    // 检查登录状态
+    if (!app.globalData.isLoggedIn) {
+      wx.redirectTo({
+        url: '/pages/login/login'
+      })
+      return
+    }
+
     this.setData({
-      date: util.getTodayString()
+      date: util.getTodayString(),
+      currentUser: app.globalData.currentUser
     })
+    this.loadData()
+  },
+
+  onShow() {
+    // 检查登录状态
+    if (!app.globalData.isLoggedIn) {
+      wx.redirectTo({
+        url: '/pages/login/login'
+      })
+      return
+    }
     this.loadData()
   },
 
@@ -291,6 +315,22 @@ Page({
           ctx.fillText(d.date, x, height - 10)
         })
       })
+  },
+
+  // 登出
+  logout() {
+    wx.showModal({
+      title: '确认登出',
+      content: '确定要退出登录吗？',
+      success: (res) => {
+        if (res.confirm) {
+          app.logout()
+          wx.redirectTo({
+            url: '/pages/login/login'
+          })
+        }
+      }
+    })
   },
 
   onChartTouch() {

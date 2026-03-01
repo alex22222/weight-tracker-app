@@ -1,5 +1,6 @@
 // pages/logs/logs.js
 const util = require('../../utils/util.js')
+const app = getApp()
 
 Page({
   data: {
@@ -7,10 +8,24 @@ Page({
   },
 
   onLoad() {
+    // 检查登录状态
+    if (!app.globalData.isLoggedIn) {
+      wx.redirectTo({
+        url: '/pages/login/login'
+      })
+      return
+    }
     this.loadData()
   },
 
   onShow() {
+    // 检查登录状态
+    if (!app.globalData.isLoggedIn) {
+      wx.redirectTo({
+        url: '/pages/login/login'
+      })
+      return
+    }
     this.loadData()
   },
 

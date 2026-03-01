@@ -1,0 +1,98 @@
+<!--pages/login/login.wxml-->
+<view class="container">
+  <view class="login-wrapper">
+    <!-- Logo区域 -->
+    <view class="logo-section">
+      <view class="logo">⚖️</view>
+      <view class="logo-title">体重管理器</view>
+      <view class="logo-subtitle">Weight Tracker</view>
+    </view>
+
+    <!-- 功能介绍 -->
+    <view class="features" wx:if="{{!isRegister}}">
+      <view class="feature-item">
+        <text class="feature-icon">📊</text>
+        <text class="feature-text">记录体重</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">📈</text>
+        <text class="feature-text">趋势分析</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">🎯</text>
+        <text class="feature-text">BMI计算</text>
+      </view>
+    </view>
+
+    <!-- 表单区域 -->
+    <view class="form-card">
+      <view class="form-title">{{isRegister ? '创建账户' : '欢迎回来'}}</view>
+      <view class="form-subtitle">{{isRegister ? '注册新账户开始管理体重' : '登录您的账户开始管理体重'}}</view>
+
+      <!-- 错误提示 -->
+      <view class="error-tip" wx:if="{{error}}">{{error}}</view>
+
+      <!-- 用户名 -->
+      <view class="input-group">
+        <view class="input-icon">👤</view>
+        <input 
+          type="text" 
+          class="input" 
+          placeholder="用户名" 
+          value="{{username}}"
+          bindinput="onUsernameInput"
+        />
+      </view>
+
+      <!-- 密码 -->
+      <view class="input-group">
+        <view class="input-icon">🔒</view>
+        <input 
+          type="password" 
+          class="input" 
+          placeholder="密码" 
+          value="{{password}}"
+          bindinput="onPasswordInput"
+        />
+      </view>
+
+      <!-- 确认密码（仅注册） -->
+      <view class="input-group" wx:if="{{isRegister}}">
+        <view class="input-icon">🔒</view>
+        <input 
+          type="password" 
+          class="input" 
+          placeholder="确认密码" 
+          value="{{confirmPassword}}"
+          bindinput="onConfirmPasswordInput"
+        />
+      </view>
+
+      <!-- 登录选项 -->
+      <view class="form-options" wx:if="{{!isRegister}}">
+        <view class="remember-me">
+          <checkbox checked="{{rememberMe}}" bindtap="toggleRemember">记住我</checkbox>
+        </view>
+        <text class="forgot-link" bindtap="onForgotPassword">忘记密码？</text>
+      </view>
+
+      <!-- 提交按钮 -->
+      <button class="btn-primary" bindtap="handleSubmit" disabled="{{isLoading}}">
+        <text wx:if="{{isLoading}}">⏳ 处理中...</text>
+        <text wx:elif="{{isRegister}}">👤 注册</text>
+        <text wx:else>→ 登录</text>
+      </button>
+
+      <!-- 切换模式 -->
+      <view class="mode-switch">
+        <text class="mode-text">{{isRegister ? '已有账户？' : '还没有账户？'}}</text>
+        <text class="mode-link" bindtap="toggleMode">{{isRegister ? '返回登录' : '注册新账户'}}</text>
+      </view>
+
+      <!-- 游客访问 -->
+      <button class="btn-guest" bindtap="guestLogin" wx:if="{{!isRegister}}">
+        游客访问
+      </button>
+    </view>
+  </view>
+</view>

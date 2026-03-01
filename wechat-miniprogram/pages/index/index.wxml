@@ -1,5 +1,20 @@
 <!--pages/index/index.wxml-->
 <view class="container">
+  <!-- 顶部导航 -->
+  <view class="header">
+    <view class="header-left">
+      <view class="header-icon">⚖️</view>
+      <view class="header-title">
+        <text class="title-main">体重管理器</text>
+        <text class="title-sub" wx:if="{{currentUser}}">{{currentUser === 'guest' ? '游客' : currentUser}}</text>
+      </view>
+    </view>
+    <view class="header-actions">
+      <view class="header-btn" bindtap="toggleSettings">⚙️</view>
+      <view class="header-btn logout-btn" bindtap="logout">🚪</view>
+    </view>
+  </view>
+
   <!-- 统计卡片区域 -->
   <view class="stats-grid">
     <!-- 当前体重 -->
