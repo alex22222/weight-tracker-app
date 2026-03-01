@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
+import { NextResponse } from 'next/dist/server/web/spec-extension/response'
+import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { prisma } from '../../../lib/db'
 
 // GET /api/weight - 获取所有体重记录
 export async function GET() {
