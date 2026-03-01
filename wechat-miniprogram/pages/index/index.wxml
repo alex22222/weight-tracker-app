@@ -1,0 +1,143 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 统计卡片区域 -->
+  <view class="stats-grid">
+    <!-- 当前体重 -->
+    <view class="stat-card">
+      <view class="stat-header">
+        <view class="stat-icon bg-primary-light">
+          <text class="icon">📊</text>
+        </view>
+        <text class="stat-label">当前体重</text>
+      </view>
+      <view class="stat-value-row">
+        <text class="stat-value">{{currentWeight > 0 ? currentWeight.toFixed(1) : '--'}}</text>
+        <text class="stat-unit">kg</text>
+      </view>
+      <text class="stat-hint {{weightDiff > 0 ? 'text-danger' : 'text-success'}}" wx:if="{{currentWeight > 0}}">
+        {{weightDiff > 0 ? '超出' : '距离'}}目标 {{Math.abs(weightDiff).toFixed(1)}} kg
+      </text>
+    </view>
+
+    <!-- BMI -->
+    <view class="stat-card {{bmiStyle.bg}}" style="border: {{bmiStyle.border}};">
+      <view class="stat-header">
+        <view class="stat-icon {{bmiStyle.bg}}">
+          <text class="icon">🎯</text>
+        </view>
+        <text class="stat-label">BMI 指数</text>
+      </view>
+      <view class="stat-value-row">
+        <text class="stat-value" style="color: {{bmiStyle.color}};">{{bmi > 0 ? bmi : '--'}}</text>
+      </view>
+      <text class="stat-hint" style="color: {{bmiStyle.color}};">{{bmiCategory.label}}</text>
+    </view>
+
+    <!-- 目标体重 -->
+    <view class="stat-card">
+      <view class="stat-header">
+        <view class="stat-icon bg-primary-light">
+          <text class="icon">⚖️</text>
+        </view>
+        <text class="stat-label">目标体重</text>
+      </view>
+      <view class="stat-value-row">
+        <text class="stat-value">{{settings.targetWeight}}</text>
+        <text class="stat-unit">kg</text>
+      </view>
+      <text class="stat-hint text-tertiary">身高: {{settings.height}} cm</text>
+    </view>
+  </view>
+
+  <!-- 添加记录表单 -->
+  <view class="card">
+    <view class="section-title">
+      <text class="title-icon">➕</text>
+      <text>记录体重</text>
+    </view>
+    
+    <view class="form-grid">
+      <view class="form-item">
+        <text class="form-label">日期</text>
+        <picker mode="date" value="{{date}}" bindchange="onDateChange">
+          <view class="input picker-input">{{date}}</view>
+        </picker>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">体重 (kg)</text>
+        <input 
+          type="digit" 
+          class="input" 
+          placeholder="例如: 70.5" 
+          value="{{weight}}"
+          bindinput="onWeightInput"
+        />
+      </view>
+      
+      <view class="form-item form-item-full">
+        <text class="form-label">备注 (可选)</text>
+        <input 
+          type="text" 
+          class="input" 
+          placeholder="例如: 早餐后" 
+          value="{{note}}"
+          bindinput="onNoteInput"
+        />
+      </view>
+    </view>
+    
+    <button class="btn-primary mt-3" bindtap="addEntry" disabled="{{!weight}}">
+      <text>➕ 添加记录</text>
+    </button>
+  </view>
+
+  <!-- 体重趋势图表 -->
+  <view class="card" wx:if="{{chartData.length > 0}}">
+    <view class="section-title">
+      <text class="title-icon">📈</text>
+      <text>体重趋势 (近7次)</text>
+    </view>
+    <view class="chart-container">
+      <canvas type="2d" id="weightChart" class="chart-canvas" bindtouchstart="onChartTouch"></canvas>
+    </view>
+  </view>
+
+  <!-- 设置面板 -->
+  <view class="card" wx:if="{{showSettings}}">
+    <view class="section-title">
+      <text class="title-icon">⚙️</text>
+      <text>个人设置</text>
+    </view>
+    <view class="form-grid">
+      <view class="form-item">
+        <text class="form-label">身高 (cm)</text>
+        <input 
+          type="number" 
+          class="input" 
+          value="{{tempHeight}}"
+          bindinput="onHeightInput"
+        />
+      </view>
+      <view class="form-item">
+        <text class="form-label">目标体重 (kg)</text>
+        <input 
+          type="digit" 
+          class="input" 
+          value="{{tempTargetWeight}}"
+          bindinput="onTargetWeightInput"
+        />
+      </view>
+    </view>
+    <button class="btn-primary mt-3" bindtap="saveSettings">
+      <text>💾 保存设置</text>
+    </button>
+  </view>
+
+  <!-- 设置按钮 -->
+  <view class="card" wx:if="{{!showSettings}}">
+    <button class="btn-secondary" bindtap="toggleSettings">
+      <text>⚙️ 个人设置</text>
+    </button>
+  </view>
+</view>
