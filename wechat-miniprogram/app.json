@@ -18,15 +18,11 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "记录",
-        "iconPath": "images/icon_home.png",
-        "selectedIconPath": "images/icon_home_active.png"
+        "text": "记录"
       },
       {
         "pagePath": "pages/logs/logs",
-        "text": "历史",
-        "iconPath": "images/icon_logs.png",
-        "selectedIconPath": "images/icon_logs_active.png"
+        "text": "历史"
       }
     ]
   },
