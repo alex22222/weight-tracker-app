@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../lib/db'
+import { adapter, CURRENT_DB } from '../../../lib/db-adapter'
 
 // GET /api/weight - 获取所有体重记录
 export async function GET() {
   try {
-    const entries = await prisma.weightEntry.findMany({
-      orderBy: { date: 'desc' },
-    })
+    const entries = await adapter.getWeightEntries()
     return NextResponse.json(entries)
   } catch (error) {
     console.error('Error fetching weight entries:', error)
@@ -25,12 +23,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid weight value' }, { status: 400 })
     }
 
-    const entry = await prisma.weightEntry.create({
-      data: {
-        weight: parseFloat(weight),
-        note: note || null,
-        date: date ? new Date(date) : new Date(),
-      },
+    const entry = await adapter.createWeightEntry({
+      weight: parseFloat(weight),
+      note: note || null,
+      date: date ? new Date(date) : new Date(),
     })
 
     return NextResponse.json(entry)
@@ -46,13 +42,11 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
-    if (!id || isNaN(parseInt(id))) {
+    if (!id) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
     }
 
-    await prisma.weightEntry.delete({
-      where: { id: parseInt(id) },
-    })
+    await adapter.deleteWeightEntry(id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

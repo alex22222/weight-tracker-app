@@ -5,13 +5,17 @@
     <view class="header-left">
       <view class="header-icon">⚖️</view>
       <view class="header-title">
-        <text class="title-main">体重管理器</text>
-        <text class="title-sub" wx:if="{{currentUser}}">{{currentUser === 'guest' ? '游客' : currentUser}}</text>
+        <text class="title-main">身材管理助手</text>
       </view>
     </view>
-    <view class="header-actions">
-      <view class="header-btn" bindtap="toggleSettings">⚙️</view>
-      <view class="header-btn logout-btn" bindtap="logout">🚪</view>
+    <view class="header-right">
+      <view class="user-info" wx:if="{{currentUser}}">
+        <text class="user-name">{{currentUser === 'guest' ? '游客' : currentUser}}</text>
+      </view>
+      <view class="header-actions">
+        <view class="header-btn" bindtap="toggleSettings">⚙️</view>
+        <view class="header-btn logout-btn" bindtap="logout">🚪</view>
+      </view>
     </view>
   </view>
 
@@ -49,7 +53,7 @@
     </view>
 
     <!-- 目标体重 -->
-    <view class="stat-card">
+    <view class="stat-card" bindtap="openSettings" style="cursor: pointer;">
       <view class="stat-header">
         <view class="stat-icon bg-primary-light">
           <text class="icon">⚖️</text>
@@ -60,7 +64,7 @@
         <text class="stat-value">{{settings.targetWeight}}</text>
         <text class="stat-unit">kg</text>
       </view>
-      <text class="stat-hint text-tertiary">身高: {{settings.height}} cm</text>
+      <text class="stat-hint text-tertiary">点击修改 · 身高 {{settings.height}} cm</text>
     </view>
   </view>
 
@@ -144,9 +148,14 @@
         />
       </view>
     </view>
-    <button class="btn-primary mt-3" bindtap="saveSettings">
-      <text>💾 保存设置</text>
-    </button>
+    <view class="flex gap-2 mt-3">
+      <button class="btn-secondary flex-1" bindtap="toggleSettings">
+        <text>取消</text>
+      </button>
+      <button class="btn-primary flex-1" bindtap="saveSettings">
+        <text>💾 保存</text>
+      </button>
+    </view>
   </view>
 
   <!-- 设置按钮 -->

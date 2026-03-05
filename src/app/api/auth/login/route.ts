@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../../lib/db'
+import { adapter } from '../../../../lib/db-adapter'
 import { createHash } from 'crypto'
 
 // 简单的密码哈希函数
@@ -23,9 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 查找用户
-    const user = await prisma.user.findUnique({
-      where: { username },
-    })
+    const user = await adapter.findUserByUsername(username)
 
     if (!user) {
       return NextResponse.json(
@@ -44,10 +42,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 登录成功，返回用户信息（不包含密码）
+    const userId = user._id || user.id
     return NextResponse.json({
       message: '登录成功',
       user: {
-        id: user.id,
+        id: userId,
         username: user.username,
         createdAt: user.createdAt,
       },

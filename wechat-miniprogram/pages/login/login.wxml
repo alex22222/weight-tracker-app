@@ -4,7 +4,7 @@
     <!-- Logo区域 -->
     <view class="logo-section">
       <view class="logo">⚖️</view>
-      <view class="logo-title">体重管理器</view>
+      <view class="logo-title">身材管理助手</view>
       <view class="logo-subtitle">Weight Tracker</view>
     </view>
 

@@ -60,10 +60,6 @@ Page({
     this.loadData()
   },
 
-  onShow() {
-    this.loadData()
-  },
-
   onReady() {
     this.drawChart()
   },
@@ -174,6 +170,15 @@ Page({
   // 切换设置面板
   toggleSettings() {
     this.setData({ showSettings: !this.data.showSettings })
+  },
+
+  // 打开设置面板（用于点击目标体重卡片）
+  openSettings() {
+    this.setData({ showSettings: true })
+    wx.pageScrollTo({
+      selector: '.container',
+      duration: 300
+    })
   },
 
   // 保存设置

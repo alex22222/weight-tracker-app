@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../../lib/db'
+import { adapter } from '../../../../lib/db-adapter'
 import { createHash } from 'crypto'
 
 // 简单的密码哈希函数
@@ -37,9 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查用户名是否已存在
-    const existingUser = await prisma.user.findUnique({
-      where: { username },
-    })
+    const existingUser = await adapter.findUserByUsername(username)
 
     if (existingUser) {
       return NextResponse.json(
@@ -50,20 +48,14 @@ export async function POST(request: NextRequest) {
 
     // 创建新用户
     const hashedPassword = hashPassword(password)
-    const user = await prisma.user.create({
-      data: {
-        username,
-        password: hashedPassword,
-      },
-      select: {
-        id: true,
-        username: true,
-        createdAt: true,
-      },
+    const user = await adapter.createUser({
+      username,
+      password: hashedPassword,
     })
 
+    const userId = user._id || user.id
     return NextResponse.json(
-      { message: '注册成功', user },
+      { message: '注册成功', user: { id: userId, username: user.username, createdAt: user.createdAt } },
       { status: 201 }
     )
   } catch (error) {

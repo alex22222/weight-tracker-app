@@ -1,21 +1,11 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../lib/db'
+import { adapter } from '../../../lib/db-adapter'
 
 // GET /api/settings - 获取用户设置
 export async function GET() {
   try {
-    let settings = await prisma.userSettings.findFirst()
-    
-    if (!settings) {
-      settings = await prisma.userSettings.create({
-        data: {
-          height: 170,
-          targetWeight: 65,
-        },
-      })
-    }
-    
+    const settings = await adapter.getUserSettings()
     return NextResponse.json(settings)
   } catch (error) {
     console.error('Error fetching settings:', error)
@@ -33,24 +23,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid values' }, { status: 400 })
     }
 
-    let settings = await prisma.userSettings.findFirst()
-    
-    if (settings) {
-      settings = await prisma.userSettings.update({
-        where: { id: settings.id },
-        data: {
-          height: parseFloat(height),
-          targetWeight: parseFloat(targetWeight),
-        },
-      })
-    } else {
-      settings = await prisma.userSettings.create({
-        data: {
-          height: parseFloat(height),
-          targetWeight: parseFloat(targetWeight),
-        },
-      })
-    }
+    const settings = await adapter.updateUserSettings({
+      height: parseFloat(height),
+      targetWeight: parseFloat(targetWeight),
+    })
 
     return NextResponse.json(settings)
   } catch (error) {
