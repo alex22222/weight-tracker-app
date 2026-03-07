@@ -233,9 +233,33 @@ const cloudbaseAdapter = {
   },
 }
 
+// ==================== Prisma 适配器扩展 ====================
+
+const prismaAdapterExtended = {
+  ...prismaAdapter,
+  
+  // 获取所有用户（管理员功能）
+  async getAllUsers() {
+    return prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+    })
+  },
+}
+
+// ==================== CloudBase 适配器扩展 ====================
+
+const cloudbaseAdapterExtended = {
+  ...cloudbaseAdapter,
+  
+  // 获取所有用户（管理员功能）
+  async getAllUsers() {
+    const { data } = await tcbDb.collection(COLLECTIONS.USERS)
+      .orderBy('createdAt', 'desc')
+      .get()
+    return data
+  },
+}
+
 // ==================== 导出适配器 ====================
 
-export const adapter = CURRENT_DB === 'cloudbase' ? cloudbaseAdapter : prismaAdapter
-
-// 导出当前数据库类型
-export { CURRENT_DB }
+export const adapter = CURRENT_DB === 'cloudbase' ? cloudbaseAdapterExtended : prismaAdapterExtended

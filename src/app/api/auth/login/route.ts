@@ -43,11 +43,14 @@ export async function POST(request: NextRequest) {
 
     // 登录成功，返回用户信息（不包含密码）
     const userId = user._id || user.id
+    const userRole = user.role || 'user'
+    
     return NextResponse.json({
       message: '登录成功',
       user: {
         id: userId,
         username: user.username,
+        role: userRole,
         createdAt: user.createdAt,
       },
     })

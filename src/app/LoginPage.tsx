@@ -3,8 +3,14 @@
 import { useState } from 'react'
 import { Scale, Activity, TrendingUp, User, Lock, ChevronRight, UserPlus, ArrowLeft } from 'lucide-react'
 
+interface User {
+  id: string
+  username: string
+  role?: string
+}
+
 interface LoginPageProps {
-  onLogin: () => void
+  onLogin: (user: User) => void
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
@@ -67,7 +73,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         }
 
         // 登录成功
-        onLogin()
+        onLogin(data.user)
       }
     } catch (err) {
       setError('网络错误，请稍后重试')
