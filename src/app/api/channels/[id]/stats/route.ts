@@ -1,0 +1,63 @@
+import { NextResponse } from 'next/dist/server/web/spec-extension/response'
+import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { adapter } from '../../../../../lib/db-adapter'
+
+// 验证 Token
+function verifyToken(token: string): { userId: number; username: string } | null {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8')
+    const [username, userId] = decoded.split(':')
+    if (!username || !userId) return null
+    return { userId: parseInt(userId), username }
+  } catch {
+    return null
+  }
+}
+
+// GET /api/channels/[id]/stats - 获取频道每周打卡统计
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+    if (!token) {
+      return NextResponse.json({ error: '未登录' }, { status: 401 })
+    }
+
+    const user = verifyToken(token)
+    if (!user) {
+      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+    }
+
+    const channelId = parseInt(params.id)
+    const channel = await adapter.getFitnessChannelById(channelId)
+
+    if (!channel) {
+      return NextResponse.json({ error: '频道不存在' }, { status: 404 })
+    }
+
+    // 检查是否是成员或创建者
+    const isMember = await adapter.isChannelMember(channelId, user.userId)
+    const ownerId = (channel as any).ownerId || (channel as any).owner?.id
+    
+    if (ownerId !== user.userId && !isMember) {
+      return NextResponse.json({ error: '无权访问' }, { status: 403 })
+    }
+
+    // 获取本周统计
+    const weeklyCount = await adapter.getWeeklyCheckInCount(channelId, user.userId)
+    const channelStats = await adapter.getChannelWeeklyStats(channelId)
+
+    return NextResponse.json({
+      myWeeklyCount: weeklyCount,
+      weeklyRequired: (channel as any).weeklyCheckInCount || 3,
+      checkInMinutes: (channel as any).checkInMinutes || 30,
+      remaining: Math.max(0, ((channel as any).weeklyCheckInCount || 3) - weeklyCount),
+      allMembers: channelStats?.members || [],
+    })
+  } catch (error) {
+    console.error('Error getting stats:', error)
+    return NextResponse.json({ error: '获取统计失败' }, { status: 500 })
+  }
+}

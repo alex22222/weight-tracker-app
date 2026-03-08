@@ -1,0 +1,90 @@
+<!--pages/friends/friends.wxml-->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header-section">
+    <view class="header-icon">👥</view>
+    <view class="header-content">
+      <text class="header-title">我的好友</text>
+      <text class="header-subtitle">{{friends.length}} 位好友</text>
+    </view>
+    <button class="add-btn" bindtap="showAddModal">➕ 添加</button>
+  </view>
+
+  <!-- 待处理请求 -->
+  <view class="section" wx:if="{{pendingRequests.length > 0}}">
+    <view class="section-title">
+      <text>🔔 好友请求 ({{pendingRequests.length}})</text>
+    </view>
+    <view class="request-list">
+      <view class="request-item" wx:for="{{pendingRequests}}" wx:key="id">
+        <view class="user-info">
+          <view class="user-avatar">{{item.username[0]}}</view>
+          <view class="user-detail">
+            <text class="user-name">{{item.username}}</text>
+            <text class="request-type">{{item.isSender ? '等待对方接受' : '请求添加你为好友'}}</text>
+          </view>
+        </view>
+        <view class="request-actions" wx:if="{{!item.isSender}}">
+          <button class="btn-accept" bindtap="acceptRequest" data-id="{{item.id}}">接受</button>
+          <button class="btn-reject" bindtap="rejectRequest" data-id="{{item.id}}">拒绝</button>
+        </view>
+        <view class="request-status" wx:if="{{item.isSender}}">
+          <text>等待中</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 好友列表 -->
+  <view class="section" wx:if="{{friends.length > 0}}">
+    <view class="section-title">
+      <text>👥 好友列表</text>
+    </view>
+    <view class="friend-list">
+      <view class="friend-item" wx:for="{{friends}}" wx:key="id">
+        <view class="user-avatar">{{item.username[0]}}</view>
+        <view class="user-detail">
+          <text class="user-name">{{item.username}}</text>
+          <text class="friend-since">好友 since {{item.createdAt}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{friends.length === 0 && pendingRequests.length === 0}}">
+    <text class="empty-icon">👋</text>
+    <text class="empty-text">还没有好友</text>
+    <text class="empty-subtext">点击右上角添加好友，一起运动打卡吧！</text>
+  </view>
+</view>
+
+<!-- 添加好友弹窗 -->
+<view class="modal" wx:if="{{showAddModal}}" bindtap="hideAddModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">➕ 添加好友</text>
+      <view class="modal-close" bindtap="hideAddModal">✕</view>
+    </view>
+    
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">对方用户名</text>
+        <input 
+          type="text" 
+          class="input" 
+          placeholder="请输入用户名"
+          value="{{searchUsername}}"
+          bindinput="onSearchInput"
+        />
+      </view>
+    </view>
+    
+    <view class="modal-footer">
+      <button class="btn-secondary flex-1" bindtap="hideAddModal">取消</button>
+      <button class="btn-primary flex-1" bindtap="addFriend" disabled="{{isLoading}}">
+        {{isLoading ? '发送中...' : '发送请求'}}
+      </button>
+    </view>
+  </view>
+</view>

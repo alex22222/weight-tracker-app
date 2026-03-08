@@ -6,9 +6,10 @@ import Dashboard from './Dashboard'
 import AdminPage from './AdminPage'
 
 interface User {
-  id: string
+  id: string | number
   username: string
   role?: string
+  token?: string
 }
 
 export default function Home() {
@@ -28,7 +29,7 @@ export default function Home() {
     setIsLoading(false)
   }, [])
 
-  const handleLogin = (user: User) => {
+  const handleLogin = (user: User & { token?: string }) => {
     setIsLoggedIn(true)
     setCurrentUser(user)
     localStorage.setItem('isLoggedIn', 'true')
@@ -59,5 +60,5 @@ export default function Home() {
     return <AdminPage onLogout={handleLogout} />
   }
 
-  return <Dashboard onLogout={handleLogout} />
+  return <Dashboard user={currentUser!} onLogout={handleLogout} />
 }

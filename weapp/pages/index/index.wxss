@@ -1,79 +1,74 @@
-/**pages/index/index.wxss**/
-.container {
-  padding: 20rpx;
-  padding-bottom: 40rpx;
-}
+/* pages/index/index.wxss */
 
-/* 顶部导航 */
+/* 头部 */
 .header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 24rpx;
-  padding: 24rpx 28rpx;
+  justify-content: space-between;
+  padding: 20rpx 0;
   margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  flex: 1;
 }
 
 .header-icon {
-  width: 72rpx;
-  height: 72rpx;
-  background: linear-gradient(135deg, #34d399 0%, #14b8a6 100%);
+  width: 80rpx;
+  height: 80rpx;
+  background: linear-gradient(135deg, #34d399, #10b981);
   border-radius: 20rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36rpx;
-  box-shadow: 0 4rpx 12rpx rgba(16, 185, 129, 0.3);
+  font-size: 40rpx;
+  margin-right: 20rpx;
+  flex-shrink: 0;
 }
 
 .header-title {
-  display: flex;
-  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .title-main {
   font-size: 32rpx;
-  font-weight: 700;
+  font-weight: 600;
   color: #1e293b;
+  display: block;
 }
 
-.title-sub {
-  font-size: 22rpx;
+.channel-info {
+  font-size: 24rpx;
   color: #10b981;
-  margin-top: 4rpx;
+  margin-top: 8rpx;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 20rpx;
+  gap: 16rpx;
 }
 
-.user-info {
+.weather-info {
   display: flex;
   align-items: center;
+  background: #f0fdf4;
+  padding: 12rpx 20rpx;
+  border-radius: 30rpx;
 }
 
-.user-name {
+.weather-icon {
+  font-size: 32rpx;
+  margin-right: 8rpx;
+}
+
+.weather-temp {
   font-size: 26rpx;
-  font-weight: 600;
-  color: #10b981;
-  background: #d1fae5;
-  padding: 8rpx 20rpx;
-  border-radius: 24rpx;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12rpx;
+  color: #059669;
+  font-weight: 500;
 }
 
 .header-btn {
@@ -84,38 +79,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28rpx;
+  font-size: 32rpx;
 }
 
-.header-btn:active {
-  background: #e2e8f0;
+.logout-btn {
+  background: #fef2f2;
 }
 
-.logout-btn:active {
-  background: #fee2e2;
-}
-
-/* 统计卡片网格 */
+/* 统计卡片 */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16rpx;
-  margin-bottom: 20rpx;
+  gap: 20rpx;
+  margin-bottom: 30rpx;
 }
 
 .stat-card {
   background: white;
-  border-radius: 24rpx;
+  border-radius: 20rpx;
   padding: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+  border: 2rpx solid #f1f5f9;
 }
 
 .stat-header {
   display: flex;
   align-items: center;
-  gap: 12rpx;
   margin-bottom: 16rpx;
 }
 
@@ -126,9 +115,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-right: 12rpx;
 }
 
-.icon {
+.stat-icon .icon {
   font-size: 28rpx;
 }
 
@@ -140,7 +130,7 @@
 .stat-value-row {
   display: flex;
   align-items: baseline;
-  gap: 8rpx;
+  margin-bottom: 8rpx;
 }
 
 .stat-value {
@@ -152,28 +142,74 @@
 .stat-unit {
   font-size: 24rpx;
   color: #94a3b8;
+  margin-left: 8rpx;
 }
 
 .stat-hint {
   font-size: 22rpx;
-  margin-top: 8rpx;
 }
 
-/* 表单样式 */
-.section-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #1e293b;
+/* BMI 样式 */
+.bg-primary-light {
+  background: #d1fae5;
+}
+
+.bg-blue-light {
+  background: #dbeafe;
+}
+
+.bg-yellow-light {
+  background: #fef3c7;
+}
+
+.bg-red-light {
+  background: #fee2e2;
+}
+
+.bg-gray-light {
+  background: #f1f5f9;
+}
+
+.text-success {
+  color: #10b981;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+.text-warning {
+  color: #f59e0b;
+}
+
+.text-tertiary {
+  color: #94a3b8;
+}
+
+/* 卡片 */
+.card {
+  background: white;
+  border-radius: 24rpx;
+  padding: 30rpx;
   margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.05);
+}
+
+.section-title {
   display: flex;
   align-items: center;
-  gap: 12rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 24rpx;
 }
 
 .title-icon {
   font-size: 36rpx;
+  margin-right: 12rpx;
 }
 
+/* 表单 */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -183,7 +219,6 @@
 .form-item {
   display: flex;
   flex-direction: column;
-  gap: 12rpx;
 }
 
 .form-item-full {
@@ -192,51 +227,89 @@
 
 .form-label {
   font-size: 26rpx;
-  color: #64748b;
+  color: #475569;
+  margin-bottom: 12rpx;
   font-weight: 500;
 }
 
 .input {
-  background: #f1f5f9;
-  border-radius: 16rpx;
-  padding: 24rpx 28rpx;
-  font-size: 30rpx;
+  background: #f8fafc;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
   color: #1e293b;
-  border: 2rpx solid transparent;
-}
-
-.input:focus {
-  border-color: #10b981;
 }
 
 .picker-input {
   display: flex;
   align-items: center;
+  justify-content: space-between;
 }
 
-/* 图表容器 */
+.picker-input::after {
+  content: '▼';
+  font-size: 20rpx;
+  color: #94a3b8;
+}
+
+/* 按钮 */
+.btn-primary {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: white;
+  border: none;
+  border-radius: 16rpx;
+  padding: 28rpx 0;
+  font-size: 30rpx;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-primary[disabled] {
+  opacity: 0.6;
+}
+
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 16rpx;
+  padding: 24rpx 0;
+  font-size: 28rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mt-3 {
+  margin-top: 24rpx;
+}
+
+.flex {
+  display: flex;
+}
+
+.gap-2 {
+  gap: 16rpx;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+/* 图表 */
 .chart-container {
   width: 100%;
   height: 400rpx;
-  margin-top: 20rpx;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  overflow: hidden;
 }
 
 .chart-canvas {
   width: 100%;
   height: 100%;
-}
-
-/* 响应式调整 */
-@media (max-width: 375px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .form-item-full {
-    grid-column: span 1;
-  }
 }

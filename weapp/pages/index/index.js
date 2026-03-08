@@ -30,7 +30,13 @@ Page({
     chartData: [],
 
     // 用户信息
-    currentUser: null
+    userInfo: null,
+    
+    // 健身频道
+    activeChannel: null,
+    
+    // 天气
+    weather: null
   },
 
   onLoad() {
@@ -44,9 +50,8 @@ Page({
 
     this.setData({
       date: util.getTodayString(),
-      currentUser: app.globalData.currentUser
+      userInfo: app.globalData.userInfo
     })
-    this.loadData()
   },
 
   onShow() {
@@ -58,6 +63,8 @@ Page({
       return
     }
     this.loadData()
+    this.loadActiveChannel()
+    this.loadWeather()
   },
 
   onReady() {
@@ -65,43 +72,90 @@ Page({
   },
 
   // 加载数据
-  loadData() {
-    const entries = wx.getStorageSync('weightEntries') || []
-    const settings = wx.getStorageSync('userSettings') || { height: 170, targetWeight: 65 }
-    
-    // 按日期降序排序
-    entries.sort((a, b) => new Date(b.date) - new Date(a.date))
-    
-    const currentWeight = entries.length > 0 ? entries[0].weight : 0
-    const bmi = util.calculateBMI(currentWeight, settings.height)
-    const bmiCategory = util.getBMICategory(bmi)
-    const bmiStyle = util.getBMIStyles(bmi)
-    const weightDiff = currentWeight - settings.targetWeight
-    
-    // 准备图表数据（最近7条，按时间升序）
-    const chartData = [...entries]
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(-7)
-      .map(e => ({
-        date: util.formatShortDate(e.date),
-        weight: e.weight,
-        fullDate: e.date
-      }))
-    
-    this.setData({
-      entries,
-      settings,
-      tempHeight: String(settings.height),
-      tempTargetWeight: String(settings.targetWeight),
-      currentWeight,
-      bmi,
-      bmiCategory,
-      bmiStyle,
-      weightDiff,
-      chartData
-    }, () => {
-      this.drawChart()
-    })
+  async loadData() {
+    try {
+      // 获取体重记录
+      const entries = await app.request({
+        url: '/weight'
+      })
+      
+      // 获取用户设置
+      const settingsResult = await app.request({
+        url: '/settings'
+      })
+      
+      const settings = settingsResult.settings || { height: 170, targetWeight: 65 }
+      
+      // 按日期降序排序
+      entries.sort((a, b) => new Date(b.date) - new Date(a.date))
+      
+      const currentWeight = entries.length > 0 ? entries[0].weight : 0
+      const bmi = util.calculateBMI(currentWeight, settings.height)
+      const bmiCategory = util.getBMICategory(bmi)
+      const bmiStyle = util.getBMIStyles(bmi)
+      const weightDiff = currentWeight - settings.targetWeight
+      
+      // 准备图表数据（最近7条，按时间升序）
+      const chartData = [...entries]
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(-7)
+        .map(e => ({
+          date: util.formatShortDate(e.date),
+          weight: e.weight,
+          fullDate: e.date
+        }))
+      
+      this.setData({
+        entries,
+        settings,
+        tempHeight: String(settings.height),
+        tempTargetWeight: String(settings.targetWeight),
+        currentWeight,
+        bmi,
+        bmiCategory,
+        bmiStyle,
+        weightDiff,
+        chartData
+      }, () => {
+        this.drawChart()
+      })
+    } catch (err) {
+      console.error('加载数据失败:', err)
+      wx.showToast({
+        title: '加载数据失败',
+        icon: 'none'
+      })
+    }
+  },
+  
+  // 加载当前健身频道
+  async loadActiveChannel() {
+    try {
+      const result = await app.request({
+        url: '/channels'
+      })
+      
+      // 查找进行中的频道
+      const activeChannel = result.channels?.find(
+        c => c.status === 'PENDING' || c.status === 'ACTIVE'
+      )
+      
+      this.setData({ activeChannel: activeChannel || null })
+    } catch (err) {
+      console.error('加载频道失败:', err)
+    }
+  },
+  
+  // 加载天气
+  async loadWeather() {
+    try {
+      const result = await app.request({
+        url: '/weather'
+      })
+      this.setData({ weather: result })
+    } catch (err) {
+      console.error('加载天气失败:', err)
+    }
   },
 
   // 日期选择
@@ -130,7 +184,7 @@ Page({
   },
 
   // 添加记录
-  addEntry() {
+  async addEntry() {
     const weight = parseFloat(this.data.weight)
     
     if (isNaN(weight) || weight <= 0 || weight > 500) {
@@ -141,30 +195,35 @@ Page({
       return
     }
 
-    const entry = {
-      id: util.generateId(),
-      weight: weight,
-      note: this.data.note || null,
-      date: this.data.date,
-      createdAt: new Date().toISOString()
+    try {
+      await app.request({
+        url: '/weight',
+        method: 'POST',
+        data: {
+          weight,
+          note: this.data.note || undefined,
+          date: this.data.date
+        }
+      })
+
+      wx.showToast({
+        title: '记录成功',
+        icon: 'success'
+      })
+
+      this.setData({
+        weight: '',
+        note: '',
+        date: util.getTodayString()
+      }, () => {
+        this.loadData()
+      })
+    } catch (err) {
+      wx.showToast({
+        title: err.message || '记录失败',
+        icon: 'none'
+      })
     }
-
-    const entries = wx.getStorageSync('weightEntries') || []
-    entries.unshift(entry)
-    wx.setStorageSync('weightEntries', entries)
-
-    wx.showToast({
-      title: '记录成功',
-      icon: 'success'
-    })
-
-    this.setData({
-      weight: '',
-      note: '',
-      date: util.getTodayString()
-    }, () => {
-      this.loadData()
-    })
   },
 
   // 切换设置面板
@@ -172,17 +231,13 @@ Page({
     this.setData({ showSettings: !this.data.showSettings })
   },
 
-  // 打开设置面板（用于点击目标体重卡片）
+  // 打开设置面板
   openSettings() {
     this.setData({ showSettings: true })
-    wx.pageScrollTo({
-      selector: '.container',
-      duration: 300
-    })
   },
 
   // 保存设置
-  saveSettings() {
+  async saveSettings() {
     const height = parseFloat(this.data.tempHeight)
     const targetWeight = parseFloat(this.data.tempTargetWeight)
 
@@ -194,17 +249,27 @@ Page({
       return
     }
 
-    const settings = { height, targetWeight }
-    wx.setStorageSync('userSettings', settings)
+    try {
+      await app.request({
+        url: '/settings',
+        method: 'POST',
+        data: { height, targetWeight }
+      })
 
-    wx.showToast({
-      title: '设置已保存',
-      icon: 'success'
-    })
+      wx.showToast({
+        title: '设置已保存',
+        icon: 'success'
+      })
 
-    this.setData({ showSettings: false }, () => {
-      this.loadData()
-    })
+      this.setData({ showSettings: false }, () => {
+        this.loadData()
+      })
+    } catch (err) {
+      wx.showToast({
+        title: err.message || '保存失败',
+        icon: 'none'
+      })
+    }
   },
 
   // 绘制图表
@@ -320,6 +385,20 @@ Page({
           ctx.fillText(d.date, x, height - 10)
         })
       })
+  },
+
+  // 跳转到频道详情
+  goToChannel() {
+    const { activeChannel } = this.data
+    if (activeChannel) {
+      wx.navigateTo({
+        url: `/pages/channel/detail?id=${activeChannel.id}`
+      })
+    } else {
+      wx.navigateTo({
+        url: '/pages/channel/channel'
+      })
+    }
   },
 
   // 登出

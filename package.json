@@ -20,14 +20,14 @@
     "recharts": "^2.10.0"
   },
   "devDependencies": {
-    "@next/swc-darwin-arm64": "^14.2.15",
+    "@next/swc-darwin-arm64": "^14.2.33",
     "@types/node": "20.19.35",
     "@types/react": "18.3.28",
     "@types/react-dom": "^18.2.0",
-    "autoprefixer": "^10.4.17",
-    "postcss": "^8.4.33",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
     "prisma": "^5.9.0",
-    "tailwindcss": "^3.4.1",
+    "tailwindcss": "^3.4.19",
     "typescript": "5.9.3"
   }
 }

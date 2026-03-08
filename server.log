@@ -1,28 +1,23 @@
-  ▲ Next.js 14.2.15
-  - Local:        http://localhost:3000
-  - Environments: .env
 
- ✓ Starting...
- ✓ Ready in 1703ms
- ○ Compiling / ...
- ✓ Compiled / in 3.2s (1531 modules)
- GET / 200 in 3358ms
- ✓ Compiled in 145ms (774 modules)
- GET / 200 in 29ms
- GET / 200 in 18ms
- ✓ Compiled /api/auth/login in 184ms (781 modules)
- POST /api/auth/login 200 in 261ms
- ✓ Compiled /api/settings in 68ms (783 modules)
- ✓ Compiled (785 modules)
- GET /api/settings 200 in 154ms
- GET /api/weight 200 in 155ms
- GET /api/weight 200 in 3ms
- GET /api/settings 200 in 3ms
- ✓ Compiled /api/auth/register in 94ms (787 modules)
- POST /api/auth/register 201 in 114ms
- POST /api/auth/login 200 in 12ms
- GET /api/weight 200 in 7ms
- GET /api/settings 200 in 11ms
- GET /api/weight 200 in 14ms
- GET /api/settings 200 in 8ms
+> weight-tracker-app@1.0.0 dev
+> next dev
+
+ ⨯ Failed to start server
+Error: listen EADDRINUSE: address already in use :::54112
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at /Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:280:16
+    at new Promise (<anonymous>)
+    at startServer (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:191:11)
+    at /Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:310:52
+    at Span.traceAsyncFn (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/trace/trace.js:154:26)
+    at process.<anonymous> (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:310:35)
+    at process.emit (node:events:508:28) {
+  code: 'EADDRINUSE',
+  errno: -48,
+  syscall: 'listen',
+  address: '::',
+  port: 54112
+}
 [?25h

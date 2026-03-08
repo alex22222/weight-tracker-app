@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { Scale, Activity, TrendingUp, User, Lock, ChevronRight, UserPlus, ArrowLeft } from 'lucide-react'
 
 interface User {
-  id: string
+  id: string | number
   username: string
   role?: string
+  token?: string
 }
 
 interface LoginPageProps {
@@ -73,7 +74,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         }
 
         // 登录成功
-        onLogin(data.user)
+        onLogin({ ...data.user, token: data.token })
       }
     } catch (err) {
       setError('网络错误，请稍后重试')
@@ -257,7 +258,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           {/* 游客访问 */}
           {!isRegister && (
             <button
-              onClick={onLogin}
+              onClick={() => onLogin({ id: 'guest', username: '游客' })}
               className="w-full mt-4 py-3.5 text-slate-500 font-medium rounded-xl hover:text-slate-700 transition-all duration-200"
             >
               游客访问

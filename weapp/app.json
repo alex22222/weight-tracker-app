@@ -2,12 +2,16 @@
   "pages": [
     "pages/login/login",
     "pages/index/index",
+    "pages/channel/channel",
+    "pages/channel/detail",
+    "pages/friends/friends",
+    "pages/messages/messages",
     "pages/logs/logs"
   ],
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#10b981",
-    "navigationBarTitleText": "体重管理器",
+    "navigationBarTitleText": "燃脂俱乐部",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
@@ -21,8 +25,16 @@
         "text": "记录"
       },
       {
-        "pagePath": "pages/logs/logs",
-        "text": "历史"
+        "pagePath": "pages/channel/channel",
+        "text": "健身"
+      },
+      {
+        "pagePath": "pages/friends/friends",
+        "text": "好友"
+      },
+      {
+        "pagePath": "pages/messages/messages",
+        "text": "消息"
       }
     ]
   },

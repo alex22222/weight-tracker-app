@@ -5,17 +5,19 @@
     <view class="header-left">
       <view class="header-icon">⚖️</view>
       <view class="header-title">
-        <text class="title-main">身材管理助手</text>
+        <text class="title-main">欢迎「{{userInfo?.username || '用户'}}」进入燃脂俱乐部</text>
+        <view class="channel-info" bindtap="goToChannel">
+          <text wx:if="{{activeChannel}}">当前频道：{{activeChannel.name}} ({{activeChannel.status === 'PENDING' ? '未开始' : '进行中'}})</text>
+          <text wx:else>暂无进行中的健身频道，点击加入 ></text>
+        </view>
       </view>
     </view>
     <view class="header-right">
-      <view class="user-info" wx:if="{{currentUser}}">
-        <text class="user-name">{{currentUser === 'guest' ? '游客' : currentUser}}</text>
+      <view class="weather-info" wx:if="{{weather}}">
+        <text class="weather-icon">{{weather.weathercode <= 3 ? '☀️' : weather.weathercode <= 50 ? '☁️' : '🌧️'}}</text>
+        <text class="weather-temp">{{weather.temperature}}°C</text>
       </view>
-      <view class="header-actions">
-        <view class="header-btn" bindtap="toggleSettings">⚙️</view>
-        <view class="header-btn logout-btn" bindtap="logout">🚪</view>
-      </view>
+      <view class="header-btn logout-btn" bindtap="logout">🚪</view>
     </view>
   </view>
 

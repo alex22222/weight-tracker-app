@@ -71,9 +71,8 @@
       <!-- 登录选项 -->
       <view class="form-options" wx:if="{{!isRegister}}">
         <view class="remember-me">
-          <checkbox checked="{{rememberMe}}" bindtap="toggleRemember">记住我</checkbox>
+          <text>欢迎使用燃脂俱乐部</text>
         </view>
-        <text class="forgot-link" bindtap="onForgotPassword">忘记密码？</text>
       </view>
 
       <!-- 提交按钮 -->
@@ -91,7 +90,7 @@
 
       <!-- 游客访问 -->
       <button class="btn-guest" bindtap="guestLogin" wx:if="{{!isRegister}}">
-        游客访问
+        快速体验 (使用测试账号)
       </button>
     </view>
   </view>

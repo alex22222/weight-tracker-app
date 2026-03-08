@@ -53,7 +53,8 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
     })
 
-    const userId = user._id || user.id
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userId = (user as any)._id || (user as any).id
     return NextResponse.json(
       { message: '注册成功', user: { id: userId, username: user.username, createdAt: user.createdAt } },
       { status: 201 }

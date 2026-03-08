@@ -10,12 +10,13 @@ export async function GET() {
     const users = await adapter.getAllUsers()
     
     // 移除密码字段，只返回必要信息
-    const safeUsers = users.map(user => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const safeUsers = users.map((user: any) => ({
       id: user._id || user.id,
       username: user.username,
       role: user.role || 'user',
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      lastLoginAt: user.lastLoginAt,
     }))
     
     return NextResponse.json(safeUsers)
