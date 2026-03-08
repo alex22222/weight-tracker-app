@@ -2,22 +2,55 @@
 > weight-tracker-app@1.0.0 dev
 > next dev
 
- ⨯ Failed to start server
-Error: listen EADDRINUSE: address already in use :::54112
-    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
-    at listenInCluster (node:net:1997:12)
-    at Server.listen (node:net:2102:7)
-    at /Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:280:16
-    at new Promise (<anonymous>)
-    at startServer (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:191:11)
-    at /Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:310:52
-    at Span.traceAsyncFn (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/trace/trace.js:154:26)
-    at process.<anonymous> (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:310:35)
-    at process.emit (node:events:508:28) {
-  code: 'EADDRINUSE',
-  errno: -48,
-  syscall: 'listen',
-  address: '::',
-  port: 54112
-}
-[?25h
+  ▲ Next.js 14.2.15
+  - Local:        http://localhost:54112
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1988ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.5s (1563 modules)
+ GET / 200 in 2661ms
+ ✓ Compiled in 155ms (790 modules)
+ ✓ Compiled /_not-found in 344ms (994 modules)
+ GET /_next/static/webpack/38babe25e2911727.webpack.hot-update.json 404 in 405ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled / in 69ms (774 modules)
+ GET / 200 in 178ms
+ ○ Compiling /api/channels ...
+ ✓ Compiled /api/channels in 954ms (1176 modules)
+ GET /api/channels 401 in 1988ms
+ ✓ Compiled /api/auth/login in 180ms (1176 modules)
+ POST /api/auth/login 200 in 363ms
+ ✓ Compiled /api/channels in 239ms (1178 modules)
+ ✓ Compiled (1182 modules)
+ GET /api/channels 200 in 548ms
+ GET /api/weight 200 in 552ms
+ GET /api/weather 200 in 551ms
+ │ GET https://api.open-meteo.c../v1/forecast?latitude=39.904.. 200 in 41ms (cache hit)
+ ✓ Compiled /api/settings in 122ms (1184 modules)
+ GET /api/settings 200 in 255ms
+ ✓ Compiled /api/channels/[id] in 325ms (1186 modules)
+ GET /api/channels/1 200 in 816ms
+ GET /api/channels/1 200 in 33ms
+ ✓ Compiled /api/channels/[id]/stats in 164ms (1188 modules)
+ GET /api/channels/1/stats 200 in 511ms
+ GET /api/channels/1/stats 200 in 11ms
+ ✓ Compiled /api/channels/[id]/checkin in 195ms (1190 modules)
+ GET /api/channels/1/checkin 200 in 500ms
+ GET /api/channels/1/checkin 200 in 8ms
+ ✓ Compiled /api/channels/[id]/comments in 115ms (1192 modules)
+ GET /api/channels/1/comments 200 in 529ms
+ ✓ Compiled /api/channels/[id]/leave in 142ms (1194 modules)
+ GET /api/channels/1/leave 200 in 495ms
+ GET /api/weather 200 in 13ms
+ │ │ GET https://api.open-meteo.c../v1/forecast?latitude=39.904.. 200 in 0ms (cache hit)
+ GET /api/weight 200 in 19ms
+ GET /api/channels 200 in 19ms
+ GET /api/settings 200 in 219ms
+ GET /api/channels/1 200 in 30ms
+ GET /api/channels/1 200 in 13ms
+ GET /api/channels/1/stats 200 in 17ms
+ GET /api/channels/1/stats 200 in 13ms
+ GET /api/channels/1/checkin 200 in 20ms
+ GET /api/channels/1/checkin 200 in 29ms

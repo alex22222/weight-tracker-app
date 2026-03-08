@@ -5,7 +5,7 @@
     <view class="header-left">
       <view class="header-icon">⚖️</view>
       <view class="header-title">
-        <text class="title-main">欢迎「{{userInfo?.username || '用户'}}」进入燃脂俱乐部</text>
+        <text class="title-main">欢迎「{{userInfo.username || '用户'}}」进入燃脂俱乐部</text>
         <view class="channel-info" bindtap="goToChannel">
           <text wx:if="{{activeChannel}}">当前频道：{{activeChannel.name}} ({{activeChannel.status === 'PENDING' ? '未开始' : '进行中'}})</text>
           <text wx:else>暂无进行中的健身频道，点击加入 ></text>

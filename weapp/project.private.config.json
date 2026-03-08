@@ -1,9 +1,9 @@
 {
   "libVersion": "3.14.3",
-  "projectname": "wechat-miniprogram",
+  "projectname": "weapp",
   "condition": {},
   "setting": {
-    "urlCheck": true,
+    "urlCheck": false,
     "coverView": true,
     "lazyloadPlaceholderEnable": false,
     "skylineRenderEnable": false,

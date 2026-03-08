@@ -1,11 +1,12 @@
 <!--pages/channel/channel.wxml-->
+<wxs src="../../utils/util.wxs" module="util" />
 <view class="container">
   <!-- 顶部说明 -->
   <view class="header-section">
     <view class="header-icon">🏃</view>
     <view class="header-content">
       <text class="header-title">健身拼团</text>
-      <text class="header-subtitle">和朋友一起坚持，让运动更有趣</text>
+      <text class="header-subtitle">和朋友一起坚持运动</text>
     </view>
   </view>
 
@@ -32,8 +33,7 @@
       </view>
       <text class="channel-desc" wx:if="{{activeChannel.description}}">{{activeChannel.description}}</text>
       <view class="channel-info">
-        <text class="info-item">📅 {{util.formatShortDate(activeChannel.startDate)}} - {{util.formatShortDate(activeChannel.endDate)}}</text>
-        <text class="info-item">👥 {{activeChannel.memberCount || 1}} 人参与</text>
+        <text class="info-item">📅 {{util.formatShortDate(activeChannel.startDate)}}-{{util.formatShortDate(activeChannel.endDate)}} · 👥 {{activeChannel.memberCount || 1}}人</text>
       </view>
       <view class="channel-rules">
         <text class="rule-tag">每周 {{activeChannel.weeklyCheckInCount}} 次</text>
@@ -65,7 +65,7 @@
         </view>
         <text class="channel-desc" wx:if="{{item.description}}">{{item.description}}</text>
         <view class="channel-info">
-          <text class="info-item">📅 {{util.formatShortDate(item.startDate)}} - {{util.formatShortDate(item.endDate)}}</text>
+          <text class="info-item">📅 {{util.formatShortDate(item.startDate)}}-{{util.formatShortDate(item.endDate)}}</text>
         </view>
       </view>
     </view>
@@ -75,7 +75,7 @@
   <view class="empty-state" wx:if="{{channels.length === 0}}">
     <text class="empty-icon">🏃</text>
     <text class="empty-text">还没有健身频道</text>
-    <text class="empty-subtext">创建一个频道，邀请朋友一起运动打卡吧！</text>
+    <text class="empty-subtext">创建频道，邀请朋友一起运动打卡！</text>
   </view>
 </view>
 

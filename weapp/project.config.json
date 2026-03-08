@@ -47,7 +47,7 @@
     }
   },
   "compileType": "miniprogram",
-  "libVersion": "2.19.4",
+  "libVersion": "3.14.3",
   "appid": "wx431fa506143b082e",
   "projectname": "weight-tracker-wechat",
   "condition": {},

@@ -2,7 +2,7 @@
 const config = {
   // API 基础地址 - 开发环境使用本地服务器
   // 生产环境需要替换为实际域名
-  apiBaseUrl: 'http://localhost:3000/api',
+  apiBaseUrl: 'http://localhost:54112/api',
   
   // 请求超时时间（毫秒）
   timeout: 10000,

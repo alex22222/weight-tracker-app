@@ -26,7 +26,7 @@
       </view>
       <view class="meta-item">
         <text class="meta-icon">👥</text>
-        <text>{{channel.members?.length || 1}} 人参与</text>
+        <text>{{(channel.members.length) || 1}} 人参与</text>
       </view>
     </view>
   </view>
@@ -111,9 +111,9 @@
       </view>
       <view class="member-list">
         <view class="member-item" wx:for="{{channel.members}}" wx:key="userId">
-          <view class="member-avatar">{{item.user?.username?.[0] || '?'}}</view>
+          <view class="member-avatar">{{item.user.username[0] || '?'}}</view>
           <view class="member-info">
-            <text class="member-name">{{item.user?.username || '未知用户'}}</text>
+            <text class="member-name">{{item.user.username || '未知用户'}}</text>
             <text class="member-role" wx:if="{{item.userId === channel.ownerId}}">创建者</text>
           </view>
         </view>
@@ -128,9 +128,9 @@
       <view class="checkin-list" wx:if="{{checkIns.length > 0}}">
         <view class="checkin-item" wx:for="{{checkIns}}" wx:key="id">
           <view class="checkin-left">
-            <view class="checkin-avatar">{{item.user?.username?.[0] || '?'}}</view>
+            <view class="checkin-avatar">{{item.user.username[0] || '?'}}</view>
             <view class="checkin-info">
-              <text class="checkin-user">{{item.user?.username}}</text>
+              <text class="checkin-user">{{item.user.username}}</text>
               <text class="checkin-date">{{item.checkDate}}</text>
             </view>
           </view>
@@ -165,14 +165,14 @@
     <!-- 评论列表 -->
     <view class="comment-list" wx:if="{{comments.length > 0}}">
       <view class="comment-item" wx:for="{{comments}}" wx:key="id">
-        <view class="comment-avatar">{{item.user?.username?.[0] || '?'}}</view>
+        <view class="comment-avatar">{{item.user.username[0] || '?'}}</view>
         <view class="comment-body">
           <view class="comment-header">
-            <text class="comment-user">{{item.user?.username}}</text>
+            <text class="comment-user">{{item.user.username}}</text>
             <text class="comment-time">{{item.createdAt}}</text>
           </view>
           <text class="comment-content">{{item.content}}</text>
-          <view class="comment-actions" wx:if="{{item.userId === userInfo?.id}}">
+          <view class="comment-actions" wx:if="{{item.userId === userInfo.id}}">
             <text class="comment-delete" bindtap="deleteComment" data-id="{{item.id}}">删除</text>
           </view>
         </view>
@@ -220,8 +220,8 @@
         <view class="leave-item" wx:for="{{leaves}}" wx:key="id">
           <view class="leave-header">
             <view class="leave-user">
-              <view class="leave-avatar">{{item.user?.username?.[0] || '?'}}</view>
-              <text>{{item.user?.username}}</text>
+              <view class="leave-avatar">{{item.user.username[0] || '?'}}</view>
+              <text>{{item.user.username}}</text>
             </view>
             <view class="leave-status" style="background: {{getLeaveStatusColor(item.status)}};">
               {{getLeaveStatusText(item.status)}}
