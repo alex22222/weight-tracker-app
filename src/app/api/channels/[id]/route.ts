@@ -37,6 +37,26 @@ export async function GET(
       return NextResponse.json({ error: '频道不存在' }, { status: 404 })
     }
 
+    // 根据日期自动判断实时状态
+    const now = new Date()
+    const startDate = new Date(channel.startDate)
+    const endDate = new Date(channel.endDate)
+    let realTimeStatus = channel.status
+    
+    if (now < startDate) {
+      realTimeStatus = 'PENDING'
+    } else if (now >= startDate && now <= endDate) {
+      realTimeStatus = 'ACTIVE'
+    } else {
+      realTimeStatus = 'COMPLETED'
+    }
+    
+    // 返回带实时状态的频道数据
+    const channelWithRealTimeStatus = {
+      ...channel,
+      status: realTimeStatus
+    }
+
     // 检查是否是成员或创建者
     const ownerId = (channel as any).ownerId || (channel as any).owner?.id
     const isMember = await adapter.isChannelMember(channelId, user.userId)
@@ -45,7 +65,7 @@ export async function GET(
       return NextResponse.json({ error: '无权访问该频道' }, { status: 403 })
     }
 
-    return NextResponse.json({ channel })
+    return NextResponse.json({ channel: channelWithRealTimeStatus })
   } catch (error) {
     console.error('Error getting channel:', error)
     return NextResponse.json({ error: '获取频道详情失败' }, { status: 500 })

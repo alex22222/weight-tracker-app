@@ -159,7 +159,9 @@
         value="{{commentText}}"
         bindinput="onCommentInput"
       />
-      <view class="send-btn" bindtap="submitComment">发送</view>
+      <view class="send-btn {{isSubmittingComment ? 'disabled' : ''}}" bindtap="{{isSubmittingComment ? '' : 'submitComment'}}">
+        {{isSubmittingComment ? '⏳' : '发送'}}
+      </view>
     </view>
 
     <!-- 评论列表 -->
@@ -282,8 +284,10 @@
     </view>
     
     <view class="modal-footer">
-      <button class="btn-secondary flex-1" bindtap="hideCheckInModal">取消</button>
-      <button class="btn-primary flex-1" bindtap="submitCheckIn">确认打卡</button>
+      <button class="btn-secondary flex-1" bindtap="hideCheckInModal" disabled="{{isSubmittingCheckIn}}">取消</button>
+      <button class="btn-primary flex-1" bindtap="submitCheckIn" disabled="{{isSubmittingCheckIn}}">
+        {{isSubmittingCheckIn ? '⏳ 提交中...' : '确认打卡'}}
+      </button>
     </view>
   </view>
 </view>
@@ -367,7 +371,9 @@
     
     <view class="modal-footer">
       <button class="btn-secondary flex-1" bindtap="hideLeaveModal">取消</button>
-      <button class="btn-primary flex-1" bindtap="submitLeave">提交申请</button>
+      <button class="btn-primary flex-1" bindtap="submitLeave" disabled="{{isSubmittingLeave}}">
+        {{isSubmittingLeave ? '⏳ 提交中...' : '提交申请'}}
+      </button>
     </view>
   </view>
 </view>

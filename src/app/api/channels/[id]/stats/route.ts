@@ -50,9 +50,10 @@ export async function GET(
     const channelStats = await adapter.getChannelWeeklyStats(channelId)
 
     return NextResponse.json({
-      myWeeklyCount: weeklyCount,
+      weeklyCount: weeklyCount,
       weeklyRequired: (channel as any).weeklyCheckInCount || 3,
       checkInMinutes: (channel as any).checkInMinutes || 30,
+      maxLeaveDays: (channel as any).maxLeaveDays ?? 3,
       remaining: Math.max(0, ((channel as any).weeklyCheckInCount || 3) - weeklyCount),
       allMembers: channelStats?.members || [],
     })

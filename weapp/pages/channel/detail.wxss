@@ -418,6 +418,10 @@
   font-weight: 500;
 }
 
+.send-btn.disabled {
+  opacity: 0.6;
+}
+
 .comment-list {
   background: white;
   border-radius: 20rpx;

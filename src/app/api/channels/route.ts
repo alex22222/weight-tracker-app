@@ -28,7 +28,29 @@ export async function GET(request: NextRequest) {
     }
 
     const channels = await adapter.getFitnessChannelsByUser(user.userId)
-    return NextResponse.json({ channels })
+    
+    // 根据日期自动判断每个频道的实时状态
+    const now = new Date()
+    const channelsWithRealTimeStatus = channels.map((channel: any) => {
+      const startDate = new Date(channel.startDate)
+      const endDate = new Date(channel.endDate)
+      let realTimeStatus = channel.status
+      
+      if (now < startDate) {
+        realTimeStatus = 'PENDING'
+      } else if (now >= startDate && now <= endDate) {
+        realTimeStatus = 'ACTIVE'
+      } else {
+        realTimeStatus = 'COMPLETED'
+      }
+      
+      return {
+        ...channel,
+        status: realTimeStatus
+      }
+    })
+    
+    return NextResponse.json({ channels: channelsWithRealTimeStatus })
   } catch (error) {
     console.error('Error getting channels:', error)
     return NextResponse.json({ error: '获取频道列表失败' }, { status: 500 })

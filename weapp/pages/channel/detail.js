@@ -14,6 +14,11 @@ Page({
     isOwner: false,
     activeTab: 'checkin', // checkin | comment | leave
     
+    // 加载状态
+    isSubmittingCheckIn: false,
+    isSubmittingComment: false,
+    isSubmittingLeave: false,
+    
     // 打卡弹窗
     showCheckInModal: false,
     checkInData: {
@@ -63,9 +68,10 @@ Page({
       const { channelId, activeTab } = this.data
       
       // 获取频道详情
-      const channel = await app.request({
+      const channelResult = await app.request({
         url: `/channels/${channelId}`
       })
+      const channel = channelResult.channel || channelResult
       
       // 获取每周统计
       const stats = await app.request({
@@ -73,16 +79,17 @@ Page({
       })
       
       // 获取打卡记录
-      const checkIns = await app.request({
+      const checkInsResult = await app.request({
         url: `/channels/${channelId}/checkin`
       })
+      const checkIns = checkInsResult.checkIns || checkInsResult || []
       
       const isOwner = channel.ownerId === app.globalData.userInfo?.id
       
       this.setData({
         channel,
         weeklyStats: stats,
-        checkIns: checkIns.checkIns || [],
+        checkIns: checkIns,
         isOwner
       })
 
@@ -207,14 +214,15 @@ Page({
   // 显示打卡弹窗
   showCheckInModal() {
     const { channel } = this.data
-    if (channel.status !== 'ACTIVE') {
+    if (channel.status === 'COMPLETED') {
       wx.showToast({
-        title: '频道未开始或已结束',
+        title: '频道已结束',
         icon: 'none'
       })
       return
     }
     
+    // PENDING 和 ACTIVE 状态都允许打卡
     this.setData({ 
       showCheckInModal: true,
       'checkInData.date': util.getTodayString(),
@@ -252,12 +260,14 @@ Page({
       return
     }
 
+    this.setData({ isSubmittingCheckIn: true })
+
     try {
       await app.request({
         url: `/channels/${channelId}/checkin`,
         method: 'POST',
         data: {
-          date: checkInData.date,
+          checkDate: checkInData.date,
           duration: checkInData.duration,
           note: checkInData.note
         }
@@ -268,7 +278,7 @@ Page({
         icon: 'success'
       })
 
-      this.setData({ showCheckInModal: false }, () => {
+      this.setData({ showCheckInModal: false, isSubmittingCheckIn: false }, () => {
         this.loadChannelDetail()
       })
     } catch (err) {
@@ -276,6 +286,7 @@ Page({
         title: err.message || '打卡失败',
         icon: 'none'
       })
+      this.setData({ isSubmittingCheckIn: false })
     }
   },
 
@@ -290,10 +301,14 @@ Page({
       
       // 过滤已经是成员的好友
       const { channel } = this.data
-      const memberIds = channel.members?.map(m => m.userId) || []
-      const availableFriends = result.friends?.filter(
+      if (!channel) {
+        this.setData({ friends: [], selectedFriends: [] })
+        return
+      }
+      const memberIds = (channel.members || []).map(m => m.userId || m.id)
+      const availableFriends = (result.friends || []).filter(
         f => f.status === 'ACCEPTED' && !memberIds.includes(f.id)
-      ) || []
+      )
       
       this.setData({ 
         friends: availableFriends,
@@ -402,6 +417,8 @@ Page({
       return
     }
 
+    this.setData({ isSubmittingComment: true })
+
     try {
       await app.request({
         url: `/channels/${channelId}/comments`,
@@ -414,13 +431,14 @@ Page({
         icon: 'success'
       })
 
-      this.setData({ commentText: '' })
+      this.setData({ commentText: '', isSubmittingComment: false })
       this.loadComments()
     } catch (err) {
       wx.showToast({
         title: err.message || '评论失败',
         icon: 'none'
       })
+      this.setData({ isSubmittingComment: false })
     }
   },
 
@@ -526,6 +544,8 @@ Page({
       return
     }
 
+    this.setData({ isSubmittingLeave: true })
+
     try {
       await app.request({
         url: `/channels/${channelId}/leave`,
@@ -542,7 +562,7 @@ Page({
         icon: 'success'
       })
 
-      this.setData({ showLeaveModal: false }, () => {
+      this.setData({ showLeaveModal: false, isSubmittingLeave: false }, () => {
         this.loadLeaves()
       })
     } catch (err) {
@@ -550,6 +570,7 @@ Page({
         title: err.message || '申请失败',
         icon: 'none'
       })
+      this.setData({ isSubmittingLeave: false })
     }
   },
 

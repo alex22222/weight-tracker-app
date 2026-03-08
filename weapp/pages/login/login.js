@@ -14,7 +14,16 @@ Page({
   onLoad() {
     // 检查是否已登录
     if (app.globalData.isLoggedIn) {
-      wx.switchTab({
+      wx.reLaunch({
+        url: '/pages/index/index'
+      })
+    }
+  },
+
+  onShow() {
+    // 每次显示页面时检查登录状态
+    if (app.globalData.isLoggedIn) {
+      wx.reLaunch({
         url: '/pages/index/index'
       })
     }
@@ -63,6 +72,23 @@ Page({
       return
     }
 
+    // 检查网络状态
+    try {
+      const networkType = await new Promise((resolve) => {
+        wx.getNetworkType({
+          success: (res) => resolve(res.networkType),
+          fail: () => resolve('unknown')
+        })
+      })
+      
+      if (networkType === 'none') {
+        this.setData({ error: '网络连接不可用，请检查网络设置' })
+        return
+      }
+    } catch (e) {
+      console.error('检查网络状态失败:', e)
+    }
+
     this.setData({ isLoading: true, error: '' })
 
     try {
@@ -87,7 +113,8 @@ Page({
         this.setData({
           isRegister: false,
           password: '',
-          confirmPassword: ''
+          confirmPassword: '',
+          isLoading: false
         })
       } else {
         // 登录
@@ -107,23 +134,37 @@ Page({
         })
         
         setTimeout(() => {
-          wx.switchTab({
+          wx.reLaunch({
             url: '/pages/index/index'
           })
         }, 500)
       }
     } catch (err) {
-      this.setData({ error: err.message || '请求失败，请检查网络' })
-    } finally {
-      this.setData({ isLoading: false })
+      this.setData({ 
+        error: err.message || '请求失败，请检查网络',
+        isLoading: false 
+      })
     }
   },
 
   // 游客登录（使用默认账号）
   async guestLogin() {
-    this.setData({ isLoading: true })
+    this.setData({ isLoading: true, error: '' })
     
     try {
+      // 检查网络状态
+      const networkType = await new Promise((resolve) => {
+        wx.getNetworkType({
+          success: (res) => resolve(res.networkType),
+          fail: () => resolve('unknown')
+        })
+      })
+      
+      if (networkType === 'none') {
+        this.setData({ error: '网络连接不可用，请检查网络设置', isLoading: false })
+        return
+      }
+
       const result = await app.request({
         url: '/auth/login',
         method: 'POST',
@@ -139,14 +180,15 @@ Page({
       })
       
       setTimeout(() => {
-        wx.switchTab({
+        wx.reLaunch({
           url: '/pages/index/index'
         })
       }, 500)
     } catch (err) {
-      this.setData({ error: '游客登录失败' })
-    } finally {
-      this.setData({ isLoading: false })
+      this.setData({ 
+        error: err.message || '游客登录失败',
+        isLoading: false 
+      })
     }
   }
 })

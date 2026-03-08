@@ -5,7 +5,7 @@
     <view class="header-left">
       <view class="header-icon">⚖️</view>
       <view class="header-title">
-        <text class="title-main">欢迎「{{userInfo.username || '用户'}}」进入燃脂俱乐部</text>
+        <text class="title-main">欢迎「{{userInfo.username || '用户'}}」</text>
         <view class="channel-info" bindtap="goToChannel">
           <text wx:if="{{activeChannel}}">当前频道：{{activeChannel.name}} ({{activeChannel.status === 'PENDING' ? '未开始' : '进行中'}})</text>
           <text wx:else>暂无进行中的健身频道，点击加入 ></text>
@@ -108,8 +108,9 @@
       </view>
     </view>
     
-    <button class="btn-primary mt-3" bindtap="addEntry" disabled="{{!weight}}">
-      <text>➕ 添加记录</text>
+    <button class="btn-primary mt-3" bindtap="addEntry" disabled="{{!weight || isLoading}}">
+      <text wx:if="{{isLoading}}">⏳ 保存中...</text>
+      <text wx:else>➕ 添加记录</text>
     </button>
   </view>
 
@@ -149,6 +150,12 @@
           bindinput="onTargetWeightInput"
         />
       </view>
+      <view class="form-item form-item-full">
+        <text class="form-label">性别</text>
+        <picker mode="selector" range="{{['男', '女', '其他']}}" value="{{tempGender === 'male' ? 0 : tempGender === 'female' ? 1 : 2}}" bindchange="onGenderChange">
+          <view class="input picker-input">{{tempGender === 'male' ? '男' : tempGender === 'female' ? '女' : '其他'}}</view>
+        </picker>
+      </view>
     </view>
     <view class="flex gap-2 mt-3">
       <button class="btn-secondary flex-1" bindtap="toggleSettings">
@@ -165,5 +172,18 @@
     <button class="btn-secondary" bindtap="toggleSettings">
       <text>⚙️ 个人设置</text>
     </button>
+  </view>
+
+  <!-- 分享按钮 -->
+  <view class="card share-card" wx:if="{{!showSettings}}">
+    <view class="share-content">
+      <view class="share-text">
+        <text class="share-title">邀请好友一起健身</text>
+        <text class="share-desc">分享给你的微信好友，一起记录体重变化</text>
+      </view>
+      <button class="btn-share" open-type="share">
+        <text>📤 分享给好友</text>
+      </button>
+    </view>
   </view>
 </view>

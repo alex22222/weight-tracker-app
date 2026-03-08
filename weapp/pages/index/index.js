@@ -4,6 +4,9 @@ const app = getApp()
 
 Page({
   data: {
+    // 加载状态
+    isLoading: false,
+    
     // 表单数据
     weight: '',
     note: '',
@@ -16,7 +19,9 @@ Page({
     },
     tempHeight: '170',
     tempTargetWeight: '65',
+    tempGender: 'other',
     showSettings: false,
+    gender: 'other',
 
     // 统计数据
     entries: [],
@@ -68,7 +73,10 @@ Page({
   },
 
   onReady() {
-    this.drawChart()
+    // 数据加载完成后再绘制图表
+    if (this.data.chartData.length > 0) {
+      this.drawChart()
+    }
   },
 
   // 加载数据
@@ -85,6 +93,7 @@ Page({
       })
       
       const settings = settingsResult.settings || { height: 170, targetWeight: 65 }
+      const gender = settingsResult.user?.gender || 'other'
       
       // 按日期降序排序
       entries.sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -108,8 +117,10 @@ Page({
       this.setData({
         entries,
         settings,
+        gender,
         tempHeight: String(settings.height),
         tempTargetWeight: String(settings.targetWeight),
+        tempGender: gender,
         currentWeight,
         bmi,
         bmiCategory,
@@ -183,6 +194,12 @@ Page({
     this.setData({ tempTargetWeight: e.detail.value })
   },
 
+  // 性别选择
+  onGenderChange(e) {
+    const genders = ['male', 'female', 'other']
+    this.setData({ tempGender: genders[e.detail.value] })
+  },
+
   // 添加记录
   async addEntry() {
     const weight = parseFloat(this.data.weight)
@@ -194,6 +211,8 @@ Page({
       })
       return
     }
+
+    this.setData({ isLoading: true })
 
     try {
       await app.request({
@@ -215,14 +234,17 @@ Page({
         weight: '',
         note: '',
         date: util.getTodayString()
-      }, () => {
-        this.loadData()
       })
+      
+      // 立即刷新数据
+      await this.loadData()
     } catch (err) {
       wx.showToast({
         title: err.message || '记录失败',
         icon: 'none'
       })
+    } finally {
+      this.setData({ isLoading: false })
     }
   },
 
@@ -250,10 +272,18 @@ Page({
     }
 
     try {
+      // 保存身高和目标体重
       await app.request({
         url: '/settings',
         method: 'POST',
         data: { height, targetWeight }
+      })
+
+      // 保存性别
+      await app.request({
+        url: '/settings',
+        method: 'PATCH',
+        data: { gender: this.data.tempGender }
       })
 
       wx.showToast({
@@ -261,9 +291,8 @@ Page({
         icon: 'success'
       })
 
-      this.setData({ showSettings: false }, () => {
-        this.loadData()
-      })
+      this.setData({ showSettings: false })
+      await this.loadData()
     } catch (err) {
       wx.showToast({
         title: err.message || '保存失败',
@@ -419,5 +448,38 @@ Page({
 
   onChartTouch() {
     // 图表触摸交互可以在这里扩展
+  },
+
+  // 分享给好友
+  onShareAppMessage() {
+    const { userInfo } = this.data
+    const username = userInfo?.username || '好友'
+    
+    return {
+      title: `${username} 邀请你一起记录体重，坚持健身！`,
+      path: '/pages/login/login',
+      imageUrl: '/images/share-cover.png'
+    }
+  },
+
+  // 分享到朋友圈（需要基础库 2.11.3+）
+  onShareTimeline() {
+    const { userInfo } = this.data
+    const username = userInfo?.username || '好友'
+    
+    return {
+      title: `${username} 正在用体重管理器记录体重变化，邀请你一起加入！`,
+      query: 'from=timeline'
+    }
+  },
+
+  // 显示分享提示
+  showShareTips() {
+    wx.showModal({
+      title: '分享给好友',
+      content: '点击右上角「···」按钮，选择「转发」即可分享给微信好友',
+      showCancel: false,
+      confirmText: '知道了'
+    })
   }
 })
