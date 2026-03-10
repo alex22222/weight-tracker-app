@@ -53,7 +53,7 @@ App({
         timeout: config.timeout,
         success: (res) => {
           console.log(`[响应] ${method} ${url}:`, res.statusCode, res.data)
-          if (res.statusCode === 200) {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(res.data)
           } else if (res.statusCode === 401) {
             // Token 过期，清除登录状态
