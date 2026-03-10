@@ -54,6 +54,15 @@ export async function POST(request: NextRequest) {
       data: {
         username,
         password: hashedPassword,
+        settings: {
+          create: {
+            height: 170,
+            targetWeight: 65,
+            gender: 'male',
+            age: 25,
+            avatar: '',
+          }
+        }
       },
       select: {
         id: true,

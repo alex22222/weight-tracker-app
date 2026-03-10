@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts'
-import { Trash2, Plus, Settings, TrendingDown, TrendingUp, Minus, Activity, Target, Scale, LogOut } from 'lucide-react'
+import { Trash2, Plus, Settings, TrendingDown, TrendingUp, Minus, Activity, Target, Scale, LogOut, User, X, Camera, Sparkles } from 'lucide-react'
 import { calculateBMI, getBMICategory, getBMIColors, formatShortDate } from '../lib/utils'
 
 interface DashboardProps {
   onLogout: () => void
+  username?: string
+  userId: number | null
 }
 
 interface WeightEntry {
@@ -21,25 +23,71 @@ interface ChartData {
   weight: number
 }
 
-export default function Dashboard({ onLogout }: DashboardProps) {
+interface UserSettings {
+  height: number
+  targetWeight: number
+  gender: string
+  age: number
+  avatar: string
+}
+
+// 默认头像 SVG
+const DefaultAvatar = () => (
+  <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center">
+    <User className="w-1/2 h-1/2 text-white" />
+  </div>
+)
+
+// 计算建议体重（基于身高、性别、年龄）
+function calculateRecommendedWeight(height: number, gender: string, age: number): number {
+  // 基础标准体重计算公式
+  // 男性：(身高 - 80) × 0.7
+  // 女性：(身高 - 70) × 0.6
+  let baseWeight = gender === 'male' 
+    ? (height - 80) * 0.7 
+    : (height - 70) * 0.6
+  
+  // 年龄调整
+  let ageAdjustment = 0
+  if (age < 18) {
+    ageAdjustment = -2 // 青少年稍轻
+  } else if (age >= 26 && age <= 40) {
+    ageAdjustment = 1 // 中年稍重
+  } else if (age > 40 && age <= 60) {
+    ageAdjustment = 2 // 中老年
+  } else if (age > 60) {
+    ageAdjustment = 1 // 老年人体重略降
+  }
+  
+  return Math.round((baseWeight + ageAdjustment) * 10) / 10
+}
+
+export default function Dashboard({ onLogout, username = '用户', userId }: DashboardProps) {
   const [entries, setEntries] = useState<WeightEntry[]>([])
-  const [settings, setSettings] = useState({ height: 170, targetWeight: 65 })
+  const [settings, setSettings] = useState<UserSettings>({ height: 170, targetWeight: 65, gender: 'male', age: 25, avatar: '' })
   const [weight, setWeight] = useState('')
   const [note, setNote] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [showSettings, setShowSettings] = useState(false)
+  const [showProfile, setShowProfile] = useState(false)
   const [height, setHeight] = useState('170')
   const [targetWeight, setTargetWeight] = useState('65')
+  const [gender, setGender] = useState('male')
+  const [age, setAge] = useState('25')
+  const [avatar, setAvatar] = useState('')
 
   // 加载数据
   useEffect(() => {
-    fetchEntries()
-    fetchSettings()
-  }, [])
+    if (userId !== null) {
+      fetchEntries()
+      fetchSettings()
+    }
+  }, [userId])
 
   const fetchEntries = async () => {
+    if (userId === null) return
     try {
-      const res = await fetch('/api/weight')
+      const res = await fetch(`/api/weight?userId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setEntries(data)
@@ -50,13 +98,17 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   }
 
   const fetchSettings = async () => {
+    if (userId === null) return
     try {
-      const res = await fetch('/api/settings')
+      const res = await fetch(`/api/settings?userId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setSettings(data)
         setHeight(String(data.height))
         setTargetWeight(String(data.targetWeight))
+        setGender(data.gender || 'male')
+        setAge(String(data.age || 25))
+        setAvatar(data.avatar || '')
       }
     } catch (error) {
       console.error('Error fetching settings:', error)
@@ -64,6 +116,10 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   }
 
   const handleAddEntry = async () => {
+    if (userId === null) {
+      alert('请先登录')
+      return
+    }
     const weightNum = parseFloat(weight)
     if (isNaN(weightNum) || weightNum <= 0 || weightNum > 500) {
       alert('请输入有效的体重值')
@@ -74,7 +130,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       const res = await fetch('/api/weight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ weight: weightNum, note, date }),
+        body: JSON.stringify({ weight: weightNum, note, date, userId }),
       })
 
       if (res.ok) {
@@ -89,10 +145,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   }
 
   const handleDelete = async (id: number) => {
+    if (userId === null) {
+      alert('请先登录')
+      return
+    }
     if (!confirm('确定要删除这条记录吗？')) return
 
     try {
-      const res = await fetch(`/api/weight?id=${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/weight?id=${id}&userId=${userId}`, { method: 'DELETE' })
       if (res.ok) {
         await fetchEntries()
       }
@@ -102,11 +162,14 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   }
 
   const handleUpdateSettings = async () => {
-    const heightNum = parseFloat(height)
+    if (userId === null) {
+      alert('请先登录')
+      return
+    }
     const targetNum = parseFloat(targetWeight)
 
-    if (isNaN(heightNum) || heightNum <= 0 || isNaN(targetNum) || targetNum <= 0) {
-      alert('请输入有效的数值')
+    if (isNaN(targetNum) || targetNum <= 0) {
+      alert('请输入有效的目标体重')
       return
     }
 
@@ -114,7 +177,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ height: heightNum, targetWeight: targetNum }),
+        body: JSON.stringify({ userId, targetWeight: targetNum }),
       })
 
       if (res.ok) {
@@ -125,6 +188,47 @@ export default function Dashboard({ onLogout }: DashboardProps) {
       console.error('Error updating settings:', error)
     }
   }
+
+  const handleUpdateProfile = async () => {
+    if (userId === null) {
+      alert('请先登录')
+      return
+    }
+    const heightNum = parseFloat(height)
+    const ageNum = parseInt(age)
+
+    if (isNaN(heightNum) || heightNum <= 0) {
+      alert('请输入有效的身高')
+      return
+    }
+    if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
+      alert('请输入有效的年龄（1-120）')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, height: heightNum, gender, age: ageNum, avatar }),
+      })
+
+      if (res.ok) {
+        await fetchSettings()
+        setShowProfile(false)
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error)
+    }
+  }
+
+  // 计算建议体重（基于当前设置）
+  const recommendedWeight = useMemo(() => {
+    if (settings.height && settings.age) {
+      return calculateRecommendedWeight(settings.height, settings.gender, settings.age)
+    }
+    return null
+  }, [settings])
 
   const latestEntry = entries[0]
   const currentWeight = latestEntry?.weight || 0
@@ -137,6 +241,24 @@ export default function Dashboard({ onLogout }: DashboardProps) {
     date: formatShortDate(e.date),
     weight: e.weight,
   }))
+
+  // 获取头像显示内容
+  const getAvatarDisplay = () => {
+    if (settings.avatar) {
+      return (
+        <img 
+          src={settings.avatar} 
+          alt="头像" 
+          className="w-full h-full object-cover rounded-full"
+          onError={(e) => {
+            // 图片加载失败时显示默认头像
+            e.currentTarget.style.display = 'none'
+          }}
+        />
+      )
+    }
+    return <DefaultAvatar />
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/30">
@@ -153,7 +275,18 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                 <p className="text-xs text-slate-500">Weight Tracker</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {/* 用户名和头像 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-700 hidden sm:block">{username}</span>
+                <button
+                  onClick={() => setShowProfile(true)}
+                  className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-200 hover:border-emerald-400 transition-colors shadow-sm"
+                  title="编辑个人资料"
+                >
+                  {getAvatarDisplay()}
+                </button>
+              </div>
               <button
                 onClick={() => setShowSettings(!showSettings)}
                 className="p-2 bg-slate-100 hover:bg-emerald-100 rounded-xl transition-colors"
@@ -231,7 +364,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
               <span className="text-4xl font-bold text-slate-800">{settings.targetWeight}</span>
               <span className="text-slate-500">kg</span>
             </div>
-            <p className="text-sm text-slate-400 mt-2">身高: {settings.height} cm</p>
+            <p className="text-sm text-slate-400 mt-2">身高: {settings.height} cm · {settings.gender === 'male' ? '男' : '女'} · {settings.age}岁</p>
           </div>
         </div>
 
@@ -332,17 +465,8 @@ export default function Dashboard({ onLogout }: DashboardProps) {
 
           {showSettings && (
             <div className="mb-6 p-4 bg-slate-50 rounded-xl">
-              <h3 className="font-medium text-slate-800 mb-3">个人设置</h3>
+              <h3 className="font-medium text-slate-800 mb-3">体重目标设置</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-2">身高 (cm)</label>
-                  <input
-                    type="number"
-                    value={height}
-                    onChange={(e) => setHeight(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-2">目标体重 (kg)</label>
                   <input
@@ -353,12 +477,25 @@ export default function Dashboard({ onLogout }: DashboardProps) {
                     className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
                   />
                 </div>
+                <div className="flex items-end">
+                  {recommendedWeight && (
+                    <div className="text-sm text-slate-600">
+                      <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                        <Sparkles className="w-4 h-4" />
+                        建议体重: {recommendedWeight} kg
+                      </span>
+                      <p className="text-xs text-slate-400 mt-1">
+                        基于您的身高 {settings.height}cm、{settings.gender === 'male' ? '男' : '女'}、{settings.age}岁
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
               <button
                 onClick={handleUpdateSettings}
                 className="mt-4 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all"
               >
-                保存设置
+                保存目标
               </button>
             </div>
           )}
@@ -403,6 +540,129 @@ export default function Dashboard({ onLogout }: DashboardProps) {
           )}
         </div>
       </main>
+
+      {/* 个人资料编辑弹窗 */}
+      {showProfile && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-800">编辑个人资料</h3>
+              <button
+                onClick={() => setShowProfile(false)}
+                className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-5">
+              {/* 头像预览和输入 */}
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-emerald-100 shadow-lg">
+                  {avatar ? (
+                    <img 
+                      src={avatar} 
+                      alt="头像预览" 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  ) : (
+                    <DefaultAvatar />
+                  )}
+                </div>
+                <div className="w-full">
+                  <label className="block text-sm font-medium text-slate-600 mb-2">
+                    头像链接 <span className="text-slate-400 font-normal">（可选，留空使用默认头像）</span>
+                  </label>
+                  <div className="relative">
+                    <Camera className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      type="text"
+                      value={avatar}
+                      onChange={(e) => setAvatar(e.target.value)}
+                      placeholder="https://example.com/avatar.jpg"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                    />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    支持图片链接，如微信头像链接、Gravatar 等
+                  </p>
+                </div>
+              </div>
+
+              {/* 性别选择 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-2">性别</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setGender('male')}
+                    className={`py-3 px-4 rounded-xl border-2 transition-all ${
+                      gender === 'male'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 hover:border-emerald-200 text-slate-600'
+                    }`}
+                  >
+                    男
+                  </button>
+                  <button
+                    onClick={() => setGender('female')}
+                    className={`py-3 px-4 rounded-xl border-2 transition-all ${
+                      gender === 'female'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 hover:border-emerald-200 text-slate-600'
+                    }`}
+                  >
+                    女
+                  </button>
+                </div>
+              </div>
+
+              {/* 年龄 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-2">年龄 (岁)</label>
+                <input
+                  type="number"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  placeholder="25"
+                  min="1"
+                  max="120"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                />
+              </div>
+
+              {/* 身高 */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-2">身高 (cm)</label>
+                <input
+                  type="number"
+                  value={height}
+                  onChange={(e) => setHeight(e.target.value)}
+                  placeholder="170"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+              <button
+                onClick={() => setShowProfile(false)}
+                className="flex-1 py-3 px-4 bg-white border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleUpdateProfile}
+                className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl transition-all"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

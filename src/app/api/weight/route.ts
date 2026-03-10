@@ -2,10 +2,21 @@ import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { prisma } from '../../../lib/db'
 
-// GET /api/weight - 获取所有体重记录
-export async function GET() {
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
+// GET /api/weight?userId={userId} - 获取用户的体重记录
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+
+    if (!userId || isNaN(parseInt(userId))) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    }
+
     const entries = await prisma.weightEntry.findMany({
+      where: { userId: parseInt(userId) },
       orderBy: { date: 'desc' },
     })
     return NextResponse.json(entries)
@@ -19,10 +30,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { weight, note, date } = body
+    const { weight, note, date, userId } = body
 
     if (!weight || isNaN(parseFloat(weight))) {
       return NextResponse.json({ error: 'Invalid weight value' }, { status: 400 })
+    }
+
+    if (!userId || isNaN(parseInt(userId))) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
     const entry = await prisma.weightEntry.create({
@@ -30,6 +45,7 @@ export async function POST(request: NextRequest) {
         weight: parseFloat(weight),
         note: note || null,
         date: date ? new Date(date) : new Date(),
+        userId: parseInt(userId),
       },
     })
 
@@ -40,14 +56,28 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE /api/weight?id={id} - 删除体重记录
+// DELETE /api/weight?id={id}&userId={userId} - 删除体重记录
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
+    const userId = searchParams.get('userId')
 
     if (!id || isNaN(parseInt(id))) {
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
+    }
+
+    if (!userId || isNaN(parseInt(userId))) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    }
+
+    // 验证记录是否属于该用户
+    const entry = await prisma.weightEntry.findFirst({
+      where: { id: parseInt(id), userId: parseInt(userId) },
+    })
+
+    if (!entry) {
+      return NextResponse.json({ error: 'Entry not found or access denied' }, { status: 404 })
     }
 
     await prisma.weightEntry.delete({

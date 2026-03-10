@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Scale, Activity, TrendingUp, User, Lock, ChevronRight, UserPlus, ArrowLeft } from 'lucide-react'
 
 interface LoginPageProps {
-  onLogin: () => void
+  onLogin: (username?: string, userId?: number, rememberMe?: boolean) => Promise<void> | void
 }
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
@@ -12,6 +12,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -67,7 +68,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         }
 
         // 登录成功
-        onLogin()
+        onLogin(username, data.user.id, rememberMe)
       }
     } catch (err) {
       setError('网络错误，请稍后重试')
@@ -81,6 +82,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setError('')
     setPassword('')
     setConfirmPassword('')
+    setRememberMe(false)
   }
 
   return (
@@ -189,8 +191,13 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             {!isRegister && (
               <div className="flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" />
-                  <span className="text-slate-600">记住我</span>
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" 
+                  />
+                  <span className="text-slate-600">记住我（7天）</span>
                 </label>
                 <button type="button" className="text-emerald-600 hover:text-emerald-700 font-medium">
                   忘记密码？
@@ -251,7 +258,20 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           {/* 游客访问 */}
           {!isRegister && (
             <button
-              onClick={onLogin}
+              onClick={async () => {
+                // 创建临时游客用户
+                try {
+                  const res = await fetch('/api/auth/guest', { method: 'POST' })
+                  if (res.ok) {
+                    const data = await res.json()
+                    onLogin(data.user.username, data.user.id)
+                  } else {
+                    alert('游客登录失败')
+                  }
+                } catch (err) {
+                  alert('网络错误')
+                }
+              }}
               className="w-full mt-4 py-3.5 text-slate-500 font-medium rounded-xl hover:text-slate-700 transition-all duration-200"
             >
               游客访问

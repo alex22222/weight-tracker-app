@@ -7,26 +7,127 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            Int            @id @default(autoincrement())
+  username      String         @unique
+  password      String
+  gender        String         @default("other")
+  avatar        String         @default("")
+  lastLoginAt   DateTime?
+  weightEntries WeightEntry[]
+  settings      UserSettings?
+  messages      Message[]
+  sentFriends   Friend[]       @relation("SentFriends")
+  receivedFriends Friend[]     @relation("ReceivedFriends")
+  createdChannels FitnessChannel[]
+  channelMembers ChannelMember[]
+  checkIns      CheckIn[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
 model WeightEntry {
   id        Int      @id @default(autoincrement())
   weight    Float
   note      String?
   date      DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-}
 
-model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  @@index([userId])
 }
 
 model UserSettings {
   id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   height       Float    @default(170)
   targetWeight Float    @default(65)
+  gender       String   @default("male")
+  age          Int      @default(25)
+  avatar       String   @default("")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  sender     User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId Int?
+  channelId  Int?
+  content    String
+  type       String   @default("CHANNEL_CHAT")
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([channelId])
+}
+
+model Friend {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation("SentFriends", fields: [userId], references: [id], onDelete: Cascade)
+  friendId  Int
+  friend    User     @relation("ReceivedFriends", fields: [friendId], references: [id], onDelete: Cascade)
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([friendId])
+  @@unique([userId, friendId])
+}
+
+model FitnessChannel {
+  id              Int             @id @default(autoincrement())
+  name            String
+  description     String          @default("")
+  creatorId       Int
+  creator         User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  targetDays      Int             @default(30)
+  targetCheckIns  Int             @default(20)
+  status          String          @default("ACTIVE")
+  members         ChannelMember[]
+  checkIns        CheckIn[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([creatorId])
+}
+
+model ChannelMember {
+  id        Int            @id @default(autoincrement())
+  channelId Int
+  channel   FitnessChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String         @default("MEMBER")
+  joinedAt  DateTime       @default(now())
+
+  @@index([channelId])
+  @@index([userId])
+  @@unique([channelId, userId])
+}
+
+model CheckIn {
+  id        Int            @id @default(autoincrement())
+  channelId Int
+  channel   FitnessChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkDate DateTime
+  duration  Int            @default(30)
+  note      String?
+  imageUrl  String?
+  createdAt DateTime       @default(now())
+
+  @@index([channelId])
+  @@index([userId])
+  @@index([checkDate])
 }
