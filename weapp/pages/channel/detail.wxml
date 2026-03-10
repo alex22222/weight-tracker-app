@@ -1,5 +1,13 @@
 <!--pages/channel/detail.wxml-->
 <view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{!channel}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+  
+  <!-- 频道内容 -->
+  <view wx:if="{{channel}}" style="width: 100%;">
   <!-- 频道信息卡片 -->
   <view class="channel-header-card">
     <view class="channel-title-section">
@@ -10,12 +18,8 @@
         </view>
       </view>
       <view class="channel-actions" wx:if="{{isOwner}}">
-        <block wx:if="{{channel.status === 'PENDING'}}">
-          <view class="action-btn primary" bindtap="startChannel">🚀 开始</view>
-        </block>
-        <block wx:if="{{channel.status === 'ACTIVE'}}">
-          <view class="action-btn danger" bindtap="endChannel">⏹️ 结束</view>
-        </block>
+        <view wx:if="{{channel.status === 'PENDING'}}" class="action-btn primary" bindtap="startChannel">🚀 开始</view>
+        <view wx:if="{{channel.status === 'ACTIVE'}}" class="action-btn danger" bindtap="endChannel">⏹️ 结束</view>
       </view>
     </view>
     <text class="channel-desc" wx:if="{{channel.description}}">{{channel.description}}</text>
@@ -137,6 +141,7 @@
           <view class="checkin-right">
             <text class="checkin-duration">{{item.duration}} 分钟</text>
             <text class="checkin-note" wx:if="{{item.note}}">{{item.note}}</text>
+            <image wx:if="{{item.imageUrl}}" class="checkin-image" src="{{item.imageUrl}}" mode="aspectFill" bindtap="previewCheckInImage" data-url="{{item.imageUrl}}"/>
           </view>
         </view>
       </view>
@@ -268,7 +273,7 @@
           value="{{checkInData.duration}}"
           bindinput="onDurationInput"
         />
-        <text class="form-hint">至少 {{channel.checkInMinutes}} 分钟</text>
+        <text class="form-hint" wx:if="{{channel}}">至少 {{channel.checkInMinutes || 30}} 分钟</text>
       </view>
       
       <view class="form-item">
@@ -280,6 +285,21 @@
           value="{{checkInData.note}}"
           bindinput="onCheckInNoteInput"
         />
+      </view>
+      
+      <!-- 拍照上传 -->
+      <view class="form-item">
+        <text class="form-label">运动照片</text>
+        <view class="image-upload">
+          <view class="upload-btn" bindtap="chooseImage" wx:if="{{!checkInData.imageUrl}}">
+            <text class="upload-icon">📷</text>
+            <text class="upload-text">拍照或选图</text>
+          </view>
+          <view class="image-preview" wx:if="{{checkInData.imageUrl}}">
+            <image class="preview-img" src="{{checkInData.imageUrl}}" mode="aspectFill" bindtap="previewImage"/>
+            <view class="delete-btn" bindtap="deleteImage">✕</view>
+          </view>
+        </view>
       </view>
     </view>
     
@@ -376,4 +396,6 @@
       </button>
     </view>
   </view>
+</view>
+
 </view>

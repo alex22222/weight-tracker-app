@@ -2,55 +2,18 @@
 > weight-tracker-app@1.0.0 dev
 > next dev
 
+ ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
   ▲ Next.js 14.2.15
   - Local:        http://localhost:54112
   - Environments: .env.local
 
  ✓ Starting...
- ✓ Ready in 1988ms
- ○ Compiling / ...
- ✓ Compiled / in 2.5s (1563 modules)
- GET / 200 in 2661ms
- ✓ Compiled in 155ms (790 modules)
- ✓ Compiled /_not-found in 344ms (994 modules)
- GET /_next/static/webpack/38babe25e2911727.webpack.hot-update.json 404 in 405ms
- ⚠ Fast Refresh had to perform a full reload due to a runtime error.
- ✓ Compiled / in 69ms (774 modules)
- GET / 200 in 178ms
- ○ Compiling /api/channels ...
- ✓ Compiled /api/channels in 954ms (1176 modules)
- GET /api/channels 401 in 1988ms
- ✓ Compiled /api/auth/login in 180ms (1176 modules)
- POST /api/auth/login 200 in 363ms
- ✓ Compiled /api/channels in 239ms (1178 modules)
- ✓ Compiled (1182 modules)
- GET /api/channels 200 in 548ms
- GET /api/weight 200 in 552ms
- GET /api/weather 200 in 551ms
- │ GET https://api.open-meteo.c../v1/forecast?latitude=39.904.. 200 in 41ms (cache hit)
- ✓ Compiled /api/settings in 122ms (1184 modules)
- GET /api/settings 200 in 255ms
- ✓ Compiled /api/channels/[id] in 325ms (1186 modules)
- GET /api/channels/1 200 in 816ms
- GET /api/channels/1 200 in 33ms
- ✓ Compiled /api/channels/[id]/stats in 164ms (1188 modules)
- GET /api/channels/1/stats 200 in 511ms
- GET /api/channels/1/stats 200 in 11ms
- ✓ Compiled /api/channels/[id]/checkin in 195ms (1190 modules)
- GET /api/channels/1/checkin 200 in 500ms
- GET /api/channels/1/checkin 200 in 8ms
- ✓ Compiled /api/channels/[id]/comments in 115ms (1192 modules)
- GET /api/channels/1/comments 200 in 529ms
- ✓ Compiled /api/channels/[id]/leave in 142ms (1194 modules)
- GET /api/channels/1/leave 200 in 495ms
- GET /api/weather 200 in 13ms
- │ │ GET https://api.open-meteo.c../v1/forecast?latitude=39.904.. 200 in 0ms (cache hit)
- GET /api/weight 200 in 19ms
- GET /api/channels 200 in 19ms
- GET /api/settings 200 in 219ms
- GET /api/channels/1 200 in 30ms
- GET /api/channels/1 200 in 13ms
- GET /api/channels/1/stats 200 in 17ms
- GET /api/channels/1/stats 200 in 13ms
- GET /api/channels/1/checkin 200 in 20ms
- GET /api/channels/1/checkin 200 in 29ms
+ ✓ Ready in 1677ms
+ ○ Compiling /api/channels/[id]/checkin ...
+ ✓ Compiled /api/channels/[id]/checkin in 966ms (428 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1054ms (856 modules)
+ POST /api/channels/1/checkin 405 in 2505ms
+ ✓ Compiled in 237ms (477 modules)
+ ✓ Compiled in 78ms (48 modules)
+[?25h

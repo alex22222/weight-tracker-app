@@ -213,7 +213,19 @@ Page({
 
   // 显示打卡弹窗
   showCheckInModal() {
+    console.log('=== 点击打卡按钮 ===', this.data.channel)
     const { channel } = this.data
+    
+    // 检查频道数据是否加载完成
+    if (!channel) {
+      console.log('频道数据未加载')
+      wx.showToast({
+        title: '频道数据加载中，请稍候',
+        icon: 'none'
+      })
+      return
+    }
+    
     if (channel.status === 'COMPLETED') {
       wx.showToast({
         title: '频道已结束',
@@ -223,6 +235,7 @@ Page({
     }
     
     // PENDING 和 ACTIVE 状态都允许打卡
+    console.log('显示打卡弹窗')
     this.setData({ 
       showCheckInModal: true,
       'checkInData.date': util.getTodayString(),
@@ -248,9 +261,130 @@ Page({
     this.setData({ 'checkInData.note': e.detail.value })
   },
 
+  // 选择图片
+  chooseImage() {
+    wx.showActionSheet({
+      itemList: ['拍照', '从相册选择'],
+      success: (res) => {
+        const sourceType = res.tapIndex === 0 ? ['camera'] : ['album']
+        
+        // 使用兼容的 chooseImage API
+        wx.chooseImage({
+          count: 1,
+          sizeType: ['compressed'],
+          sourceType: sourceType,
+          success: (res) => {
+            console.log('选择图片成功:', res.tempFilePaths[0])
+            this.uploadImage(res.tempFilePaths[0])
+          },
+          fail: (err) => {
+            console.error('选择图片失败:', err)
+            wx.showToast({ title: '选择图片失败', icon: 'none' })
+          }
+        })
+      }
+    })
+  },
+
+  // 上传图片（直接使用 wx.uploadFile）
+  uploadImage(filePath) {
+    const app = getApp()
+    const token = app.globalData.token
+    
+    console.log('=== 开始上传图片 ===')
+    console.log('文件路径:', filePath)
+    console.log('Token:', token)
+    
+    if (!token) {
+      wx.showToast({ title: '登录已过期，请重新登录', icon: 'none' })
+      return
+    }
+    
+    wx.showLoading({ title: '上传中...' })
+    
+    // 构建 URL（token 可能有特殊字符，需要编码）
+    const apiBaseUrl = 'http://localhost:54112/api'
+    const uploadUrl = `${apiBaseUrl}/upload?token=${encodeURIComponent(token)}`
+    console.log('上传地址:', uploadUrl)
+    
+    wx.uploadFile({
+      url: uploadUrl,
+      filePath: filePath,
+      name: 'file',
+      success: (res) => {
+        wx.hideLoading()
+        console.log('上传响应状态码:', res.statusCode)
+        console.log('上传响应数据:', res.data)
+        
+        // 如果返回 500 错误
+        if (res.statusCode === 500) {
+          wx.showToast({ title: '服务器内部错误', icon: 'none' })
+          return
+        }
+        
+        // 如果不是 200
+        if (res.statusCode !== 200) {
+          wx.showToast({ title: '上传失败: ' + res.statusCode, icon: 'none' })
+          return
+        }
+        
+        let data = res.data
+        // 如果响应是字符串，尝试解析 JSON
+        if (typeof data === 'string') {
+          try {
+            data = JSON.parse(data)
+          } catch (e) {
+            console.error('JSON 解析失败:', data)
+            wx.showToast({ title: '服务器响应错误', icon: 'none' })
+            return
+          }
+        }
+        
+        if (data.url) {
+          this.setData({ 'checkInData.imageUrl': data.url })
+          wx.showToast({ title: '上传成功', icon: 'success' })
+        } else {
+          wx.showToast({ title: data.error || '上传失败', icon: 'none' })
+        }
+      },
+      fail: (err) => {
+        wx.hideLoading()
+        console.error('上传失败:', err)
+        wx.showToast({ title: '上传失败: ' + (err.errMsg || '网络错误'), icon: 'none' })
+      }
+    })
+  },
+
+  // 预览图片
+  previewImage() {
+    wx.previewImage({
+      urls: [this.data.checkInData.imageUrl]
+    })
+  },
+
+  // 预览打卡记录图片
+  previewCheckInImage(e) {
+    const { url } = e.currentTarget.dataset
+    wx.previewImage({
+      urls: [url]
+    })
+  },
+
+  // 删除图片
+  deleteImage() {
+    this.setData({ 'checkInData.imageUrl': '' })
+  },
+
   // 提交打卡
   async submitCheckIn() {
+    console.log('=== 提交打卡 ===', this.data.checkInData)
     const { channelId, checkInData, channel } = this.data
+    
+    // 检查频道数据
+    if (!channel) {
+      wx.showToast({ title: '频道数据加载中', icon: 'none' })
+      return
+    }
     
     if (checkInData.duration < (channel.checkInMinutes || 30)) {
       wx.showToast({
@@ -259,6 +393,8 @@ Page({
       })
       return
     }
+    
+    console.log('发送打卡请求:', { channelId, checkInData })
 
     this.setData({ isSubmittingCheckIn: true })
 
@@ -269,7 +405,8 @@ Page({
         data: {
           checkDate: checkInData.date,
           duration: checkInData.duration,
-          note: checkInData.note
+          note: checkInData.note,
+          imageUrl: checkInData.imageUrl
         }
       })
 
@@ -278,7 +415,12 @@ Page({
         icon: 'success'
       })
 
-      this.setData({ showCheckInModal: false, isSubmittingCheckIn: false }, () => {
+      this.setData({ 
+        showCheckInModal: false, 
+        isSubmittingCheckIn: false,
+        'checkInData.imageUrl': '',
+        'checkInData.note': ''
+      }, () => {
         this.loadChannelDetail()
       })
     } catch (err) {

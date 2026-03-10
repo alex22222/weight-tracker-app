@@ -12,18 +12,9 @@ Page({
   },
 
   onLoad() {
-    // 检查是否已登录
+    // 如果已登录，跳转到首页
     if (app.globalData.isLoggedIn) {
-      wx.reLaunch({
-        url: '/pages/index/index'
-      })
-    }
-  },
-
-  onShow() {
-    // 每次显示页面时检查登录状态
-    if (app.globalData.isLoggedIn) {
-      wx.reLaunch({
+      wx.switchTab({
         url: '/pages/index/index'
       })
     }
@@ -72,23 +63,6 @@ Page({
       return
     }
 
-    // 检查网络状态
-    try {
-      const networkType = await new Promise((resolve) => {
-        wx.getNetworkType({
-          success: (res) => resolve(res.networkType),
-          fail: () => resolve('unknown')
-        })
-      })
-      
-      if (networkType === 'none') {
-        this.setData({ error: '网络连接不可用，请检查网络设置' })
-        return
-      }
-    } catch (e) {
-      console.error('检查网络状态失败:', e)
-    }
-
     this.setData({ isLoading: true, error: '' })
 
     try {
@@ -99,17 +73,14 @@ Page({
           return
         }
 
-        const result = await app.request({
+        await app.request({
           url: '/auth/register',
           method: 'POST',
           data: { username, password },
           needAuth: false
         })
 
-        wx.showToast({
-          title: '注册成功',
-          icon: 'success'
-        })
+        wx.showToast({ title: '注册成功', icon: 'success' })
         this.setData({
           isRegister: false,
           password: '',
@@ -125,46 +96,23 @@ Page({
           needAuth: false
         })
 
-        // 保存登录状态
         app.login(result.token, result.user)
-        
-        wx.showToast({
-          title: '登录成功',
-          icon: 'success'
-        })
+        wx.showToast({ title: '登录成功', icon: 'success' })
         
         setTimeout(() => {
-          wx.reLaunch({
-            url: '/pages/index/index'
-          })
+          wx.switchTab({ url: '/pages/index/index' })
         }, 500)
       }
     } catch (err) {
-      this.setData({ 
-        error: err.message || '请求失败，请检查网络',
-        isLoading: false 
-      })
+      this.setData({ error: err.message || '请求失败', isLoading: false })
     }
   },
 
-  // 游客登录（使用默认账号）
+  // 游客登录
   async guestLogin() {
     this.setData({ isLoading: true, error: '' })
     
     try {
-      // 检查网络状态
-      const networkType = await new Promise((resolve) => {
-        wx.getNetworkType({
-          success: (res) => resolve(res.networkType),
-          fail: () => resolve('unknown')
-        })
-      })
-      
-      if (networkType === 'none') {
-        this.setData({ error: '网络连接不可用，请检查网络设置', isLoading: false })
-        return
-      }
-
       const result = await app.request({
         url: '/auth/login',
         method: 'POST',
@@ -173,22 +121,13 @@ Page({
       })
 
       app.login(result.token, result.user)
-      
-      wx.showToast({
-        title: '登录成功',
-        icon: 'success'
-      })
+      wx.showToast({ title: '登录成功', icon: 'success' })
       
       setTimeout(() => {
-        wx.reLaunch({
-          url: '/pages/index/index'
-        })
+        wx.switchTab({ url: '/pages/index/index' })
       }, 500)
     } catch (err) {
-      this.setData({ 
-        error: err.message || '游客登录失败',
-        isLoading: false 
-      })
+      this.setData({ error: err.message || '登录失败', isLoading: false })
     }
   }
 })

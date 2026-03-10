@@ -5,6 +5,13 @@ App({
   onLaunch() {
     // 检查登录状态
     this.checkLoginStatus()
+    
+    // 如果未登录，跳转到登录页
+    if (!this.globalData.isLoggedIn) {
+      wx.reLaunch({
+        url: '/pages/login/login'
+      })
+    }
   },
 
   // 检查登录状态
@@ -28,6 +35,8 @@ App({
   request(options) {
     const { url, method = 'GET', data = {}, header = {}, needAuth = true } = options
     
+    console.log(`[请求] ${method} ${url}`, data)
+    
     return new Promise((resolve, reject) => {
       const requestHeader = { ...header }
       
@@ -43,6 +52,7 @@ App({
         header: requestHeader,
         timeout: config.timeout,
         success: (res) => {
+          console.log(`[响应] ${method} ${url}:`, res.statusCode, res.data)
           if (res.statusCode === 200) {
             resolve(res.data)
           } else if (res.statusCode === 401) {

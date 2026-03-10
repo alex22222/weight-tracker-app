@@ -6,6 +6,14 @@
 import { prisma } from './db'
 import { db as tcbDb } from './cloudbase'
 
+// 日期格式化辅助函数：将 Date 转换为 YYYY-MM-DD 字符串
+function formatDateToYYYYMMDD(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // 数据库类型
 export type DatabaseType = 'prisma' | 'cloudbase'
 
@@ -600,11 +608,14 @@ const prismaAdapter = {
     })
   },
 
-  async getCheckInByDate(channelId: number, userId: number, date: Date) {
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
+  async getCheckInByDate(channelId: number, userId: number, dateInput: Date | string) {
+    // 处理输入（可能是 Date 对象或 YYYY-MM-DD 字符串）
+    const dateStr = typeof dateInput === 'string' ? dateInput : formatDateToYYYYMMDD(dateInput)
+    
+    // 使用 UTC 时间构建查询范围，确保与数据库中存储的 UTC 时间匹配
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+    const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
     
     return prisma.checkIn.findFirst({
       where: {
@@ -1259,11 +1270,14 @@ const cloudbaseAdapter = {
     return data
   },
 
-  async getCheckInByDate(channelId: number | string, userId: number | string, date: Date) {
-    const startOfDay = new Date(date)
-    startOfDay.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(date)
-    endOfDay.setHours(23, 59, 59, 999)
+  async getCheckInByDate(channelId: number | string, userId: number | string, dateInput: Date | string) {
+    // 处理输入（可能是 Date 对象或 YYYY-MM-DD 字符串）
+    const dateStr = typeof dateInput === 'string' ? dateInput : formatDateToYYYYMMDD(dateInput)
+    
+    // 使用 UTC 时间构建查询范围，确保与数据库中存储的 UTC 时间匹配
+    const [year, month, day] = dateStr.split('-').map(Number)
+    const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+    const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
     
     const { data } = await tcbDb.collection(COLLECTIONS.CHECK_INS)
       .where({
