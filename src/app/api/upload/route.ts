@@ -4,13 +4,7 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 
-export const config = {
-  api: {
-    // we handle multipart ourselves using formData, disable built‑in parser
-    bodyParser: false
-  }
-}
-
+// App Router 不需要 bodyParser 配置，直接使用 request.formData()
 export async function POST(request: NextRequest) {
   console.log('=== 上传请求 ===')
 

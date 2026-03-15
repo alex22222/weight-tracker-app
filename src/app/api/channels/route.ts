@@ -1,30 +1,21 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter, MessageType, ChannelStatus } from '../../../lib/db-adapter'
+import { verifyToken } from '../../../lib/auth'
 
 // 验证 Token
-function verifyToken(token: string): { userId: number; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId: parseInt(userId), username }
-  } catch {
-    return null
-  }
+function getUserFromToken(request: NextRequest): { userId: number; username: string } | null {
+  const token = request.headers.get('authorization')?.replace('Bearer ', '')
+  if (!token) return null
+  return verifyToken(token)
 }
 
 // GET /api/channels - 获取用户的所有频道
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
 
     const channels = await adapter.getFitnessChannelsByUser(user.userId)
@@ -60,28 +51,49 @@ export async function GET(request: NextRequest) {
 // POST /api/channels - 创建新频道
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
 
     const body = await request.json()
     const { name, description, startDate, endDate, weeklyCheckInCount, checkInMinutes, maxLeaveDays } = body
 
-    if (!name || !startDate || !endDate) {
-      return NextResponse.json({ error: '请填写完整信息' }, { status: 400 })
+    // 验证输入
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      return NextResponse.json({ error: '频道名称至少2个字符' }, { status: 400 })
+    }
+    
+    if (!startDate || !endDate) {
+      return NextResponse.json({ error: '请填写开始和结束日期' }, { status: 400 })
     }
 
     const start = new Date(startDate)
     const end = new Date(endDate)
     
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return NextResponse.json({ error: '无效的日期格式' }, { status: 400 })
+    }
+    
     if (end < start) {
       return NextResponse.json({ error: '结束日期不能早于开始日期' }, { status: 400 })
+    }
+    
+    // 验证数值参数
+    const weeklyCount = weeklyCheckInCount ? parseInt(weeklyCheckInCount) : 3
+    const checkInMins = checkInMinutes ? parseInt(checkInMinutes) : 30
+    const maxLeaves = maxLeaveDays !== undefined ? parseInt(maxLeaveDays) : 3
+    
+    if (weeklyCount < 1 || weeklyCount > 7) {
+      return NextResponse.json({ error: '每周打卡次数应在 1-7 之间' }, { status: 400 })
+    }
+    
+    if (checkInMins < 5 || checkInMins > 300) {
+      return NextResponse.json({ error: '打卡时长应在 5-300 分钟之间' }, { status: 400 })
+    }
+    
+    if (maxLeaves < 0 || maxLeaves > 30) {
+      return NextResponse.json({ error: '请假天数应在 0-30 之间' }, { status: 400 })
     }
 
     // 检查用户是否已有进行中的频道
@@ -100,14 +112,14 @@ export async function POST(request: NextRequest) {
 
     // 创建频道
     const channel = await adapter.createFitnessChannel({
-      name,
-      description,
+      name: name.trim(),
+      description: description?.trim(),
       startDate: start,
       endDate: end,
       ownerId: user.userId,
-      weeklyCheckInCount: weeklyCheckInCount || 3,
-      checkInMinutes: checkInMinutes || 30,
-      maxLeaveDays: maxLeaveDays ?? 3,
+      weeklyCheckInCount: weeklyCount,
+      checkInMinutes: checkInMins,
+      maxLeaveDays: maxLeaves,
     })
 
     return NextResponse.json({ 
@@ -123,21 +135,16 @@ export async function POST(request: NextRequest) {
 // DELETE /api/channels - 删除频道
 export async function DELETE(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const channelId = searchParams.get('id')
 
-    if (!channelId) {
-      return NextResponse.json({ error: '缺少频道ID' }, { status: 400 })
+    if (!channelId || isNaN(parseInt(channelId))) {
+      return NextResponse.json({ error: '无效的频道ID' }, { status: 400 })
     }
 
     // 获取频道信息，验证权限

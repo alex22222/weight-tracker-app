@@ -176,8 +176,8 @@ export interface CheckIn {
 
 const prismaAdapter = {
   // ========== 体重记录 ==========
-  async getWeightEntries(userId?: number) {
-    const where = userId ? { userId } : {}
+  async getWeightEntries(userId?: number | string) {
+    const where = userId ? { userId: typeof userId === 'string' ? parseInt(userId) : userId } : {}
     return prisma.weightEntry.findMany({
       where,
       orderBy: { date: 'desc' },
@@ -266,32 +266,74 @@ const prismaAdapter = {
   },
 
   // ========== 用户设置 ==========
-  async getUserSettings() {
-    const settings = await prisma.userSettings.findFirst()
+  async getUserSettings(userId?: number | string) {
+    // 如果没有提供 userId，回退到旧行为（为了兼容性）
+    if (!userId) {
+      const settings = await prisma.userSettings.findFirst()
+      if (!settings) {
+        return prisma.userSettings.create({
+          data: { height: 170, targetWeight: 65 },
+        })
+      }
+      return settings
+    }
+    
+    // 按用户ID查找设置
+    const uid = typeof userId === 'string' ? parseInt(userId) : userId
+    const settings = await prisma.userSettings.findUnique({
+      where: { userId: uid },
+    })
+    
     if (!settings) {
       return prisma.userSettings.create({
-        data: {
-          height: 170,
-          targetWeight: 65,
-        },
+        data: { userId: uid, height: 170, targetWeight: 65 },
       })
     }
     return settings
   },
 
-  async updateUserSettings(data: Partial<UserSettings>) {
-    const existing = await prisma.userSettings.findFirst()
+  async updateUserSettings(data: Partial<UserSettings> & { userId?: number | string }) {
+    const userId = data.userId
+    
+    // 如果没有提供 userId，回退到旧行为
+    if (!userId) {
+      const existing = await prisma.userSettings.findFirst()
+      if (existing) {
+        return prisma.userSettings.update({
+          where: { id: existing.id },
+          data: {
+            height: data.height ?? existing.height,
+            targetWeight: data.targetWeight ?? existing.targetWeight,
+          },
+        })
+      }
+      return prisma.userSettings.create({
+        data: {
+          height: data.height || 170,
+          targetWeight: data.targetWeight || 65,
+        },
+      })
+    }
+    
+    // 按用户ID更新设置
+    const uid = typeof userId === 'string' ? parseInt(userId) : userId
+    const existing = await prisma.userSettings.findUnique({
+      where: { userId: uid },
+    })
+    
     if (existing) {
       return prisma.userSettings.update({
-        where: { id: existing.id },
+        where: { userId: uid },
         data: {
           height: data.height ?? existing.height,
           targetWeight: data.targetWeight ?? existing.targetWeight,
         },
       })
     }
+    
     return prisma.userSettings.create({
       data: {
+        userId: uid,
         height: data.height || 170,
         targetWeight: data.targetWeight || 65,
       },
@@ -843,7 +885,7 @@ const prismaAdapter = {
 
 const cloudbaseAdapter = {
   // ========== 体重记录 ==========
-  async getWeightEntries(userId?: string) {
+  async getWeightEntries(userId?: number | string) {
     const query = userId ? { userId } : {}
     const { data } = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
       .where(query)

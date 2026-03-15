@@ -1,33 +1,21 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter, MessageType, FriendStatus } from '../../../lib/db-adapter'
+import { verifyToken } from '../../../lib/auth'
 
-// 类型定义
-type FriendStatusValue = typeof FriendStatus[keyof typeof FriendStatus]
-
-// 验证 JWT token 的简单实现
-function verifyToken(token: string): { userId: number; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId: parseInt(userId), username }
-  } catch {
-    return null
-  }
+// 验证 Token
+function getUserFromToken(request: NextRequest): { userId: number; username: string } | null {
+  const token = request.headers.get('authorization')?.replace('Bearer ', '')
+  if (!token) return null
+  return verifyToken(token)
 }
 
 // GET /api/friends - 获取好友列表和待处理请求
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -51,25 +39,25 @@ export async function GET(request: NextRequest) {
 // POST /api/friends - 发送好友请求
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
 
     const body = await request.json()
     const { username } = body
 
-    if (!username) {
+    if (!username || typeof username !== 'string') {
       return NextResponse.json({ error: '请输入用户名' }, { status: 400 })
+    }
+    
+    // 验证用户名格式
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      return NextResponse.json({ error: '无效的用户名格式' }, { status: 400 })
     }
 
     // 不能添加自己为好友
-    if (username === user.username) {
+    if (username.toLowerCase() === user.username.toLowerCase()) {
       return NextResponse.json({ error: '不能添加自己为好友' }, { status: 400 })
     }
 
@@ -79,10 +67,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 })
     }
 
+    const targetUserId = (targetUser as any).id || (targetUser as any)._id
+
     // 检查是否已经是好友或已有待处理请求
     const existingRequest = await adapter.findFriendRequest(
       user.userId,
-      (targetUser as unknown as { id: number }).id || (targetUser as unknown as { _id: string })._id as unknown as number
+      targetUserId
     )
     
     if (existingRequest) {
@@ -92,7 +82,7 @@ export async function POST(request: NextRequest) {
     // 创建好友请求
     const friendRequest = await adapter.createFriendRequest(
       user.userId,
-      (targetUser as unknown as { id: number }).id || (targetUser as unknown as { _id: string })._id as unknown as number
+      targetUserId
     )
 
     // 发送系统消息通知对方
@@ -101,8 +91,10 @@ export async function POST(request: NextRequest) {
       title: '好友请求',
       content: `${user.username} 请求添加你为好友`,
       fromUserId: user.userId,
-      toUserId: (targetUser as unknown as { id: number }).id || (targetUser as unknown as { _id: string })._id as unknown as number,
-      relatedData: JSON.stringify({ friendId: (friendRequest as unknown as { id: number }).id || (friendRequest as unknown as { _id: string })._id }),
+      toUserId: targetUserId,
+      relatedData: JSON.stringify({ 
+        friendId: (friendRequest as any).id || (friendRequest as any)._id 
+      }),
     })
 
     return NextResponse.json({ message: '好友请求已发送' }, { status: 201 })
@@ -115,14 +107,9 @@ export async function POST(request: NextRequest) {
 // PATCH /api/friends - 接受或拒绝好友请求
 export async function PATCH(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -130,6 +117,10 @@ export async function PATCH(request: NextRequest) {
 
     if (!friendId || !action) {
       return NextResponse.json({ error: '缺少参数' }, { status: 400 })
+    }
+    
+    if (!['accept', 'reject'].includes(action)) {
+      return NextResponse.json({ error: '无效的操作' }, { status: 400 })
     }
 
     // 查找好友请求
@@ -139,19 +130,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     // 验证权限（只能处理发给自己的请求）
-    const requestToUserId = (friendRequest as unknown as { toUserId: number }).toUserId || 
-                           (friendRequest as unknown as { toUserId: string }).toUserId as unknown as number
+    const requestToUserId = (friendRequest as any).toUserId
     if (requestToUserId !== user.userId) {
-      return NextResponse.json({ error: '无权操作' }, { status: 403 })
+      return NextResponse.json({ error: '无权操作此请求' }, { status: 403 })
     }
+
+    const fromUserId = (friendRequest as any).fromUserId
 
     if (action === 'accept') {
       // 接受好友请求
       await adapter.updateFriendStatus(friendId, FriendStatus.ACCEPTED)
       
       // 发送接受通知
-      const fromUserId = (friendRequest as unknown as { fromUserId: number }).fromUserId || 
-                        (friendRequest as unknown as { fromUserId: string }).fromUserId as unknown as number
       await adapter.createMessage({
         type: MessageType.FRIEND_ACCEPT,
         title: '好友请求已接受',
@@ -161,13 +151,11 @@ export async function PATCH(request: NextRequest) {
       })
       
       return NextResponse.json({ message: '已接受好友请求' })
-    } else if (action === 'reject') {
+    } else {
       // 拒绝好友请求
       await adapter.updateFriendStatus(friendId, FriendStatus.REJECTED)
       
       // 发送拒绝通知
-      const fromUserId = (friendRequest as unknown as { fromUserId: number }).fromUserId || 
-                        (friendRequest as unknown as { fromUserId: string }).fromUserId as unknown as number
       await adapter.createMessage({
         type: MessageType.FRIEND_REJECT,
         title: '好友请求被拒绝',
@@ -178,8 +166,6 @@ export async function PATCH(request: NextRequest) {
       
       return NextResponse.json({ message: '已拒绝好友请求' })
     }
-
-    return NextResponse.json({ error: '无效的操作' }, { status: 400 })
   } catch (error) {
     console.error('Error handling friend request:', error)
     return NextResponse.json({ error: '操作失败' }, { status: 500 })
@@ -189,21 +175,30 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/friends - 删除好友
 export async function DELETE(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
     const friendId = searchParams.get('id')
 
-    if (!friendId) {
-      return NextResponse.json({ error: '缺少好友ID' }, { status: 400 })
+    if (!friendId || isNaN(parseInt(friendId))) {
+      return NextResponse.json({ error: '无效的好友ID' }, { status: 400 })
+    }
+
+    // 查找好友关系
+    const friendRequest = await adapter.findFriendById(parseInt(friendId))
+    if (!friendRequest) {
+      return NextResponse.json({ error: '好友关系不存在' }, { status: 404 })
+    }
+
+    // 验证权限（只能删除与自己相关的好友关系）
+    const fromUserId = (friendRequest as any).fromUserId
+    const toUserId = (friendRequest as any).toUserId
+    
+    if (fromUserId !== user.userId && toUserId !== user.userId) {
+      return NextResponse.json({ error: '无权删除此好友' }, { status: 403 })
     }
 
     await adapter.deleteFriend(parseInt(friendId))
