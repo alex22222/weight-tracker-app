@@ -9,7 +9,7 @@
     </view>
 
     <!-- 功能介绍 -->
-    <view class="features" wx:if="{{!isRegister}}">
+    <view class="features">
       <view class="feature-item">
         <text class="feature-icon">📊</text>
         <text class="feature-text">记录体重</text>
@@ -24,21 +24,75 @@
       </view>
     </view>
 
-    <!-- 表单区域 -->
-    <view class="form-card">
+    <!-- 登录方式切换 -->
+    <view class="login-tabs">
+      <view
+        class="tab {{loginType === 'wechat' ? 'active' : ''}}"
+        bindtap="switchLoginType"
+        data-type="wechat"
+      >
+        微信一键登录
+      </view>
+      <view
+        class="tab {{loginType === 'account' ? 'active' : ''}}"
+        bindtap="switchLoginType"
+        data-type="account"
+      >
+        账号密码
+      </view>
+    </view>
+
+    <!-- 错误提示 -->
+    <view class="error-tip" wx:if="{{error}}">{{error}}</view>
+
+    <!-- 微信登录区域 -->
+    <view class="wechat-login-section" wx:if="{{loginType === 'wechat'}}">
+      <view class="wechat-login-desc">
+        <text class="desc-title">🔐 安全登录</text>
+        <text class="desc-text">使用微信账号一键登录，无需注册</text>
+        <text class="desc-text">系统将自动获取您的头像和昵称</text>
+      </view>
+
+      <!-- 主要登录按钮：获取用户信息 -->
+      <button
+        class="btn-wechat"
+        bindtap="handleWechatLogin"
+        disabled="{{isLoading}}"
+        wx:if="{{canIUseGetUserProfile}}"
+      >
+        <image class="wechat-icon" src="/assets/wechat-icon.png" wx:if="{{false}}"></image>
+        <text wx:if="{{isLoading}}">⏳ 登录中...</text>
+        <text wx:else>🟢 微信一键登录</text>
+      </button>
+
+      <!-- 兼容旧版本：静默登录 -->
+      <button
+        class="btn-wechat-silent"
+        bindtap="handleWechatLoginSilent"
+        disabled="{{isLoading}}"
+        wx:if="{{!canIUseGetUserProfile}}"
+      >
+        <text wx:if="{{isLoading}}">⏳ 登录中...</text>
+        <text wx:else>🟢 微信登录</text>
+      </button>
+
+      <view class="privacy-notice">
+        <text>点击登录即表示您同意《用户协议》和《隐私政策》</text>
+      </view>
+    </view>
+
+    <!-- 账号密码登录区域 -->
+    <view class="form-card" wx:if="{{loginType === 'account'}}">
       <view class="form-title">{{isRegister ? '创建账户' : '欢迎回来'}}</view>
       <view class="form-subtitle">{{isRegister ? '注册新账户开始管理体重' : '登录您的账户开始管理体重'}}</view>
-
-      <!-- 错误提示 -->
-      <view class="error-tip" wx:if="{{error}}">{{error}}</view>
 
       <!-- 用户名 -->
       <view class="input-group">
         <view class="input-icon">👤</view>
-        <input 
-          type="text" 
-          class="input" 
-          placeholder="用户名" 
+        <input
+          type="text"
+          class="input"
+          placeholder="用户名"
           value="{{username}}"
           bindinput="onUsernameInput"
         />
@@ -47,10 +101,10 @@
       <!-- 密码 -->
       <view class="input-group">
         <view class="input-icon">🔒</view>
-        <input 
-          type="password" 
-          class="input" 
-          placeholder="密码" 
+        <input
+          type="password"
+          class="input"
+          placeholder="密码"
           value="{{password}}"
           bindinput="onPasswordInput"
         />
@@ -59,20 +113,13 @@
       <!-- 确认密码（仅注册） -->
       <view class="input-group" wx:if="{{isRegister}}">
         <view class="input-icon">🔒</view>
-        <input 
-          type="password" 
-          class="input" 
-          placeholder="确认密码" 
+        <input
+          type="password"
+          class="input"
+          placeholder="确认密码"
           value="{{confirmPassword}}"
           bindinput="onConfirmPasswordInput"
         />
-      </view>
-
-      <!-- 登录选项 -->
-      <view class="form-options" wx:if="{{!isRegister}}">
-        <view class="remember-me">
-          <text>欢迎使用燃脂俱乐部</text>
-        </view>
       </view>
 
       <!-- 提交按钮 -->
@@ -87,11 +134,11 @@
         <text class="mode-text">{{isRegister ? '已有账户？' : '还没有账户？'}}</text>
         <text class="mode-link" bindtap="toggleMode">{{isRegister ? '返回登录' : '注册新账户'}}</text>
       </view>
-
-      <!-- 游客访问 -->
-      <button class="btn-guest" bindtap="guestLogin" wx:if="{{!isRegister}}">
-        快速体验 (使用测试账号)
-      </button>
     </view>
+
+    <!-- 游客访问 -->
+    <button class="btn-guest" bindtap="guestLogin" disabled="{{isLoading}}">
+      快速体验 (使用测试账号)
+    </button>
   </view>
 </view>

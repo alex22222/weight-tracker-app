@@ -8,10 +8,18 @@ Page({
     password: '',
     confirmPassword: '',
     isLoading: false,
-    error: ''
+    error: '',
+    // 微信登录相关
+    canIUseGetUserProfile: false,
+    loginType: 'wechat', // 'wechat' | 'account'
   },
 
   onLoad() {
+    // 检查是否支持 getUserProfile
+    if (wx.getUserProfile) {
+      this.setData({ canIUseGetUserProfile: true })
+    }
+
     // 如果已登录，跳转到首页
     if (app.globalData.isLoggedIn) {
       wx.switchTab({
@@ -20,7 +28,129 @@ Page({
     }
   },
 
-  // 输入处理
+  // 切换登录方式
+  switchLoginType(e) {
+    const type = e.currentTarget.dataset.type
+    this.setData({
+      loginType: type,
+      error: ''
+    })
+  },
+
+  // ========== 微信登录 ==========
+  // 获取用户信息并登录
+  async handleWechatLogin() {
+    this.setData({ isLoading: true, error: '' })
+
+    try {
+      // 1. 获取微信登录凭证
+      const loginRes = await new Promise((resolve, reject) => {
+        wx.login({
+          success: resolve,
+          fail: reject
+        })
+      })
+
+      if (!loginRes.code) {
+        throw new Error('获取登录凭证失败')
+      }
+
+      // 2. 获取用户信息（可选，需要用户授权）
+      let userInfo = null
+      try {
+        const profileRes = await new Promise((resolve, reject) => {
+          wx.getUserProfile({
+            desc: '用于完善用户资料',
+            success: resolve,
+            fail: (err) => {
+              // 用户拒绝授权，继续用 code 登录
+              console.log('用户拒绝授权:', err)
+              resolve({ userInfo: null })
+            }
+          })
+        })
+        userInfo = profileRes.userInfo
+      } catch (e) {
+        console.log('获取用户信息失败:', e)
+      }
+
+      // 3. 发送到后端验证登录
+      const result = await app.request({
+        url: '/auth/wechat-login',
+        method: 'POST',
+        data: {
+          code: loginRes.code,
+          userInfo: userInfo
+        },
+        needAuth: false
+      })
+
+      // 4. 保存登录状态
+      app.login(result.token, result.user)
+
+      wx.showToast({
+        title: result.user.isNewUser ? '注册成功' : '登录成功',
+        icon: 'success'
+      })
+
+      // 5. 跳转到首页
+      setTimeout(() => {
+        wx.switchTab({ url: '/pages/index/index' })
+      }, 500)
+
+    } catch (err) {
+      console.error('微信登录失败:', err)
+      this.setData({
+        error: err.message || '微信登录失败，请重试',
+        isLoading: false
+      })
+    }
+  },
+
+  // 仅使用 code 登录（不获取用户信息）
+  async handleWechatLoginSilent() {
+    this.setData({ isLoading: true, error: '' })
+
+    try {
+      const loginRes = await new Promise((resolve, reject) => {
+        wx.login({
+          success: resolve,
+          fail: reject
+        })
+      })
+
+      if (!loginRes.code) {
+        throw new Error('获取登录凭证失败')
+      }
+
+      const result = await app.request({
+        url: '/auth/wechat-login',
+        method: 'POST',
+        data: { code: loginRes.code },
+        needAuth: false
+      })
+
+      app.login(result.token, result.user)
+
+      wx.showToast({
+        title: result.user.isNewUser ? '注册成功' : '登录成功',
+        icon: 'success'
+      })
+
+      setTimeout(() => {
+        wx.switchTab({ url: '/pages/index/index' })
+      }, 500)
+
+    } catch (err) {
+      console.error('微信登录失败:', err)
+      this.setData({
+        error: err.message || '微信登录失败，请重试',
+        isLoading: false
+      })
+    }
+  },
+
+  // ========== 账号密码登录 ==========
   onUsernameInput(e) {
     this.setData({ username: e.detail.value, error: '' })
   },
@@ -33,7 +163,6 @@ Page({
     this.setData({ confirmPassword: e.detail.value, error: '' })
   },
 
-  // 切换登录/注册模式
   toggleMode() {
     this.setData({
       isRegister: !this.data.isRegister,
@@ -43,7 +172,6 @@ Page({
     })
   },
 
-  // 提交表单
   async handleSubmit() {
     const { isRegister, username, password, confirmPassword } = this.data
 
@@ -98,7 +226,7 @@ Page({
 
         app.login(result.token, result.user)
         wx.showToast({ title: '登录成功', icon: 'success' })
-        
+
         setTimeout(() => {
           wx.switchTab({ url: '/pages/index/index' })
         }, 500)
@@ -108,10 +236,10 @@ Page({
     }
   },
 
-  // 游客登录
+  // ========== 游客登录 ==========
   async guestLogin() {
     this.setData({ isLoading: true, error: '' })
-    
+
     try {
       const result = await app.request({
         url: '/auth/login',
@@ -122,7 +250,7 @@ Page({
 
       app.login(result.token, result.user)
       wx.showToast({ title: '登录成功', icon: 'success' })
-      
+
       setTimeout(() => {
         wx.switchTab({ url: '/pages/index/index' })
       }, 500)

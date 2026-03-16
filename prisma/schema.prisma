@@ -19,9 +19,12 @@ model WeightEntry {
 
 model User {
   id           Int              @id @default(autoincrement())
-  username     String           @unique
-  password     String           // 密码哈希
-  salt         String?          // 密码盐值（新用户会有）
+  username     String?          @unique // 用户名（微信登录可为空）
+  password     String?          // 密码哈希（微信登录可为空）
+  salt         String?          // 密码盐值
+  wechatOpenId String?          @unique // 微信 OpenID（微信登录用户唯一标识）
+  wechatUnionId String?         // 微信 UnionID（跨应用用户唯一标识）
+  nickname     String?          // 微信昵称
   role         String           @default("user") // 角色: user, admin
   gender       String?          // 性别: male, female, other
   avatar       String?          // 头像URL

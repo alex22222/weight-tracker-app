@@ -81,8 +81,11 @@ export interface WeightEntry {
 export interface User {
   _id?: string
   id?: number
-  username: string
-  password: string
+  username?: string
+  password?: string
+  wechatOpenId?: string  // 微信 OpenID
+  wechatUnionId?: string // 微信 UnionID
+  nickname?: string      // 微信昵称
   gender?: string  // 性别: male, female, other
   avatar?: string  // 头像URL
   createdAt?: Date
@@ -248,6 +251,42 @@ const prismaAdapter = {
     return prisma.user.update({
       where: { id: typeof userId === 'string' ? parseInt(userId) : userId },
       data: { avatar },
+    })
+  },
+
+  // ========== 微信登录相关 ==========
+  async findUserByWechatOpenId(openId: string) {
+    return prisma.user.findUnique({
+      where: { wechatOpenId: openId },
+    })
+  },
+
+  async createWechatUser(data: {
+    wechatOpenId: string
+    wechatUnionId?: string | null
+    nickname?: string
+    avatar?: string | null
+    gender?: string | null
+    role?: string
+  }) {
+    return prisma.user.create({
+      data: {
+        wechatOpenId: data.wechatOpenId,
+        wechatUnionId: data.wechatUnionId,
+        nickname: data.nickname,
+        avatar: data.avatar,
+        gender: data.gender,
+        role: data.role || 'user',
+        username: null, // 微信用户无用户名
+        password: null, // 微信用户无密码
+      },
+    })
+  },
+
+  async updateUser(userId: number | string, data: Partial<User>) {
+    return prisma.user.update({
+      where: { id: typeof userId === 'string' ? parseInt(userId) : userId },
+      data,
     })
   },
 
@@ -963,6 +1002,44 @@ const cloudbaseAdapter = {
     await tcbDb.collection(COLLECTIONS.USERS)
       .doc(String(userId))
       .update({ avatar, updatedAt: new Date() })
+    return { success: true }
+  },
+
+  // ========== 微信登录相关 ==========
+  async findUserByWechatOpenId(openId: string) {
+    const { data } = await tcbDb.collection(COLLECTIONS.USERS)
+      .where({ wechatOpenId: openId })
+      .limit(1)
+      .get()
+    return data[0] || null
+  },
+
+  async createWechatUser(data: {
+    wechatOpenId: string
+    wechatUnionId?: string | null
+    nickname?: string
+    avatar?: string | null
+    gender?: string | null
+    role?: string
+  }) {
+    const user = {
+      wechatOpenId: data.wechatOpenId,
+      wechatUnionId: data.wechatUnionId,
+      nickname: data.nickname,
+      avatar: data.avatar,
+      gender: data.gender,
+      role: data.role || 'user',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+    const { id } = await tcbDb.collection(COLLECTIONS.USERS).add(user)
+    return { _id: id, id, ...user }
+  },
+
+  async updateUser(userId: number | string, data: Partial<User>) {
+    await tcbDb.collection(COLLECTIONS.USERS)
+      .doc(String(userId))
+      .update({ ...data, updatedAt: new Date() })
     return { success: true }
   },
 
