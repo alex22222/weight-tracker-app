@@ -1,0 +1,13 @@
+console.error('>>> Loading next.config.mjs...');
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  generateBuildId: async () => {
+    console.error('>>> generateBuildId called!');
+    return 'test-build-id';
+  }
+}
+
+console.error('>>> next.config.mjs loaded, generateBuildId:', typeof nextConfig.generateBuildId);
+
+export default nextConfig

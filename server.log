@@ -1,19 +1,8 @@
-
-> weight-tracker-app@1.0.0 dev
-> next dev
-
- ⚠ You are using a non-standard "NODE_ENV" value in your environment. This creates inconsistencies in the project and is strongly advised against. Read more: https://nextjs.org/docs/messages/non-standard-node-env
   ▲ Next.js 14.2.15
-  - Local:        http://localhost:54112
-  - Environments: .env.local
+  - Local:        http://localhost:3000
 
  ✓ Starting...
- ✓ Ready in 1677ms
- ○ Compiling /api/channels/[id]/checkin ...
- ✓ Compiled /api/channels/[id]/checkin in 966ms (428 modules)
- ○ Compiling /_error ...
- ✓ Compiled /_error in 1054ms (856 modules)
- POST /api/channels/1/checkin 405 in 2505ms
- ✓ Compiled in 237ms (477 modules)
- ✓ Compiled in 78ms (48 modules)
-[?25h
+Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
+    at setupFsCheck (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
+    at async initialize (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/router-server.js:62:23)
+    at async Server.<anonymous> (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:249:36)
