@@ -1,0 +1,37 @@
+{
+  "envId": "{{env.ENV_ID}}",
+  "functionRoot": "cloudfunctions",
+  "functions": [],
+  "cloudRunRoot": "cloudrun",
+  "cloudRun": [
+    {
+      "serviceName": "weight-tracker-api",
+      "servicePath": "/",
+      "containerPort": 3000,
+      "minNum": 0,
+      "maxNum": 10,
+      "cpu": 0.25,
+      "mem": 0.5,
+      "environmentVariables": {
+        "NODE_ENV": "production",
+        "DB_TYPE": "cloudbase",
+        "CLOUDBASE_ENV_ID": "{{env.ENV_ID}}"
+      }
+    }
+  ],
+  "framework": {
+    "name": "nextjs",
+    "plugins": {
+      "client": {
+        "use": "@cloudbase/framework-plugin-next",
+        "inputs": {
+          "buildCommand": "npm run build",
+          "outputPath": ".next/standalone",
+          "name": "weight-tracker-web",
+          "path": "/",
+          "installCommand": "npm install"
+        }
+      }
+    }
+  }
+}

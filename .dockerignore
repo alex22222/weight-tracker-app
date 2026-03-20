@@ -1,0 +1,52 @@
+# 依赖
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Next.js 构建输出
+.next
+out
+
+# 开发环境文件
+.env.local
+.env.development
+.env.test
+
+# 数据库文件
+*.db
+dev.db
+prisma/dev.db
+
+# 日志
+*.log
+logs
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# 版本控制
+.git
+.gitignore
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 小程序代码（不需要打包到后端）
+weapp
+wechat-miniprogram
+
+# 文档
+*.md
+!README.md
+
+# 测试
+coverage
+.nyc_output
+
+# 其他
+docker-compose.yml
+Dockerfile.dev

@@ -1,0 +1,79 @@
+name: Deploy WeChat Mini Program
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'weapp/**'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号 (如: 1.0.0)'
+        required: false
+        default: ''
+      desc:
+        description: '版本描述'
+        required: false
+        default: '自动部署'
+
+jobs:
+  deploy-weapp:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Update API base URL
+        run: |
+          sed -i "s|apiBaseUrl: '.*'|apiBaseUrl: 'https://weight-tracker-api-${{ secrets.CLOUDBASE_ENV_ID }}.cloudrun.tencentcloudapi.com/api'|" weapp/config.js
+          cat weapp/config.js
+
+      - name: Install miniprogram-ci
+        run: npm install -g miniprogram-ci
+
+      - name: Deploy to WeChat (Preview)
+        if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
+        run: |
+          miniprogram-ci preview \
+            --pp ./weapp \
+            --pkp "${{ secrets.WECHAT_PRIVATE_KEY }}" \
+            --appid "${{ secrets.WECHAT_APPID }}" \
+            --uv "${{ github.sha:0:7 }}" \
+            --enable-es6 true
+        env:
+          WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
+          WECHAT_PRIVATE_KEY: ${{ secrets.WECHAT_PRIVATE_KEY }}
+
+      - name: Deploy to WeChat (Upload)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        run: |
+          VERSION="${{ github.event.inputs.version || '1.0.'$(date +%s) }}"
+          DESC="${{ github.event.inputs.desc || 'GitHub Actions 自动部署' }}"
+          
+          miniprogram-ci upload \
+            --pp ./weapp \
+            --pkp "${{ secrets.WECHAT_PRIVATE_KEY }}" \
+            --appid "${{ secrets.WECHAT_APPID }}" \
+            --uv "$VERSION" \
+            --ud "$DESC" \
+            --enable-es6 true
+        env:
+          WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
+          WECHAT_PRIVATE_KEY: ${{ secrets.WECHAT_PRIVATE_KEY }}
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ 小程序部署成功！"
+          echo "请在微信公众平台提交审核。"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ 小程序部署失败"
