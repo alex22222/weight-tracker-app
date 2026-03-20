@@ -39,33 +39,38 @@ jobs:
 
       - name: Deploy to WeChat (Preview)
         if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master'
-        run: |
-          miniprogram-ci preview \
-            --pp ./weapp \
-            --pkp "${{ secrets.WECHAT_PRIVATE_KEY }}" \
-            --appid "${{ secrets.WECHAT_APPID }}" \
-            --uv "${{ github.sha:0:7 }}" \
-            --enable-es6 true
         env:
           WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
           WECHAT_PRIVATE_KEY: ${{ secrets.WECHAT_PRIVATE_KEY }}
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          miniprogram-ci preview \
+            --pp ./weapp \
+            --pkp "$WECHAT_PRIVATE_KEY" \
+            --appid "$WECHAT_APPID" \
+            --uv "$SHORT_SHA" \
+            --enable-es6 true
 
       - name: Deploy to WeChat (Upload)
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        env:
+          WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
+          WECHAT_PRIVATE_KEY: ${{ secrets.WECHAT_PRIVATE_KEY }}
         run: |
-          VERSION="${{ github.event.inputs.version || '1.0.'$(date +%s) }}"
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="1.0.${{ github.run_number }}"
+          fi
           DESC="${{ github.event.inputs.desc || 'GitHub Actions 自动部署' }}"
           
           miniprogram-ci upload \
             --pp ./weapp \
-            --pkp "${{ secrets.WECHAT_PRIVATE_KEY }}" \
-            --appid "${{ secrets.WECHAT_APPID }}" \
+            --pkp "$WECHAT_PRIVATE_KEY" \
+            --appid "$WECHAT_APPID" \
             --uv "$VERSION" \
             --ud "$DESC" \
             --enable-es6 true
-        env:
-          WECHAT_APPID: ${{ secrets.WECHAT_APPID }}
-          WECHAT_PRIVATE_KEY: ${{ secrets.WECHAT_PRIVATE_KEY }}
 
       - name: Notify on success
         if: success()
