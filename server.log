@@ -1,8 +1,9 @@
+
+> weight-tracker-app@1.0.0 start
+> next start
+
   ▲ Next.js 14.2.15
-  - Local:        http://localhost:3000
+  - Local:        http://localhost:54112
 
  ✓ Starting...
-Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id
-    at setupFsCheck (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/router-utils/filesystem.js:151:19)
-    at async initialize (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/router-server.js:62:23)
-    at async Server.<anonymous> (/Users/henry/projects/weight-tracker-app/wechat-miniprogram/node_modules/next/dist/server/lib/start-server.js:249:36)
+ ✓ Ready in 253ms
