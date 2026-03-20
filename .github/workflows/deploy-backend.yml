@@ -1,0 +1,91 @@
+name: Deploy Backend to CloudBase
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'package*.json'
+      - 'next.config.js'
+      - 'Dockerfile'
+      - 'prisma/**'
+  workflow_dispatch: # 支持手动触发
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests (if exists)
+        run: npm test --if-present
+        continue-on-error: true
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          DB_TYPE: cloudbase
+          CLOUDBASE_ENV_ID: ${{ secrets.CLOUDBASE_ENV_ID }}
+
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
+      - name: Login to CloudBase
+        run: |
+          tcb login --apiKeyId "${{ secrets.TENCENTCLOUD_SECRETID }}" \
+                    --apiKey "${{ secrets.TENCENTCLOUD_SECRETKEY }}"
+
+      - name: Deploy to CloudRun
+        run: |
+          tcb cloudrun:deploy \
+            --serviceName weight-tracker-api \
+            --envId "${{ secrets.CLOUDBASE_ENV_ID }}" \
+            --containerPort 3000 \
+            --minNum 0 \
+            --maxNum 10 \
+            --cpu 0.25 \
+            --mem 0.5 \
+            -- Dockerfile
+
+      - name: Get CloudRun URL
+        run: |
+          echo "Service deployed successfully!"
+          echo "URL: https://weight-tracker-api-${{ secrets.CLOUDBASE_ENV_ID }}.cloudrun.tencentcloudapi.com"
+
+      - name: Notify on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: '🚀 Backend deployed to CloudBase successfully!'
+            })
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: '❌ Backend deployment failed. Please check the logs.'
+            })

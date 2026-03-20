@@ -1,0 +1,40 @@
+name: Initialize CloudBase Database
+
+on:
+  workflow_dispatch: # 仅手动触发
+
+jobs:
+  init-db:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
+      - name: Login to CloudBase
+        run: |
+          tcb login --apiKeyId "${{ secrets.TENCENTCLOUD_SECRETID }}" \
+                    --apiKey "${{ secrets.TENCENTCLOUD_SECRETKEY }}"
+
+      - name: Initialize Database
+        run: |
+          export CLOUDBASE_ENV_ID="${{ secrets.CLOUDBASE_ENV_ID }}"
+          node scripts/init-tcb.js
+
+      - name: Migration (if needed)
+        run: |
+          echo "如果需要迁移数据，请手动执行:"
+          echo "npx ts-node scripts/migrate-to-tcb.js"
+        continue-on-error: true
