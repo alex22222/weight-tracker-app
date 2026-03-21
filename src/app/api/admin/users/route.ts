@@ -1,25 +1,50 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import { adapter } from '../../../../lib/db-adapter'
+import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { prisma } from '../../../../lib/db'
 
-// GET /api/admin/users - 获取所有用户信息（管理员专用）
-export async function GET() {
+// 强制动态渲染
+export const dynamic = 'force-dynamic'
+
+// GET /api/admin/users?adminId={adminId} - 获取所有用户列表（仅 admin）
+export async function GET(request: NextRequest) {
   try {
-    // 这里应该添加管理员权限验证
-    // 暂时直接返回所有用户（生产环境需要添加认证中间件）
-    
-    const users = await adapter.getAllUsers()
-    
-    // 移除密码字段，只返回必要信息
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const safeUsers = users.map((user: any) => ({
-      id: user._id || user.id,
-      username: user.username,
-      role: user.role || 'user',
-      createdAt: user.createdAt,
-      lastLoginAt: user.lastLoginAt,
-    }))
-    
-    return NextResponse.json(safeUsers)
+    const { searchParams } = new URL(request.url)
+    const adminId = searchParams.get('adminId')
+
+    if (!adminId) {
+      return NextResponse.json({ error: 'Admin ID required' }, { status: 401 })
+    }
+
+    // 验证是否是 admin
+    const admin = await prisma.user.findUnique({
+      where: { id: parseInt(adminId) },
+    })
+
+    if (!admin || admin.username !== 'admin') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // 获取所有用户（排除 admin 自己）
+    const users = await prisma.user.findMany({
+      where: {
+        username: { not: 'admin' }
+      },
+      select: {
+        id: true,
+        username: true,
+        createdAt: true,
+        updatedAt: true,
+        settings: true,
+        _count: {
+          select: {
+            weightEntries: true,
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    return NextResponse.json(users)
   } catch (error) {
     console.error('Error fetching users:', error)
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
