@@ -39,8 +39,8 @@ export async function GET(
 
     // 根据日期自动判断实时状态
     const now = new Date()
-    const startDate = new Date(channel.startDate)
-    const endDate = new Date(channel.endDate)
+    const startDate = channel.startDate ? new Date(channel.startDate) : new Date()
+    const endDate = channel.endDate ? new Date(channel.endDate) : new Date()
     let realTimeStatus = channel.status
     
     if (now < startDate) {
@@ -142,16 +142,14 @@ export async function POST(
     }
 
     // 添加成员
-    await adapter.addChannelMember(channelId, targetUserId)
+    await adapter.addChannelMember({ channelId, userId: targetUserId })
 
     // 发送邀请通知
     await adapter.createMessage({
       type: MessageType.CHANNEL_INVITE,
-      title: '频道邀请',
       content: `${user.username} 邀请你加入健身频道「${(channel as any).name}」`,
-      fromUserId: user.userId,
-      toUserId: targetUserId,
-      relatedData: JSON.stringify({ channelId }),
+      senderId: user.userId,
+      receiverId: targetUserId,
     })
 
     return NextResponse.json({ message: '邀请成功' })
