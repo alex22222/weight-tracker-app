@@ -1,0 +1,18 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'standalone',
+  // 禁用某些可能导致问题的优化
+  swcMinify: true,
+  // 确保所有 API 路由都使用 Node.js 运行时
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'tencentcloud-sdk-nodejs', '@cloudbase/node-sdk']
+  },
+  // 禁用图片优化，使用静态导出
+  images: {
+    unoptimized: true
+  },
+  // 确保路由正确处理
+  trailingSlash: false,
+}
+
+module.exports = nextConfig

@@ -88,13 +88,9 @@ export async function POST(request: NextRequest) {
     // 发送系统消息通知对方
     await adapter.createMessage({
       type: MessageType.FRIEND_REQUEST,
-      title: '好友请求',
       content: `${user.username} 请求添加你为好友`,
-      fromUserId: user.userId,
-      toUserId: targetUserId,
-      relatedData: JSON.stringify({ 
-        friendId: (friendRequest as any).id || (friendRequest as any)._id 
-      }),
+      senderId: user.userId,
+      receiverId: targetUserId,
     })
 
     return NextResponse.json({ message: '好友请求已发送' }, { status: 201 })
@@ -144,10 +140,9 @@ export async function PATCH(request: NextRequest) {
       // 发送接受通知
       await adapter.createMessage({
         type: MessageType.FRIEND_ACCEPT,
-        title: '好友请求已接受',
         content: `${user.username} 已接受你的好友请求`,
-        toUserId: fromUserId,
-        fromUserId: user.userId,
+        receiverId: fromUserId,
+        senderId: user.userId,
       })
       
       return NextResponse.json({ message: '已接受好友请求' })
@@ -158,10 +153,9 @@ export async function PATCH(request: NextRequest) {
       // 发送拒绝通知
       await adapter.createMessage({
         type: MessageType.FRIEND_REJECT,
-        title: '好友请求被拒绝',
         content: `${user.username} 拒绝了你的好友请求`,
-        toUserId: fromUserId,
-        fromUserId: user.userId,
+        receiverId: fromUserId,
+        senderId: user.userId,
       })
       
       return NextResponse.json({ message: '已拒绝好友请求' })
