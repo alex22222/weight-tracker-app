@@ -181,6 +181,11 @@ const prismaAdapter = {
     })
   },
 
+  // 别名方法，用于兼容旧代码
+  async findUserById(id: number): Promise<User | null> {
+    return this.getUserById(id)
+  },
+
   async updateUserLastLogin(id: number): Promise<void> {
     await prisma.user.update({
       where: { id },
@@ -509,6 +514,11 @@ const cloudbaseAdapter = {
       .limit(1)
       .get()
     return data[0] ? { ...data[0], id: data[0]._id } : null
+  },
+
+  // 别名方法，用于兼容旧代码
+  async findUserById(id: number | string): Promise<User | null> {
+    return this.getUserById(id)
   },
 
   async updateUserLastLogin(id: number | string): Promise<void> {
