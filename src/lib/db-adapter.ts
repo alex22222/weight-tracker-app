@@ -88,8 +88,12 @@ export interface User {
   id?: number | string
   username: string
   password: string
-  gender?: string
-  avatar?: string
+  nickname?: string | null
+  gender?: string | null
+  avatar?: string | null
+  wechatOpenId?: string | null
+  wechatUnionId?: string | null
+  role?: string
   createdAt?: Date
   updatedAt?: Date
   lastLoginAt?: Date | null
@@ -144,6 +148,14 @@ export interface ChannelMember {
   joinedAt?: Date
 }
 
+export interface ChannelComment {
+  id?: number | string
+  channelId: number | string
+  userId: number | string
+  content: string
+  createdAt?: Date
+}
+
 export interface CheckIn {
   id?: number | string
   channelId: number | string
@@ -178,6 +190,51 @@ const prismaAdapter = {
   async getUserById(id: number): Promise<User | null> {
     return prisma.user.findUnique({
       where: { id },
+    })
+  },
+
+  async findUserById(id: number): Promise<User | null> {
+    return this.getUserById(id)
+  },
+
+  async findUserByWechatOpenId(openId: string): Promise<User | null> {
+    return prisma.user.findFirst({
+      where: { wechatOpenId: openId },
+    })
+  },
+
+  async createWechatUser(data: { wechatOpenId: string; wechatUnionId?: string | null; nickname?: string | null; avatar?: string | null; gender?: string | null; role?: string }): Promise<User> {
+    return prisma.user.create({
+      data: {
+        wechatOpenId: data.wechatOpenId,
+        wechatUnionId: data.wechatUnionId,
+        nickname: data.nickname,
+        avatar: data.avatar,
+        gender: data.gender,
+        username: null,
+        password: null,
+      },
+    })
+  },
+
+  async updateUserPassword(id: number, password: string): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: { password },
+    })
+  },
+
+  async updateUser(id: number, data: Partial<User>): Promise<User> {
+    return prisma.user.update({
+      where: { id },
+      data,
+    })
+  },
+
+  async updateUserLoginTime(id: number): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: { lastLoginAt: new Date() },
     })
   },
 
@@ -335,6 +392,10 @@ const prismaAdapter = {
     }) as Promise<FitnessChannel | null>
   },
 
+  async getFitnessChannelById(id: number): Promise<FitnessChannel | null> {
+    return this.getChannelById(id)
+  },
+
   async getAllChannels(): Promise<FitnessChannel[]> {
     return prisma.fitnessChannel.findMany({
       orderBy: { createdAt: 'desc' },
@@ -391,6 +452,35 @@ const prismaAdapter = {
     await prisma.channelMember.deleteMany({
       where: { channelId, userId },
     })
+  },
+
+  // ========== 评论相关 ==========
+  async getChannelComments(channelId: number): Promise<ChannelComment[]> {
+    return prisma.channelComment.findMany({
+      where: { channelId },
+      orderBy: { createdAt: 'desc' },
+    }) as Promise<ChannelComment[]>
+  },
+
+  async createChannelComment(data: { channelId: number; userId: number; content: string }): Promise<ChannelComment> {
+    return prisma.channelComment.create({
+      data: {
+        channelId: data.channelId,
+        userId: data.userId,
+        content: data.content,
+      },
+    }) as Promise<ChannelComment>
+  },
+
+  async deleteChannelComment(commentId: number, userId: number): Promise<boolean> {
+    const comment = await prisma.channelComment.findFirst({
+      where: { id: commentId, userId },
+    })
+    if (!comment) return false
+    await prisma.channelComment.delete({
+      where: { id: commentId },
+    })
+    return true
   },
 
   // ========== 打卡相关 ==========
@@ -509,6 +599,61 @@ const cloudbaseAdapter = {
       .limit(1)
       .get()
     return data[0] ? { ...data[0], id: data[0]._id } : null
+  },
+
+  async findUserById(id: number | string): Promise<User | null> {
+    return this.getUserById(id)
+  },
+
+  async findUserByWechatOpenId(openId: string): Promise<User | null> {
+    const { data } = await tcbDb.collection(COLLECTIONS.USERS)
+      .where({ wechatOpenId: openId })
+      .limit(1)
+      .get()
+    return data[0] ? { ...data[0], id: data[0]._id } : null
+  },
+
+  async createWechatUser(data: { wechatOpenId: string; wechatUnionId?: string | null; nickname?: string | null; avatar?: string | null; gender?: string | null; role?: string }): Promise<User> {
+    const { id } = await tcbDb.collection(COLLECTIONS.USERS).add({
+      wechatOpenId: data.wechatOpenId,
+      wechatUnionId: data.wechatUnionId,
+      nickname: data.nickname,
+      avatar: data.avatar,
+      gender: data.gender,
+      username: null,
+      password: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    return { id, ...data } as User
+  },
+
+  async updateUserPassword(id: number | string, password: string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
+      .doc(String(id))
+    await doc.update({
+      password,
+      updatedAt: new Date(),
+    })
+  },
+
+  async updateUser(id: number | string, data: Partial<User>): Promise<User> {
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
+      .doc(String(id))
+    await doc.update({
+      ...data,
+      updatedAt: new Date(),
+    })
+    return { id, ...data } as User
+  },
+
+  async updateUserLoginTime(id: number | string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
+      .doc(String(id))
+    await doc.update({
+      lastLoginAt: new Date(),
+      updatedAt: new Date(),
+    })
   },
 
   async updateUserLastLogin(id: number | string): Promise<void> {
@@ -691,6 +836,10 @@ const cloudbaseAdapter = {
     return data[0] ? { ...data[0], id: data[0]._id } : null
   },
 
+  async getFitnessChannelById(id: number | string): Promise<FitnessChannel | null> {
+    return this.getChannelById(id)
+  },
+
   async getAllChannels(): Promise<FitnessChannel[]> {
     const { data } = await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
       .orderBy('createdAt', 'desc')
@@ -751,6 +900,37 @@ const cloudbaseAdapter = {
         .doc(String(member.id))
       await doc.remove()
     }
+  },
+
+  // ========== 评论相关 ==========
+  async getChannelComments(channelId: number | string): Promise<ChannelComment[]> {
+    const { data } = await tcbDb.collection(COLLECTIONS.CHANNEL_COMMENTS)
+      .where({ channelId })
+      .orderBy('createdAt', 'desc')
+      .get()
+    return data.map((d: any) => ({ ...d, id: d._id }))
+  },
+
+  async createChannelComment(data: { channelId: number | string; userId: number | string; content: string }): Promise<ChannelComment> {
+    const { id } = await tcbDb.collection(COLLECTIONS.CHANNEL_COMMENTS).add({
+      channelId: data.channelId,
+      userId: data.userId,
+      content: data.content,
+      createdAt: new Date(),
+    })
+    return { id, ...data } as ChannelComment
+  },
+
+  async deleteChannelComment(commentId: number | string, userId: number | string): Promise<boolean> {
+    const { data } = await tcbDb.collection(COLLECTIONS.CHANNEL_COMMENTS)
+      .where({ _id: commentId, userId })
+      .limit(1)
+      .get()
+    if (data.length === 0) return false
+    const doc = await tcbDb.collection(COLLECTIONS.CHANNEL_COMMENTS)
+      .doc(String(commentId))
+    await doc.remove()
+    return true
   },
 
   // ========== 打卡相关 ==========

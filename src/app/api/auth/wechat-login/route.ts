@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
       // 发送欢迎消息
       await adapter.createMessage({
         type: MessageType.SYSTEM_LOGIN,
-        title: '欢迎',
         content: `欢迎使用体重管理器！您的微信账号已绑定成功。`,
-        toUserId: user.id,
+        senderId: 0, // 系统消息
+        receiverId: user.id,
       })
     } else {
       // 更新用户信息（如果提供了新的用户信息）
@@ -90,29 +90,34 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (Object.keys(updateData).length > 0) {
+        if (Object.keys(updateData).length > 0 && user.id) {
           await adapter.updateUser(user.id, updateData)
           user = { ...user, ...updateData }
         }
       }
 
       // 更新最后登录时间
-      await adapter.updateUserLoginTime(user.id)
+      if (user?.id) {
+        await adapter.updateUserLoginTime(user.id)
+      }
 
       // 发送登录提醒
-      if (user.lastLoginAt) {
+      if (user?.lastLoginAt && user?.id) {
         const lastLoginTime = new Date(user.lastLoginAt).toLocaleString('zh-CN')
         await adapter.createMessage({
           type: MessageType.SYSTEM_LOGIN,
-          title: '登录提醒',
           content: `您的账号于 ${new Date().toLocaleString('zh-CN')} 登录。上次登录时间：${lastLoginTime}`,
-          toUserId: user.id,
+          senderId: 0, // 系统消息
+          receiverId: user.id,
         })
       }
     }
 
     // 生成安全 token
-    const token = generateToken(user.id, user.nickname || user.username || '微信用户')
+    if (!user?.id) {
+      return NextResponse.json({ error: '用户数据异常' }, { status: 500 })
+    }
+    const token = generateToken(typeof user.id === 'string' ? parseInt(user.id) || 0 : user.id, user.nickname || user.username || '微信用户')
 
     // 返回用户信息
     return NextResponse.json({

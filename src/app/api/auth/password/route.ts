@@ -69,10 +69,10 @@ export async function PUT(request: NextRequest) {
 
     // 发送密码修改提醒消息
     await adapter.createMessage({
-      type: MessageType.SYSTEM_PASSWORD,
-      title: '密码修改提醒',
+      type: MessageType.SYSTEM_PASSWORD_CHANGE,
       content: `您的账号密码已于 ${new Date().toLocaleString('zh-CN')} 修改。如非本人操作，请立即联系管理员。`,
-      toUserId: user.userId,
+      senderId: 0, // 系统消息
+      receiverId: user.userId,
     })
 
     return NextResponse.json({ message: '密码修改成功' })
