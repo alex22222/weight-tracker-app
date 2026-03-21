@@ -1,0 +1,110 @@
+name: Deploy to CloudBase (Fixed)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  ENV_ID: weight-tracker-1ghr085dd7d6cff2
+  SERVICE_NAME: weight-tracker-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Build
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
+          DB_TYPE: cloudbase
+          CLOUDBASE_ENV_ID: ${{ env.ENV_ID }}
+        run: |
+          unset __NEXT_PRIVATE_STANDALONE_CONFIG || true
+          npm run build
+
+      - name: Setup CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
+      - name: Configure CloudBase credentials
+        run: |
+          mkdir -p ~/.config/cloudbase
+          cat > ~/.config/cloudbase/credentials.json << EOF
+          {
+            "version": "2.0",
+            "appId": "",
+            "prompt": "false",
+            "credentials": {
+              "${{ env.ENV_ID }}": {
+                "secretId": "${{ secrets.TENCENT_CLOUD_SECRET_ID }}",
+                "secretKey": "${{ secrets.TENCENT_CLOUD_SECRET_KEY }}",
+                "token": ""
+              }
+            }
+          }
+          EOF
+
+      - name: Deploy to CloudRun
+        run: |
+          # 使用 CloudBase CLI 2.x 的正确语法
+          cloudbase cloudrun:deploy \
+            --envId "${{ env.ENV_ID }}" \
+            --serviceName "${{ env.SERVICE_NAME }}" \
+            --containerPort 3000 \
+            --minNum 0 \
+            --maxNum 10 \
+            --cpu 0.25 \
+            --mem 0.5 \
+            --envParams '{"DB_TYPE":"cloudbase","CLOUDBASE_ENV_ID":"${{ env.ENV_ID }}","NODE_ENV":"production","PORT":"3000"}' \
+            --noConfirm
+
+      - name: Get service URL
+        id: get-url
+        run: |
+          # 获取服务访问地址
+          URL=$(cloudbase cloudrun:list --envId "${{ env.ENV_ID }}" --json 2>/dev/null | jq -r ".[] | select(.serviceName==\"${{ env.SERVICE_NAME }}\") | .defaultDomain" || echo "")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Service URL: $URL"
+
+      - name: Health check
+        run: |
+          URL="${{ steps.get-url.outputs.url }}"
+          if [ -n "$URL" ]; then
+            for i in {1..10}; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$URL/api/health" || echo "000")
+              if [ "$STATUS" = "200" ]; then
+                echo "✅ Health check passed!"
+                exit 0
+              fi
+              echo "Attempt $i: Waiting for service... (status: $STATUS)"
+              sleep 10
+            done
+            echo "❌ Health check failed"
+            exit 1
+          fi
+
+      - name: Deployment status
+        if: always()
+        run: |
+          echo "========================================"
+          echo "  Deployment Status: ${{ job.status }}"
+          echo "========================================"
+          echo "Environment: ${{ env.ENV_ID }}"
+          echo "Service: ${{ env.SERVICE_NAME }}"
+          echo "Console: https://console.cloud.tencent.com/tcb/env/${{ env.ENV_ID }}/cloudrun"

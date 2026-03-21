@@ -1,5 +1,6 @@
 {
-  "envId": "{{env.ENV_ID}}",
+  "version": "2.0",
+  "envId": "weight-tracker-1ghr085dd7d6cff2",
   "functionRoot": "cloudfunctions",
   "functions": [],
   "cloudRunRoot": "cloudrun",
@@ -15,7 +16,12 @@
       "environmentVariables": {
         "NODE_ENV": "production",
         "DB_TYPE": "cloudbase",
-        "CLOUDBASE_ENV_ID": "{{env.ENV_ID}}"
+        "CLOUDBASE_ENV_ID": "weight-tracker-1ghr085dd7d6cff2",
+        "PORT": "3000"
+      },
+      "buildParams": {
+        "dockerfilePath": "Dockerfile",
+        "buildDir": "."
       }
     }
   ],
@@ -27,9 +33,9 @@
         "inputs": {
           "buildCommand": "npm run build",
           "outputPath": ".next/standalone",
+          "installCommand": "npm install --legacy-peer-deps",
           "name": "weight-tracker-web",
-          "path": "/",
-          "installCommand": "npm install"
+          "path": "/"
         }
       }
     }
