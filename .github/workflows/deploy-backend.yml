@@ -57,14 +57,14 @@ jobs:
       - name: Deploy to CloudRun
         run: |
           tcb cloudrun:deploy \
-            --serviceName weight-tracker-api \
-            --envId "${{ secrets.CLOUDBASE_ENV_ID }}" \
-            --containerPort 3000 \
-            --minNum 0 \
-            --maxNum 10 \
+            --service weight-tracker-api \
+            --env-id "${{ secrets.CLOUDBASE_ENV_ID }}" \
+            --port 3000 \
+            --min-num 0 \
+            --max-num 10 \
             --cpu 0.25 \
             --mem 0.5 \
-            -- Dockerfile
+            --dockerfile Dockerfile
 
       - name: Get CloudRun URL
         run: |
