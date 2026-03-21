@@ -76,38 +76,39 @@ function formatDateToYYYYMMDD(date: Date): string {
 // ==================== 数据模型接口 ====================
 
 export interface WeightEntry {
-  id?: number
+  id?: number | string
   weight: number
-  note?: string
+  note?: string | null
   date: Date
   createdAt?: Date
-  userId?: number
+  userId?: number | string
 }
 
 export interface User {
-  id?: number
+  id?: number | string
   username: string
   password: string
   gender?: string
   avatar?: string
   createdAt?: Date
   updatedAt?: Date
-  lastLoginAt?: Date
+  lastLoginAt?: Date | null
 }
 
 export interface UserSettings {
-  id?: number
+  id?: number | string
   height: number
   targetWeight: number
   createdAt?: Date
   updatedAt?: Date
+  userId?: number | string
 }
 
 export interface Message {
-  id?: number
-  senderId: number
-  receiverId?: number
-  channelId?: number
+  id?: number | string
+  senderId: number | string
+  receiverId?: number | string | null
+  channelId?: number | string | null
   content: string
   type: MessageTypeValue
   createdAt?: Date
@@ -115,19 +116,19 @@ export interface Message {
 }
 
 export interface Friend {
-  id?: number
-  userId: number
-  friendId: number
+  id?: number | string
+  userId: number | string
+  friendId: number | string
   status: FriendStatusValue
   createdAt?: Date
   updatedAt?: Date
 }
 
 export interface FitnessChannel {
-  id?: number
+  id?: number | string
   name: string
   description: string
-  creatorId: number
+  creatorId: number | string
   targetDays: number
   targetCheckIns: number
   status?: ChannelStatusValue
@@ -136,21 +137,21 @@ export interface FitnessChannel {
 }
 
 export interface ChannelMember {
-  id?: number
-  channelId: number
-  userId: number
+  id?: number | string
+  channelId: number | string
+  userId: number | string
   role?: string
   joinedAt?: Date
 }
 
 export interface CheckIn {
-  id?: number
-  channelId: number
-  userId: number
+  id?: number | string
+  channelId: number | string
+  userId: number | string
   checkDate: Date
   duration?: number
-  note?: string
-  imageUrl?: string
+  note?: string | null
+  imageUrl?: string | null
   createdAt?: Date
 }
 
@@ -262,7 +263,7 @@ const prismaAdapter = {
         content: data.content,
         type: data.type,
       },
-    })
+    }) as Promise<Message>
   },
 
   async getMessagesByChannel(channelId: number, limit: number = 50, before?: string): Promise<Message[]> {
@@ -273,7 +274,7 @@ const prismaAdapter = {
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
-    })
+    }) as Promise<Message[]>
   },
 
   // ========== 好友相关 ==========
@@ -284,7 +285,7 @@ const prismaAdapter = {
         friendId,
         status: FriendStatus.PENDING,
       },
-    })
+    }) as Promise<Friend>
   },
 
   async getFriends(userId: number): Promise<Friend[]> {
@@ -295,7 +296,7 @@ const prismaAdapter = {
           { friendId: userId, status: FriendStatus.ACCEPTED },
         ],
       },
-    })
+    }) as Promise<Friend[]>
   },
 
   async getPendingFriendRequests(userId: number): Promise<Friend[]> {
@@ -304,14 +305,14 @@ const prismaAdapter = {
         friendId: userId,
         status: FriendStatus.PENDING,
       },
-    })
+    }) as Promise<Friend[]>
   },
 
   async updateFriendStatus(id: number, status: FriendStatusValue): Promise<Friend> {
     return prisma.friend.update({
       where: { id },
       data: { status },
-    })
+    }) as Promise<Friend>
   },
 
   // ========== 健身频道相关 ==========
@@ -325,19 +326,19 @@ const prismaAdapter = {
         targetCheckIns: data.targetCheckIns,
         status: ChannelStatus.ACTIVE,
       },
-    })
+    }) as Promise<FitnessChannel>
   },
 
   async getChannelById(id: number): Promise<FitnessChannel | null> {
     return prisma.fitnessChannel.findUnique({
       where: { id },
-    })
+    }) as Promise<FitnessChannel | null>
   },
 
   async getAllChannels(): Promise<FitnessChannel[]> {
     return prisma.fitnessChannel.findMany({
       orderBy: { createdAt: 'desc' },
-    })
+    }) as Promise<FitnessChannel[]>
   },
 
   async getChannelsByMember(userId: number): Promise<FitnessChannel[]> {
@@ -349,7 +350,7 @@ const prismaAdapter = {
     return prisma.fitnessChannel.findMany({
       where: { id: { in: channelIds } },
       orderBy: { createdAt: 'desc' },
-    })
+    }) as Promise<FitnessChannel[]>
   },
 
   async deleteChannel(id: number): Promise<void> {
@@ -403,21 +404,21 @@ const prismaAdapter = {
         note: data.note,
         imageUrl: data.imageUrl,
       },
-    })
+    }) as Promise<CheckIn>
   },
 
   async getCheckInsByChannel(channelId: number): Promise<CheckIn[]> {
     return prisma.checkIn.findMany({
       where: { channelId },
       orderBy: { checkDate: 'desc' },
-    })
+    }) as Promise<CheckIn[]>
   },
 
   async getCheckInsByUserAndChannel(channelId: number, userId: number): Promise<CheckIn[]> {
     return prisma.checkIn.findMany({
       where: { channelId, userId },
       orderBy: { checkDate: 'desc' },
-    })
+    }) as Promise<CheckIn[]>
   },
 
   async getCheckInByDate(channelId: number, userId: number, dateInput: Date | string) {
@@ -511,21 +512,21 @@ const cloudbaseAdapter = {
   },
 
   async updateUserLastLogin(id: number | string): Promise<void> {
-    await tcbDb.collection(COLLECTIONS.USERS)
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
       .doc(String(id))
-      .update({
-        lastLoginAt: new Date(),
-        updatedAt: new Date(),
-      })
+    await doc.update({
+      lastLoginAt: new Date(),
+      updatedAt: new Date(),
+    })
   },
 
   async updateUserGender(id: number | string, gender: string): Promise<void> {
-    await tcbDb.collection(COLLECTIONS.USERS)
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
       .doc(String(id))
-      .update({
-        gender,
-        updatedAt: new Date(),
-      })
+    await doc.update({
+      gender,
+      updatedAt: new Date(),
+    })
   },
 
   // ========== 体重记录相关 ==========
@@ -557,16 +558,16 @@ const cloudbaseAdapter = {
   },
 
   async updateWeightEntry(id: number | string, data: { weight?: number; note?: string; date?: Date }): Promise<WeightEntry> {
-    await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
+    const doc = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
       .doc(String(id))
-      .update(data)
+    await doc.update(data)
     return { id, ...data } as WeightEntry
   },
 
   async deleteWeightEntry(id: number | string): Promise<void> {
-    await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
+    const doc = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
       .doc(String(id))
-      .remove()
+    await doc.remove()
   },
 
   // ========== 用户设置相关 ==========
@@ -590,12 +591,12 @@ const cloudbaseAdapter = {
   async updateUserSettings(userId: number | string, data: { height?: number; targetWeight?: number }): Promise<UserSettings> {
     const settings = await cloudbaseAdapter.getUserSettings(userId)
     if (settings?.id) {
-      await tcbDb.collection(COLLECTIONS.USER_SETTINGS)
+      const doc = await tcbDb.collection(COLLECTIONS.USER_SETTINGS)
         .doc(String(settings.id))
-        .update({
-          ...data,
-          updatedAt: new Date(),
-        })
+      await doc.update({
+        ...data,
+        updatedAt: new Date(),
+      })
     }
     return { ...settings, ...data } as UserSettings
   },
@@ -661,9 +662,9 @@ const cloudbaseAdapter = {
   },
 
   async updateFriendStatus(id: number | string, status: FriendStatusValue): Promise<Friend> {
-    await tcbDb.collection(COLLECTIONS.FRIENDS)
+    const doc = await tcbDb.collection(COLLECTIONS.FRIENDS)
       .doc(String(id))
-      .update({ status, updatedAt: new Date() })
+    await doc.update({ status, updatedAt: new Date() })
     return { id, status } as Friend
   },
 
@@ -712,9 +713,9 @@ const cloudbaseAdapter = {
   },
 
   async deleteChannel(id: number | string): Promise<void> {
-    await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
+    const doc = await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
       .doc(String(id))
-      .remove()
+    await doc.remove()
   },
 
   // ========== 频道成员相关 ==========
@@ -746,9 +747,9 @@ const cloudbaseAdapter = {
   async removeChannelMember(channelId: number | string, userId: number | string): Promise<void> {
     const member = await cloudbaseAdapter.getChannelMember(channelId, userId)
     if (member?.id) {
-      await tcbDb.collection(COLLECTIONS.CHANNEL_MEMBERS)
+      const doc = await tcbDb.collection(COLLECTIONS.CHANNEL_MEMBERS)
         .doc(String(member.id))
-        .remove()
+      await doc.remove()
     }
   },
 

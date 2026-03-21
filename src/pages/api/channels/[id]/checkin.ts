@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const checkIns = await adapter.getCheckInsByChannel(channelId)
     
     // 获取所有用户ID并查询用户信息
-    const userIds = [...new Set(checkIns.map(ci => ci.userId))]
+    const userIds = Array.from(new Set(checkIns.map(ci => ci.userId)))
     const users = await Promise.all(userIds.map(id => adapter.getUserById(id)))
     const userMap = new Map(users.filter(Boolean).map(u => [u!.id, u]))
     
