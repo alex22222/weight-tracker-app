@@ -21,10 +21,13 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install dependencies
+      - name: Clean and install dependencies
         run: |
           rm -rf node_modules package-lock.json
-          npm install --legacy-peer-deps
+          # 删除平台特定的可选依赖
+          npm pkg delete optionalDependencies
+          # 安装依赖（不锁定平台）
+          npm install --legacy-peer-deps --no-optional
 
       - name: Generate Prisma Client
         run: npx prisma generate
