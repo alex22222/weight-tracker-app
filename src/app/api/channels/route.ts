@@ -1,168 +1,99 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { adapter, MessageType, ChannelStatus } from '../../../lib/db-adapter'
-import { verifyToken } from '../../../lib/auth'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { adapter } from '../../../lib/db-adapter'
 
-// 验证 Token
-function getUserFromToken(request: NextRequest): { userId: number; username: string } | null {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) return null
-  return verifyToken(token)
+export const dynamic = 'force-dynamic'
+
+function verifyToken(token: string): { userId: number; username: string } | null {
+  try {
+    const decoded = Buffer.from(token, 'base64').toString('utf-8')
+    const [username, userId] = decoded.split(':')
+    if (!username || !userId) return null
+    return { userId: parseInt(userId), username }
+  } catch {
+    return null
+  }
 }
 
-// GET /api/channels - 获取用户的所有频道
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromToken(request)
-    if (!user) {
-      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
-    }
+    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+    if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
 
-    const channels = await adapter.getFitnessChannelsByUser(user.userId)
-    
-    // 根据日期自动判断每个频道的实时状态
-    const now = new Date()
-    const channelsWithRealTimeStatus = channels.map((channel: any) => {
-      const startDate = new Date(channel.startDate)
-      const endDate = new Date(channel.endDate)
-      let realTimeStatus = channel.status
-      
-      if (now < startDate) {
-        realTimeStatus = 'PENDING'
-      } else if (now >= startDate && now <= endDate) {
-        realTimeStatus = 'ACTIVE'
-      } else {
-        realTimeStatus = 'COMPLETED'
-      }
-      
-      return {
-        ...channel,
-        status: realTimeStatus
-      }
-    })
-    
-    return NextResponse.json({ channels: channelsWithRealTimeStatus })
-  } catch (error) {
-    console.error('Error getting channels:', error)
-    return NextResponse.json({ error: '获取频道列表失败' }, { status: 500 })
-  }
-}
-
-// POST /api/channels - 创建新频道
-export async function POST(request: NextRequest) {
-  try {
-    const user = getUserFromToken(request)
-    if (!user) {
-      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
-    }
-
-    const body = await request.json()
-    const { name, description, startDate, endDate, weeklyCheckInCount, checkInMinutes, maxLeaveDays } = body
-
-    // 验证输入
-    if (!name || typeof name !== 'string' || name.trim().length < 2) {
-      return NextResponse.json({ error: '频道名称至少2个字符' }, { status: 400 })
-    }
-    
-    if (!startDate || !endDate) {
-      return NextResponse.json({ error: '请填写开始和结束日期' }, { status: 400 })
-    }
-
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return NextResponse.json({ error: '无效的日期格式' }, { status: 400 })
-    }
-    
-    if (end < start) {
-      return NextResponse.json({ error: '结束日期不能早于开始日期' }, { status: 400 })
-    }
-    
-    // 验证数值参数
-    const weeklyCount = weeklyCheckInCount ? parseInt(weeklyCheckInCount) : 3
-    const checkInMins = checkInMinutes ? parseInt(checkInMinutes) : 30
-    const maxLeaves = maxLeaveDays !== undefined ? parseInt(maxLeaveDays) : 3
-    
-    if (weeklyCount < 1 || weeklyCount > 7) {
-      return NextResponse.json({ error: '每周打卡次数应在 1-7 之间' }, { status: 400 })
-    }
-    
-    if (checkInMins < 5 || checkInMins > 300) {
-      return NextResponse.json({ error: '打卡时长应在 5-300 分钟之间' }, { status: 400 })
-    }
-    
-    if (maxLeaves < 0 || maxLeaves > 30) {
-      return NextResponse.json({ error: '请假天数应在 0-30 之间' }, { status: 400 })
-    }
-
-    // 检查用户是否已有进行中的频道
-    const activeChannel = await adapter.getUserActiveChannel(user.userId)
-    if (activeChannel) {
-      return NextResponse.json({ 
-        error: '已有进行中的健身频道',
-        message: `您当前正在参与「${(activeChannel as any).name}」频道，该频道将于 ${new Date((activeChannel as any).endDate).toLocaleDateString('zh-CN')} 结束。请在当前频道结束后再创建新频道。`,
-        activeChannel: {
-          id: (activeChannel as any).id || (activeChannel as any)._id,
-          name: (activeChannel as any).name,
-          endDate: (activeChannel as any).endDate,
-        }
-      }, { status: 409 })
-    }
-
-    // 创建频道
-    const channel = await adapter.createFitnessChannel({
-      name: name.trim(),
-      description: description?.trim(),
-      startDate: start,
-      endDate: end,
-      ownerId: user.userId,
-      weeklyCheckInCount: weeklyCount,
-      checkInMinutes: checkInMins,
-      maxLeaveDays: maxLeaves,
-    })
-
-    return NextResponse.json({ 
-      message: '频道创建成功', 
-      channel 
-    }, { status: 201 })
-  } catch (error) {
-    console.error('Error creating channel:', error)
-    return NextResponse.json({ error: '创建频道失败' }, { status: 500 })
-  }
-}
-
-// DELETE /api/channels - 删除频道
-export async function DELETE(request: NextRequest) {
-  try {
-    const user = getUserFromToken(request)
-    if (!user) {
-      return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
-    }
+    const user = verifyToken(token)
+    if (!user) return NextResponse.json({ error: '无效token' }, { status: 401 })
 
     const { searchParams } = new URL(request.url)
-    const channelId = searchParams.get('id')
+    const type = searchParams.get('type') || 'all' // all, joined, created
 
-    if (!channelId || isNaN(parseInt(channelId))) {
-      return NextResponse.json({ error: '无效的频道ID' }, { status: 400 })
+    let channels: any[] = []
+
+    if (type === 'joined') {
+      channels = await adapter.getChannelsByMember(user.userId)
+    } else if (type === 'created') {
+      const allChannels = await adapter.getAllChannels()
+      channels = allChannels.filter((c: any) => c.creatorId === user.userId)
+    } else {
+      channels = await adapter.getAllChannels()
     }
 
-    // 获取频道信息，验证权限
-    const channel = await adapter.getFitnessChannelById(parseInt(channelId))
-    if (!channel) {
-      return NextResponse.json({ error: '频道不存在' }, { status: 404 })
-    }
+    // 为每个频道添加成员信息和我的加入状态
+    const channelsWithDetails = await Promise.all(
+      channels.map(async (channel) => {
+        const members = await adapter.getChannelMembers(channel.id)
+        const isMember = members.some((m: any) => m.userId === user.userId)
+        return {
+          ...channel,
+          memberCount: members.length,
+          isMember,
+          isCreator: channel.creatorId === user.userId,
+        }
+      })
+    )
 
-    // 只有创建者可以删除
-    const ownerId = (channel as any).ownerId || (channel as any).owner?.id
-    if (ownerId !== user.userId) {
-      return NextResponse.json({ error: '无权删除该频道' }, { status: 403 })
-    }
-
-    await adapter.deleteFitnessChannel(parseInt(channelId))
-    return NextResponse.json({ message: '频道已删除' })
+    return NextResponse.json({ channels: channelsWithDetails })
   } catch (error) {
-    console.error('Error deleting channel:', error)
-    return NextResponse.json({ error: '删除频道失败' }, { status: 500 })
+    console.error('获取频道列表错误:', error)
+    return NextResponse.json({ error: '获取失败' }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+    if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
+
+    const user = verifyToken(token)
+    if (!user) return NextResponse.json({ error: '无效token' }, { status: 401 })
+
+    const body = await request.json()
+    const { name, description, targetDays, targetCheckIns } = body
+
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: '频道名称不能为空' }, { status: 400 })
+    }
+
+    const channel = await adapter.createChannel({
+      name: name.trim(),
+      description: description?.trim() || '',
+      creatorId: user.userId,
+      targetDays: targetDays || 30,
+      targetCheckIns: targetCheckIns || 20,
+    })
+
+    // 自动将创建者加入频道
+    if (!channel.id) {
+      return NextResponse.json({ error: '创建频道失败' }, { status: 500 })
+    }
+    await adapter.addChannelMember({
+      channelId: channel.id as number,
+      userId: user.userId,
+      role: 'CREATOR',
+    })
+
+    return NextResponse.json({ message: '创建成功', channel }, { status: 201 })
+  } catch (error) {
+    console.error('创建频道错误:', error)
+    return NextResponse.json({ error: '创建失败' }, { status: 500 })
   }
 }
