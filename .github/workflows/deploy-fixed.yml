@@ -1,0 +1,141 @@
+name: Deploy to Tencent CloudBase
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  SERVICE_NAME: weight-tracker-api
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm install --legacy-peer-deps
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Clear Environment
+        run: |
+          unset __NEXT_PRIVATE_STANDALONE_CONFIG || true
+          unset __NEXT_PRIVATE_ORIGIN || true
+
+      - name: Build project
+        env:
+          NODE_ENV: production
+          NEXT_TELEMETRY_DISABLED: 1
+          DB_TYPE: cloudbase
+          CLOUDBASE_ENV_ID: ${{ secrets.CLOUDBASE_ENV_ID }}
+        run: npm run build
+
+      - name: Create deployment package
+        run: |
+          mkdir -p deploy
+          cp -r .next deploy/
+          cp -r prisma deploy/
+          cp -r public deploy/ 2>/dev/null || true
+          cp package.json deploy/
+          cp package-lock.json deploy/ 2>/dev/null || true
+          cp -r node_modules deploy/
+          tar -czf deploy.tar.gz deploy/
+
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
+      - name: Login to CloudBase
+        env:
+          TENCENTCLOUD_SECRETID: ${{ secrets.TENCENT_CLOUD_SECRET_ID }}
+          TENCENTCLOUD_SECRETKEY: ${{ secrets.TENCENT_CLOUD_SECRET_KEY }}
+        run: |
+          mkdir -p ~/.config/cloudbase
+          cat > ~/.config/cloudbase/credentials.json << EOF
+          {
+            "version": "2.0",
+            "appId": "",
+            "prompt": "false",
+            "credentials": {
+              "${{ secrets.CLOUDBASE_ENV_ID }}": {
+                "secretId": "${{ secrets.TENCENT_CLOUD_SECRET_ID }}",
+                "secretKey": "${{ secrets.TENCENT_CLOUD_SECRET_KEY }}",
+                "token": ""
+              }
+            }
+          }
+          EOF
+
+      - name: Deploy to CloudBase CloudRun
+        env:
+          TENCENTCLOUD_SECRETID: ${{ secrets.TENCENT_CLOUD_SECRET_ID }}
+          TENCENTCLOUD_SECRETKEY: ${{ secrets.TENCENT_CLOUD_SECRET_KEY }}
+        run: |
+          # 使用新版 CloudBase CLI 语法
+          cloudbase cloudrun:deploy \
+            --envId ${{ secrets.CLOUDBASE_ENV_ID }} \
+            --serviceName ${{ env.SERVICE_NAME }} \
+            --containerPort 3000 \
+            --minNum 0 \
+            --maxNum 10 \
+            --cpu 0.25 \
+            --mem 0.5 \
+            --envParams '{"DB_TYPE":"cloudbase","CLOUDBASE_ENV_ID":"${{ secrets.CLOUDBASE_ENV_ID }}","NODE_ENV":"production","PORT":"3000"}' \
+            --flowRatio 100 \
+            --versionDesc "Deploy from GitHub Actions" \
+            --command "npm start" \
+            --noConfirm
+
+      - name: Verify deployment
+        run: |
+          echo "Waiting for deployment to complete..."
+          sleep 30
+          
+          # 获取服务访问地址
+          SERVICE_URL=$(cloudbase cloudrun:list \
+            --envId ${{ secrets.CLOUDBASE_ENV_ID }} \
+            --json 2>/dev/null | jq -r ".[] | select(.serviceName==\"${{ env.SERVICE_NAME }}\") | .defaultDomain" || echo "")
+          
+          if [ -n "$SERVICE_URL" ]; then
+            echo "Service URL: $SERVICE_URL"
+            
+            # 健康检查
+            for i in {1..10}; do
+              HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://$SERVICE_URL/api/health" || echo "000")
+              if [ "$HTTP_STATUS" = "200" ]; then
+                echo "✅ Deployment successful! Health check passed."
+                exit 0
+              fi
+              echo "Attempt $i: Service not ready (status: $HTTP_STATUS), waiting..."
+              sleep 10
+            done
+            
+            echo "❌ Health check failed after 10 attempts"
+            exit 1
+          else
+            echo "⚠️ Could not get service URL, please check CloudBase console manually"
+          fi
+
+      - name: Deployment Summary
+        if: always()
+        run: |
+          echo "========================================"
+          echo "  Deployment Summary"
+          echo "========================================"
+          echo "Environment: ${{ secrets.CLOUDBASE_ENV_ID }}"
+          echo "Service: ${{ env.SERVICE_NAME }}"
+          echo "Status: ${{ job.status }}"
+          echo ""
+          echo "Check CloudBase Console:"
+          echo "https://console.cloud.tencent.com/tcb/env/${{ secrets.CLOUDBASE_ENV_ID }}/cloudrun"
