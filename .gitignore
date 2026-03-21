@@ -37,8 +37,3 @@ prisma/migrations/
 
 # OS
 Thumbs.db
-
-# Server logs
-server.log
-server.pid
-weapp/server.pid

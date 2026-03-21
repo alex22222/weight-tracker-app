@@ -4,7 +4,26 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./prisma/dev.db"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  username      String         @unique
+  password      String
+  gender        String         @default("other")
+  avatar        String         @default("")
+  lastLoginAt   DateTime?
+  weightEntries WeightEntry[]
+  settings      UserSettings?
+  messages      Message[]
+  sentFriends   Friend[]       @relation("SentFriends")
+  receivedFriends Friend[]     @relation("ReceivedFriends")
+  createdChannels FitnessChannel[]
+  channelMembers ChannelMember[]
+  checkIns      CheckIn[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model WeightEntry {
@@ -12,171 +31,103 @@ model WeightEntry {
   weight    Float
   note      String?
   date      DateTime
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  userId    Int      // 关联到用户
-  user      User     @relation(fields: [userId], references: [id])
-}
 
-model User {
-  id           Int              @id @default(autoincrement())
-  username     String?          @unique // 用户名（微信登录可为空）
-  password     String?          // 密码哈希（微信登录可为空）
-  salt         String?          // 密码盐值
-  wechatOpenId String?          @unique // 微信 OpenID（微信登录用户唯一标识）
-  wechatUnionId String?         // 微信 UnionID（跨应用用户唯一标识）
-  nickname     String?          // 微信昵称
-  role         String           @default("user") // 角色: user, admin
-  gender       String?          // 性别: male, female, other
-  avatar       String?          // 头像URL
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  lastLoginAt  DateTime?        // 最后一次登录时间
-  weightEntries WeightEntry[]   // 用户的体重记录
-  sentMessages Message[]        @relation("SentMessages")      // 发送的消息
-  recvMessages Message[]        @relation("ReceivedMessages")  // 接收的消息
-  sentFriends  Friend[]         @relation("SentFriends")       // 发送的好友请求
-  recvFriends  Friend[]         @relation("ReceivedFriends")   // 接收的好友请求
-  
-  // 用户设置
-  settings         UserSettings?
-  
-  // 健身频道相关
-  ownedChannels    FitnessChannel[] @relation("ChannelOwner")    // 创建的频道
-  channelMembers   ChannelMember[]                                 // 加入的频道
-  checkIns         CheckIn[]                                       // 打卡记录
-  comments         ChannelComment[]                                // 评论
-  leaveRequests    LeaveRequest[]                                  // 请假申请
+  @@index([userId])
 }
 
 model UserSettings {
   id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   height       Float    @default(170)
   targetWeight Float    @default(65)
+  gender       String   @default("male")
+  age          Int      @default(25)
+  avatar       String   @default("")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
-  // 关联用户（每个用户有自己的设置）
-  userId       Int?     @unique
-  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
-// 消息模型
 model Message {
-  id         Int       @id @default(autoincrement())
-  type       String    // 消息类型: SYSTEM_LOGIN, SYSTEM_PASSWORD, FRIEND_REQUEST, FRIEND_ACCEPT, FRIEND_REJECT, CHANNEL_INVITE
-  title      String    // 消息标题
-  content    String    // 消息内容
-  isRead     Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  
-  // 关联用户
-  fromUserId Int?      // 发送者ID（系统消息可为空）
-  fromUser   User?     @relation("SentMessages", fields: [fromUserId], references: [id])
-  toUserId   Int       // 接收者ID
-  toUser     User      @relation("ReceivedMessages", fields: [toUserId], references: [id])
-  
-  // 相关数据
-  relatedData String?  // 额外数据（JSON格式存储）
+  id         Int      @id @default(autoincrement())
+  senderId   Int
+  sender     User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId Int?
+  channelId  Int?
+  content    String
+  type       String   @default("CHANNEL_CHAT")
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([channelId])
 }
 
-// 好友关系模型
 model Friend {
-  id         Int       @id @default(autoincrement())
-  status     String    @default("PENDING") // PENDING, ACCEPTED, REJECTED, BLOCKED
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  
-  // 关联用户
-  fromUserId Int       // 发起者ID
-  fromUser   User      @relation("SentFriends", fields: [fromUserId], references: [id])
-  toUserId   Int       // 接收者ID
-  toUser     User      @relation("ReceivedFriends", fields: [toUserId], references: [id])
-  
-  @@unique([fromUserId, toUserId])
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation("SentFriends", fields: [userId], references: [id], onDelete: Cascade)
+  friendId  Int
+  friend    User     @relation("ReceivedFriends", fields: [friendId], references: [id], onDelete: Cascade)
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([friendId])
+  @@unique([userId, friendId])
 }
 
-// ==================== 健身拼团频道 ====================
-
-// 健身频道
 model FitnessChannel {
-  id                 Int       @id @default(autoincrement())
-  name               String    // 频道名称
-  description        String?   // 频道描述
-  status             String    @default("PENDING") // PENDING, ACTIVE, COMPLETED
-  startDate          DateTime  // 开始日期
-  endDate            DateTime  // 结束日期
-  weeklyCheckInCount Int       @default(3) // 每周至少打卡次数
-  checkInMinutes     Int       @default(30) // 每次打卡分钟数
-  maxLeaveDays       Int       @default(3) // 最多请假天数（0表示不允许请假）
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  
-  // 关联
-  ownerId     Int       // 创建者ID
-  owner       User      @relation("ChannelOwner", fields: [ownerId], references: [id])
-  members     ChannelMember[]   // 频道成员
-  checkIns    CheckIn[]         // 打卡记录
-  comments    ChannelComment[]  // 评论
-  leaveRequests LeaveRequest[]  // 请假申请
+  id              Int             @id @default(autoincrement())
+  name            String
+  description     String          @default("")
+  creatorId       Int
+  creator         User            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  targetDays      Int             @default(30)
+  targetCheckIns  Int             @default(20)
+  status          String          @default("ACTIVE")
+  members         ChannelMember[]
+  checkIns        CheckIn[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([creatorId])
 }
 
-// 频道成员关系
 model ChannelMember {
-  id          Int       @id @default(autoincrement())
-  joinedAt    DateTime  @default(now())
-  
-  // 关联
-  channelId   Int
-  channel     FitnessChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  userId      Int
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([channelId, userId])
-}
-
-// 健身打卡记录
-model CheckIn {
-  id          Int       @id @default(autoincrement())
-  checkDate   DateTime  // 打卡日期
-  duration    Int       @default(30) // 打卡时长（分钟）
-  note        String?   // 备注
-  imageUrl    String?   // 打卡图片URL
-  createdAt   DateTime  @default(now())
-  
-  // 关联
-  channelId   Int
-  channel     FitnessChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  userId      Int
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([channelId, userId, checkDate]) // 每天只能打卡一次
-}
-
-// 频道评论
-model ChannelComment {
-  id        Int       @id @default(autoincrement())
-  content   String    // 评论内容
-  createdAt DateTime  @default(now())
-  
-  // 关联
+  id        Int            @id @default(autoincrement())
   channelId Int
   channel   FitnessChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   userId    Int
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String         @default("MEMBER")
+  joinedAt  DateTime       @default(now())
+
+  @@index([channelId])
+  @@index([userId])
+  @@unique([channelId, userId])
 }
 
-// 请假申请
-model LeaveRequest {
-  id          Int       @id @default(autoincrement())
-  startDate   DateTime  // 请假开始日期
-  endDate     DateTime  // 请假结束日期
-  reason      String?   // 请假原因
-  status      String    @default("PENDING") // PENDING, APPROVED, REJECTED
-  createdAt   DateTime  @default(now())
-  
-  // 关联
-  channelId   Int
-  channel     FitnessChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  userId      Int
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+model CheckIn {
+  id        Int            @id @default(autoincrement())
+  channelId Int
+  channel   FitnessChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkDate DateTime
+  duration  Int            @default(30)
+  note      String?
+  imageUrl  String?
+  createdAt DateTime       @default(now())
+
+  @@index([channelId])
+  @@index([userId])
+  @@index([checkDate])
 }
