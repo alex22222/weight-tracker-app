@@ -82,8 +82,11 @@ export async function POST(request: NextRequest) {
     })
 
     // 自动将创建者加入频道
+    if (!channel.id) {
+      return NextResponse.json({ error: '创建频道失败' }, { status: 500 })
+    }
     await adapter.addChannelMember({
-      channelId: channel.id,
+      channelId: channel.id as number,
       userId: user.userId,
       role: 'CREATOR',
     })
