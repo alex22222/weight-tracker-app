@@ -1,0 +1,81 @@
+name: Deploy Backend to CloudBase
+
+on:
+  push:
+    branches: [main, master, wechat-miniprogram]
+    paths:
+      - 'src/**'
+      - 'package*.json'
+      - 'next.config.js'
+      - 'Dockerfile'
+      - 'prisma/**'
+  workflow_dispatch:
+
+# 添加权限配置
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Clean and install dependencies
+        run: |
+          rm -rf node_modules package-lock.json
+          npm cache clean --force
+          npm install --force
+
+      - name: Run tests (if exists)
+        run: npm test --if-present
+        continue-on-error: true
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          DB_TYPE: cloudbase
+          CLOUDBASE_ENV_ID: ${{ secrets.CLOUDBASE_ENV_ID }}
+
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
+      - name: Login to CloudBase
+        run: |
+          tcb login --apiKeyId "${{ secrets.TENCENTCLOUD_SECRETID }}" \
+                    --apiKey "${{ secrets.TENCENTCLOUD_SECRETKEY }}"
+
+      - name: Deploy to CloudRun
+        run: |
+          tcb cloudrun:deploy \
+            --service weight-tracker-api \
+            --env-id "${{ secrets.CLOUDBASE_ENV_ID }}" \
+            --port 3000 \
+            --min-num 0 \
+            --max-num 10 \
+            --cpu 0.25 \
+            --mem 0.5 \
+            --dockerfile Dockerfile
+
+      - name: Get CloudRun URL
+        run: |
+          echo "========================================"
+          echo "✅ Backend deployed successfully!"
+          echo "========================================"
+          echo ""
+          echo "Service URL:"
+          echo "https://weight-tracker-api-${{ secrets.CLOUDBASE_ENV_ID }}.cloudrun.tencentcloudapi.com"
+          echo ""
+          echo "Health Check:"
+          echo "https://weight-tracker-api-${{ secrets.CLOUDBASE_ENV_ID }}.cloudrun.tencentcloudapi.com/api/health"

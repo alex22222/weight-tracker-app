@@ -1,0 +1,9 @@
+var formatShortDate = function(dateStr) {
+  if (!dateStr) return ''
+  var date = getDate(dateStr)
+  return (date.getMonth() + 1) + '/' + date.getDate()
+}
+
+module.exports = {
+  formatShortDate: formatShortDate
+}

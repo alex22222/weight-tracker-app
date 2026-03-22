@@ -22,6 +22,8 @@ export const COLLECTIONS = {
   FITNESS_CHANNELS: 'fitness_channels',
   CHANNEL_MEMBERS: 'channel_members',
   CHECK_INS: 'check_ins',
+  CHANNEL_COMMENTS: 'channel_comments',
+  LEAVE_REQUESTS: 'leave_requests',
 }
 
 // ==================== 常量定义 ====================
@@ -39,9 +41,13 @@ export const MessageType = {
   WEIGHT_DELETE: 'WEIGHT_DELETE',
   TARGET_ACHIEVED: 'TARGET_ACHIEVED',
   CHANNEL_JOIN: 'CHANNEL_JOIN',
+  CHANNEL_INVITE: 'CHANNEL_INVITE',
   CHANNEL_LEAVE: 'CHANNEL_LEAVE',
   CHANNEL_CHECKIN: 'CHANNEL_CHECKIN',
   CHANNEL_CHAT: 'CHANNEL_CHAT',
+  FRIEND_REQUEST: 'FRIEND_REQUEST',
+  FRIEND_ACCEPT: 'FRIEND_ACCEPT',
+  FRIEND_REJECT: 'FRIEND_REJECT',
   FRIEND_CHAT: 'FRIEND_CHAT',
 } as const
 
@@ -88,8 +94,12 @@ export interface User {
   id?: number | string
   username: string
   password: string
-  gender?: string
-  avatar?: string
+  nickname?: string | null
+  gender?: string | null
+  avatar?: string | null
+  wechatOpenId?: string | null
+  wechatUnionId?: string | null
+  role?: string
   createdAt?: Date
   updatedAt?: Date
   lastLoginAt?: Date | null
@@ -131,6 +141,8 @@ export interface FitnessChannel {
   creatorId: number | string
   targetDays: number
   targetCheckIns: number
+  startDate?: Date
+  endDate?: Date
   status?: ChannelStatusValue
   createdAt?: Date
   updatedAt?: Date
@@ -144,6 +156,14 @@ export interface ChannelMember {
   joinedAt?: Date
 }
 
+export interface ChannelComment {
+  id?: number | string
+  channelId: number | string
+  userId: number | string
+  content: string
+  createdAt?: Date
+}
+
 export interface CheckIn {
   id?: number | string
   channelId: number | string
@@ -152,6 +172,17 @@ export interface CheckIn {
   duration?: number
   note?: string | null
   imageUrl?: string | null
+  createdAt?: Date
+}
+
+export interface LeaveRequest {
+  id?: number | string
+  channelId: number | string
+  userId: number | string
+  startDate: Date
+  endDate: Date
+  reason?: string
+  status: string
   createdAt?: Date
 }
 
@@ -175,9 +206,51 @@ const prismaAdapter = {
     })
   },
 
+  async findUserByUsername(username: string): Promise<User | null> {
+    return this.getUserByUsername(username)
+  },
+
   async getUserById(id: number): Promise<User | null> {
     return prisma.user.findUnique({
       where: { id },
+    })
+  },
+
+  async findUserById(id: number): Promise<User | null> {
+    return this.getUserById(id)
+  },
+
+  async findUserByWechatOpenId(openId: string): Promise<User | null> {
+    // TODO: 添加 wechatOpenId 字段到 Prisma schema
+    return null
+  },
+
+  async createWechatUser(data: { wechatOpenId: string; wechatUnionId?: string | null; nickname?: string | null; avatar?: string | null; gender?: string | null; role?: string }): Promise<User> {
+    // TODO: 添加微信相关字段到 Prisma schema
+    throw new Error('微信登录需要更新 Prisma schema')
+  },
+
+  async updateUserPassword(id: number, password: string): Promise<void> {
+    await prisma.user.update({
+      where: { id },
+      data: { password },
+    })
+  },
+
+  async updateUser(id: number | string, data: Partial<User>): Promise<User> {
+    const userId = typeof id === 'string' ? parseInt(id) || 0 : id
+    const { id: _, ...updateData } = data as any
+    return prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+    })
+  },
+
+  async updateUserLoginTime(id: number | string): Promise<void> {
+    const userId = typeof id === 'string' ? parseInt(id) || 0 : id
+    await prisma.user.update({
+      where: { id: userId },
+      data: { lastLoginAt: new Date() },
     })
   },
 
@@ -254,12 +327,12 @@ const prismaAdapter = {
   },
 
   // ========== 消息相关 ==========
-  async createMessage(data: { senderId: number; receiverId?: number; channelId?: number; content: string; type: MessageTypeValue }): Promise<Message> {
+  async createMessage(data: { senderId: number | string; receiverId?: number | string | null; channelId?: number | string | null; content: string; type: MessageTypeValue }): Promise<Message> {
     return prisma.message.create({
       data: {
-        senderId: data.senderId,
-        receiverId: data.receiverId,
-        channelId: data.channelId,
+        senderId: typeof data.senderId === 'string' ? parseInt(data.senderId) || 0 : data.senderId,
+        receiverId: data.receiverId != null ? (typeof data.receiverId === 'string' ? parseInt(data.receiverId) || 0 : data.receiverId) : null,
+        channelId: data.channelId != null ? (typeof data.channelId === 'string' ? parseInt(data.channelId) || 0 : data.channelId) : null,
         content: data.content,
         type: data.type,
       },
@@ -288,6 +361,24 @@ const prismaAdapter = {
     }) as Promise<Friend>
   },
 
+  async findFriendRequest(fromUserId: number, toUserId: number): Promise<Friend | null> {
+    const request = await prisma.friend.findFirst({
+      where: {
+        OR: [
+          { userId: fromUserId, friendId: toUserId },
+          { userId: toUserId, friendId: fromUserId },
+        ],
+      },
+    })
+    return request as Friend | null
+  },
+
+  async findFriendById(id: number): Promise<Friend | null> {
+    return prisma.friend.findUnique({
+      where: { id },
+    }) as Promise<Friend | null>
+  },
+
   async getFriends(userId: number): Promise<Friend[]> {
     return prisma.friend.findMany({
       where: {
@@ -297,6 +388,10 @@ const prismaAdapter = {
         ],
       },
     }) as Promise<Friend[]>
+  },
+
+  async getFriendsByUser(userId: number): Promise<Friend[]> {
+    return this.getFriends(userId)
   },
 
   async getPendingFriendRequests(userId: number): Promise<Friend[]> {
@@ -313,6 +408,40 @@ const prismaAdapter = {
       where: { id },
       data: { status },
     }) as Promise<Friend>
+  },
+
+  async deleteFriend(friendId: number): Promise<void> {
+    await prisma.friend.delete({
+      where: { id: friendId },
+    })
+  },
+
+  // ========== 消息相关（补充） ==========
+  async getMessagesByUser(userId: number): Promise<Message[]> {
+    return prisma.message.findMany({
+      where: { receiverId: userId },
+      orderBy: { createdAt: 'desc' },
+    }) as Promise<Message[]>
+  },
+
+  async deleteMessage(messageId: number): Promise<void> {
+    await prisma.message.delete({
+      where: { id: messageId },
+    })
+  },
+
+  async markAllMessagesAsRead(userId: number): Promise<void> {
+    await prisma.message.updateMany({
+      where: { receiverId: userId, isRead: false },
+      data: { isRead: true },
+    })
+  },
+
+  async markMessageAsRead(messageId: number): Promise<void> {
+    await prisma.message.update({
+      where: { id: messageId },
+      data: { isRead: true },
+    })
   },
 
   // ========== 健身频道相关 ==========
@@ -333,6 +462,10 @@ const prismaAdapter = {
     return prisma.fitnessChannel.findUnique({
       where: { id },
     }) as Promise<FitnessChannel | null>
+  },
+
+  async getFitnessChannelById(id: number): Promise<FitnessChannel | null> {
+    return this.getChannelById(id)
   },
 
   async getAllChannels(): Promise<FitnessChannel[]> {
@@ -357,6 +490,26 @@ const prismaAdapter = {
     await prisma.fitnessChannel.delete({
       where: { id },
     })
+  },
+
+  async updateChannelStatus(id: number, status: ChannelStatusValue): Promise<void> {
+    await prisma.fitnessChannel.update({
+      where: { id },
+      data: { status },
+    })
+  },
+
+  async getUserActiveChannel(userId: number): Promise<FitnessChannel | null> {
+    const channel = await prisma.fitnessChannel.findFirst({
+      where: {
+        OR: [
+          { creatorId: userId },
+          { members: { some: { userId } } },
+        ],
+        status: { in: [ChannelStatus.PENDING, ChannelStatus.ACTIVE] },
+      },
+    })
+    return channel as FitnessChannel | null
   },
 
   // ========== 频道成员相关 ==========
@@ -391,6 +544,45 @@ const prismaAdapter = {
     await prisma.channelMember.deleteMany({
       where: { channelId, userId },
     })
+  },
+
+  async isChannelMember(channelId: number, userId: number): Promise<boolean> {
+    const member = await prisma.channelMember.findFirst({
+      where: { channelId, userId },
+    })
+    return !!member
+  },
+
+  // ========== 评论相关 ==========
+  // TODO: 添加 ChannelComment 模型到 Prisma schema
+  async getChannelComments(channelId: number | string): Promise<ChannelComment[]> {
+    return []
+  },
+
+  async createChannelComment(data: { channelId: number | string; userId: number | string; content: string }): Promise<ChannelComment> {
+    throw new Error('评论功能需要添加 ChannelComment 模型到 Prisma schema')
+  },
+
+  async deleteChannelComment(commentId: number | string, userId: number | string): Promise<boolean> {
+    return false
+  },
+
+  // ========== 请假相关 ==========
+  // TODO: 添加 LeaveRequest 模型到 Prisma schema
+  async getLeaveRequests(channelId: number | string): Promise<LeaveRequest[]> {
+    return []
+  },
+
+  async getUserLeaveDays(channelId: number | string, userId: number | string): Promise<{ totalDays: number; leaves: LeaveRequest[] }> {
+    return { totalDays: 0, leaves: [] }
+  },
+
+  async createLeaveRequest(data: { channelId: number | string; userId: number | string; startDate: Date; endDate: Date; reason?: string }): Promise<LeaveRequest> {
+    throw new Error('请假功能需要添加 LeaveRequest 模型到 Prisma schema')
+  },
+
+  async updateLeaveStatus(requestId: number | string, status: string): Promise<void> {
+    throw new Error('请假功能需要添加 LeaveRequest 模型到 Prisma schema')
   },
 
   // ========== 打卡相关 ==========
@@ -443,7 +635,7 @@ const prismaAdapter = {
   },
 
   // 获取用户本周打卡次数
-  async getWeeklyCheckInCount(channelId: number, userId: number) {
+  async getWeeklyCheckInCount(channelId: number | string, userId: number | string) {
     const now = new Date()
     const dayOfWeek = now.getDay()
     const startOfWeek = new Date(now)
@@ -454,16 +646,63 @@ const prismaAdapter = {
     endOfWeek.setDate(startOfWeek.getDate() + 6)
     endOfWeek.setHours(23, 59, 59, 999)
     
+    // Prisma 需要 number 类型，所以进行转换
+    const cid = typeof channelId === 'string' ? parseInt(channelId, 10) : channelId
+    const uid = typeof userId === 'string' ? parseInt(userId, 10) : userId
+    
     return prisma.checkIn.count({
       where: {
-        channelId,
-        userId,
+        channelId: cid,
+        userId: uid,
         checkDate: {
           gte: startOfWeek,
           lte: endOfWeek,
         },
       },
     })
+  },
+
+  async getChannelWeeklyStats(channelId: number): Promise<any> {
+    const channel = await prisma.fitnessChannel.findUnique({
+      where: { id: channelId },
+      include: {
+        members: { include: { user: { select: { id: true, username: true } } } },
+      },
+    })
+    if (!channel) return null
+    
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1))
+    startOfWeek.setHours(0, 0, 0, 0)
+    
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+    endOfWeek.setHours(23, 59, 59, 999)
+    
+    const checkIns = await prisma.checkIn.findMany({
+      where: { channelId, checkDate: { gte: startOfWeek, lte: endOfWeek } },
+      select: { userId: true },
+    })
+    
+    const stats: Record<number, number> = {}
+    checkIns.forEach((ci) => { stats[ci.userId] = (stats[ci.userId] || 0) + 1 })
+    
+    // TODO: 添加 weeklyCheckInCount 和 checkInMinutes 字段到 FitnessChannel 模型
+    const weeklyCheckInCount = 3
+    const checkInMinutes = 30
+    
+    return {
+      weeklyRequired: weeklyCheckInCount,
+      checkInMinutes: checkInMinutes,
+      members: channel.members.map((m) => ({
+        userId: m.userId,
+        username: m.user?.username,
+        completed: stats[m.userId] || 0,
+        remaining: Math.max(0, weeklyCheckInCount - (stats[m.userId] || 0)),
+      })),
+    }
   },
 
   // ========== 统计相关 ==========
@@ -503,12 +742,71 @@ const cloudbaseAdapter = {
     return data[0] ? { ...data[0], id: data[0]._id } : null
   },
 
+  async findUserByUsername(username: string): Promise<User | null> {
+    return this.getUserByUsername(username)
+  },
+
   async getUserById(id: number | string): Promise<User | null> {
     const { data } = await tcbDb.collection(COLLECTIONS.USERS)
       .where({ _id: id })
       .limit(1)
       .get()
     return data[0] ? { ...data[0], id: data[0]._id } : null
+  },
+
+  async findUserById(id: number | string): Promise<User | null> {
+    return this.getUserById(id)
+  },
+
+  async findUserByWechatOpenId(openId: string): Promise<User | null> {
+    const { data } = await tcbDb.collection(COLLECTIONS.USERS)
+      .where({ wechatOpenId: openId })
+      .limit(1)
+      .get()
+    return data[0] ? { ...data[0], id: data[0]._id } : null
+  },
+
+  async createWechatUser(data: { wechatOpenId: string; wechatUnionId?: string | null; nickname?: string | null; avatar?: string | null; gender?: string | null; role?: string }): Promise<User> {
+    const { id } = await tcbDb.collection(COLLECTIONS.USERS).add({
+      wechatOpenId: data.wechatOpenId,
+      wechatUnionId: data.wechatUnionId,
+      nickname: data.nickname,
+      avatar: data.avatar,
+      gender: data.gender,
+      username: null,
+      password: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    return { id, ...data } as User
+  },
+
+  async updateUserPassword(id: number | string, password: string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
+      .doc(String(id))
+    await doc.update({
+      password,
+      updatedAt: new Date(),
+    })
+  },
+
+  async updateUser(id: number | string, data: Partial<User>): Promise<User> {
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
+      .doc(String(id))
+    await doc.update({
+      ...data,
+      updatedAt: new Date(),
+    })
+    return { id, ...data } as User
+  },
+
+  async updateUserLoginTime(id: number | string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
+      .doc(String(id))
+    await doc.update({
+      lastLoginAt: new Date(),
+      updatedAt: new Date(),
+    })
   },
 
   async updateUserLastLogin(id: number | string): Promise<void> {
@@ -641,6 +939,27 @@ const cloudbaseAdapter = {
     return { id, userId, friendId, status: FriendStatus.PENDING } as Friend
   },
 
+  async findFriendRequest(fromUserId: number | string, toUserId: number | string): Promise<Friend | null> {
+    const { data } = await tcbDb.collection(COLLECTIONS.FRIENDS)
+      .where({
+        $or: [
+          { userId: fromUserId, friendId: toUserId },
+          { userId: toUserId, friendId: fromUserId },
+        ],
+      })
+      .limit(1)
+      .get()
+    return data[0] ? { ...data[0], id: data[0]._id } : null
+  },
+
+  async findFriendById(id: number | string): Promise<Friend | null> {
+    const { data } = await tcbDb.collection(COLLECTIONS.FRIENDS)
+      .where({ _id: id })
+      .limit(1)
+      .get()
+    return data[0] ? { ...data[0], id: data[0]._id } : null
+  },
+
   async getFriends(userId: number | string): Promise<Friend[]> {
     const { data } = await tcbDb.collection(COLLECTIONS.FRIENDS)
       .where({
@@ -691,6 +1010,10 @@ const cloudbaseAdapter = {
     return data[0] ? { ...data[0], id: data[0]._id } : null
   },
 
+  async getFitnessChannelById(id: number | string): Promise<FitnessChannel | null> {
+    return this.getChannelById(id)
+  },
+
   async getAllChannels(): Promise<FitnessChannel[]> {
     const { data } = await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
       .orderBy('createdAt', 'desc')
@@ -716,6 +1039,12 @@ const cloudbaseAdapter = {
     const doc = await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
       .doc(String(id))
     await doc.remove()
+  },
+
+  async updateChannelStatus(id: number | string, status: ChannelStatusValue): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
+      .doc(String(id))
+    await doc.update({ status, updatedAt: new Date() })
   },
 
   // ========== 频道成员相关 ==========
@@ -751,6 +1080,42 @@ const cloudbaseAdapter = {
         .doc(String(member.id))
       await doc.remove()
     }
+  },
+
+  async isChannelMember(channelId: number | string, userId: number | string): Promise<boolean> {
+    const member = await cloudbaseAdapter.getChannelMember(channelId, userId)
+    return !!member
+  },
+
+  // ========== 评论相关 ==========
+  async getChannelComments(channelId: number | string): Promise<ChannelComment[]> {
+    const { data } = await tcbDb.collection(COLLECTIONS.CHANNEL_COMMENTS)
+      .where({ channelId })
+      .orderBy('createdAt', 'desc')
+      .get()
+    return data.map((d: any) => ({ ...d, id: d._id }))
+  },
+
+  async createChannelComment(data: { channelId: number | string; userId: number | string; content: string }): Promise<ChannelComment> {
+    const { id } = await tcbDb.collection(COLLECTIONS.CHANNEL_COMMENTS).add({
+      channelId: data.channelId,
+      userId: data.userId,
+      content: data.content,
+      createdAt: new Date(),
+    })
+    return { id, ...data } as ChannelComment
+  },
+
+  async deleteChannelComment(commentId: number | string, userId: number | string): Promise<boolean> {
+    const { data } = await tcbDb.collection(COLLECTIONS.CHANNEL_COMMENTS)
+      .where({ _id: commentId, userId })
+      .limit(1)
+      .get()
+    if (data.length === 0) return false
+    const doc = await tcbDb.collection(COLLECTIONS.CHANNEL_COMMENTS)
+      .doc(String(commentId))
+    await doc.remove()
+    return true
   },
 
   // ========== 打卡相关 ==========
@@ -844,6 +1209,147 @@ const cloudbaseAdapter = {
       .orderBy('date', 'desc')
       .get()
     return data.map((d: any) => ({ ...d, id: d._id }))
+  },
+
+  // ========== 请假相关 ==========
+  async getLeaveRequests(channelId: number | string): Promise<LeaveRequest[]> {
+    const { data } = await tcbDb.collection(COLLECTIONS.LEAVE_REQUESTS)
+      .where({ channelId })
+      .orderBy('createdAt', 'desc')
+      .get()
+    return data.map((d: any) => ({ ...d, id: d._id }))
+  },
+
+  async getUserLeaveDays(channelId: number | string, userId: number | string): Promise<{ totalDays: number; leaves: LeaveRequest[] }> {
+    const { data: leaves } = await tcbDb.collection(COLLECTIONS.LEAVE_REQUESTS)
+      .where({ channelId, userId, status: 'APPROVED' })
+      .get()
+    let totalDays = 0
+    for (const leave of leaves) {
+      const start = new Date(leave.startDate)
+      const end = new Date(leave.endDate)
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+      totalDays += days
+    }
+    return { totalDays, leaves: leaves.map((d: any) => ({ ...d, id: d._id })) }
+  },
+
+  async createLeaveRequest(data: { channelId: number | string; userId: number | string; startDate: Date; endDate: Date; reason?: string }): Promise<LeaveRequest> {
+    const { id } = await tcbDb.collection(COLLECTIONS.LEAVE_REQUESTS).add({
+      channelId: data.channelId,
+      userId: data.userId,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      reason: data.reason,
+      status: 'PENDING',
+      createdAt: new Date(),
+    })
+    return { id, ...data, status: 'PENDING' } as LeaveRequest
+  },
+
+  async updateLeaveStatus(requestId: number | string, status: string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.LEAVE_REQUESTS)
+      .doc(String(requestId))
+    await doc.update({ status, updatedAt: new Date() })
+  },
+
+  // ========== 好友相关（补充） ==========
+  async getFriendsByUser(userId: number | string): Promise<Friend[]> {
+    const { data } = await tcbDb.collection(COLLECTIONS.FRIENDS)
+      .where({
+        status: FriendStatus.ACCEPTED,
+        $or: [{ userId }, { friendId: userId }],
+      })
+      .get()
+    return data.map((d: any) => ({ ...d, id: d._id }))
+  },
+
+  async deleteFriend(friendId: number | string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.FRIENDS)
+      .doc(String(friendId))
+    await doc.remove()
+  },
+
+  // ========== 消息相关（补充） ==========
+  async getMessagesByUser(userId: number | string): Promise<Message[]> {
+    const { data } = await tcbDb.collection(COLLECTIONS.MESSAGES)
+      .where({ receiverId: userId })
+      .orderBy('createdAt', 'desc')
+      .get()
+    return data.map((d: any) => ({ ...d, id: d._id }))
+  },
+
+  async deleteMessage(messageId: number | string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.MESSAGES)
+      .doc(String(messageId))
+    await doc.remove()
+  },
+
+  async markAllMessagesAsRead(userId: number | string): Promise<void> {
+    const { data } = await tcbDb.collection(COLLECTIONS.MESSAGES)
+      .where({ receiverId: userId, isRead: false })
+      .get()
+    for (const msg of data) {
+      const doc = await tcbDb.collection(COLLECTIONS.MESSAGES).doc(msg._id)
+      await doc.update({ isRead: true })
+    }
+  },
+
+  async markMessageAsRead(messageId: number | string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.MESSAGES)
+      .doc(String(messageId))
+    await doc.update({ isRead: true })
+  },
+
+  // ========== 频道相关（补充） ==========
+  async getUserActiveChannel(userId: number | string): Promise<FitnessChannel | null> {
+    const { data } = await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
+      .where({
+        $or: [{ creatorId: userId }, { 'members.userId': userId }],
+        status: { $in: [ChannelStatus.PENDING, ChannelStatus.ACTIVE] },
+        endDate: { $gte: new Date() },
+      })
+      .limit(1)
+      .get()
+    return data[0] ? { ...data[0], id: data[0]._id } : null
+  },
+
+  // ========== 打卡相关（补充） ==========
+  async getChannelWeeklyStats(channelId: number | string): Promise<any> {
+    const { data: channelData } = await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
+      .where({ _id: channelId })
+      .limit(1)
+      .get()
+    if (channelData.length === 0) return null
+    const channel = channelData[0]
+    
+    const now = new Date()
+    const dayOfWeek = now.getDay()
+    const startOfWeek = new Date(now)
+    startOfWeek.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1))
+    startOfWeek.setHours(0, 0, 0, 0)
+    
+    const endOfWeek = new Date(startOfWeek)
+    endOfWeek.setDate(startOfWeek.getDate() + 6)
+    endOfWeek.setHours(23, 59, 59, 999)
+    
+    const { data: checkIns } = await tcbDb.collection(COLLECTIONS.CHECK_INS)
+      .where({ channelId, checkDate: { $gte: startOfWeek, $lte: endOfWeek } })
+      .get()
+    
+    const stats: Record<string, number> = {}
+    checkIns.forEach((ci: any) => { stats[ci.userId] = (stats[ci.userId] || 0) + 1 })
+    
+    return {
+      weeklyRequired: channel.weeklyCheckInCount || 3,
+      checkInMinutes: channel.checkInMinutes || 30,
+      members: (channel.members || []).map((m: any) => ({
+        userId: m.userId,
+        username: m.username,
+        completed: stats[m.userId] || 0,
+        remaining: Math.max(0, (channel.weeklyCheckInCount || 3) - (stats[m.userId] || 0)),
+      })),
+    }
   },
 }
 
