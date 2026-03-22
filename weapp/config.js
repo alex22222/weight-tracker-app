@@ -1,8 +1,8 @@
 // 配置文件
 const config = {
-  // API 基础地址 - 开发环境使用本地服务器
-  // 生产环境需要替换为实际域名
-  apiBaseUrl: 'http://localhost:3000/api',
+  // API 基础地址 - CloudBase 生产环境
+  // 部署后替换为实际的 CloudBase 服务域名
+  apiBaseUrl: 'https://weight-tracker-api-236729-9-1328081868.sh.run.tcloudbase.com/api',
   
   // 请求超时时间（毫秒）
   timeout: 10000,
