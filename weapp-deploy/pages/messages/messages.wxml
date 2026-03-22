@@ -1,0 +1,43 @@
+<!--pages/messages/messages.wxml-->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header-section">
+    <view class="header-icon">📬</view>
+    <view class="header-content">
+      <text class="header-title">消息中心</text>
+      <text class="header-subtitle">{{unreadCount > 0 ? unreadCount + ' 条未读' : '暂无新消息'}}</text>
+    </view>
+  </view>
+
+  <!-- 消息列表 -->
+  <view class="message-list" wx:if="{{messages.length > 0}}">
+    <view 
+      class="message-item {{!item.isRead ? 'unread' : ''}}"
+      wx:for="{{messages}}"
+      wx:key="id"
+      bindtap="handleMessageTap"
+      data-message="{{item}}"
+    >
+      <view class="message-icon">{{getMessageIcon(item.type)}}</view>
+      <view class="message-content">
+        <view class="message-header">
+          <text class="message-title">{{item.title}}</text>
+          <view class="message-type-tag">{{getMessageTypeText(item.type)}}</view>
+        </view>
+        <text class="message-text">{{item.content}}</text>
+        <text class="message-time">{{item.createdAt}}</text>
+      </view>
+      <view class="message-actions">
+        <view class="unread-dot" wx:if="{{!item.isRead}}"></view>
+        <view class="delete-btn" catchtap="deleteMessage" data-id="{{item.id}}">🗑️</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{messages.length === 0}}">
+    <text class="empty-icon">📭</text>
+    <text class="empty-text">暂无消息</text>
+    <text class="empty-subtext">有新消息时会在这里显示</text>
+  </view>
+</view>

@@ -1,0 +1,161 @@
+<!--pages/channel/channel.wxml-->
+<wxs src="../../utils/util.wxs" module="util" />
+<view class="container">
+  <!-- 顶部说明 -->
+  <view class="header-section">
+    <view class="header-icon">🏃</view>
+    <view class="header-content">
+      <text class="header-title">健身拼团</text>
+      <text class="header-subtitle">和朋友一起坚持运动</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="action-bar">
+    <button class="btn-primary" bindtap="showCreateModal">
+      <text>➕ 创建新频道</text>
+    </button>
+  </view>
+
+  <!-- 进行中的频道 -->
+  <view class="section" wx:if="{{activeChannel}}">
+    <view class="section-title">
+      <text class="title-icon">🔥</text>
+      <text>进行中</text>
+    </view>
+    
+    <view class="channel-card active" bindtap="goToDetail" data-id="{{activeChannel.id}}">
+      <view class="channel-header">
+        <text class="channel-name">{{activeChannel.name}}</text>
+        <view class="channel-status" style="background: {{getStatusColor(activeChannel.status)}};">
+          {{getStatusText(activeChannel.status)}}
+        </view>
+      </view>
+      <text class="channel-desc" wx:if="{{activeChannel.description}}">{{activeChannel.description}}</text>
+      <view class="channel-info">
+        <text class="info-item">📅 {{util.formatShortDate(activeChannel.startDate)}}-{{util.formatShortDate(activeChannel.endDate)}} · 👥 {{activeChannel.memberCount || 1}}人</text>
+      </view>
+      <view class="channel-rules">
+        <text class="rule-tag">每周 {{activeChannel.weeklyCheckInCount}} 次</text>
+        <text class="rule-tag">每次 {{activeChannel.checkInMinutes}} 分钟</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 历史频道 -->
+  <view class="section" wx:if="{{channels.length > 0}}">
+    <view class="section-title">
+      <text class="title-icon">📚</text>
+      <text>我的频道</text>
+    </view>
+    
+    <view class="channel-list">
+      <view 
+        class="channel-card" 
+        wx:for="{{channels}}" 
+        wx:key="id"
+        bindtap="goToDetail"
+        data-id="{{item.id}}"
+      >
+        <view class="channel-header">
+          <text class="channel-name">{{item.name}}</text>
+          <view class="channel-status" style="background: {{getStatusColor(item.status)}};">
+            {{getStatusText(item.status)}}
+          </view>
+        </view>
+        <text class="channel-desc" wx:if="{{item.description}}">{{item.description}}</text>
+        <view class="channel-info">
+          <text class="info-item">📅 {{util.formatShortDate(item.startDate)}}-{{util.formatShortDate(item.endDate)}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{channels.length === 0}}">
+    <text class="empty-icon">🏃</text>
+    <text class="empty-text">还没有健身频道</text>
+    <text class="empty-subtext">创建频道，邀请朋友一起运动打卡！</text>
+  </view>
+</view>
+
+<!-- 创建弹窗 -->
+<view class="modal" wx:if="{{showCreateModal}}" bindtap="hideCreateModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">创建健身频道</text>
+      <view class="modal-close" bindtap="hideCreateModal">✕</view>
+    </view>
+    
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">频道名称 *</text>
+        <input 
+          type="text" 
+          class="input" 
+          placeholder="例如：30天减脂挑战"
+          value="{{formData.name}}"
+          bindinput="onNameInput"
+        />
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">描述</text>
+        <input 
+          type="text" 
+          class="input" 
+          placeholder="可选"
+          value="{{formData.description}}"
+          bindinput="onDescriptionInput"
+        />
+      </view>
+      
+      <view class="form-row">
+        <view class="form-item flex-1">
+          <text class="form-label">开始日期</text>
+          <picker mode="date" value="{{formData.startDate}}" bindchange="onStartDateChange">
+            <view class="input picker-input">{{formData.startDate}}</view>
+          </picker>
+        </view>
+        
+        <view class="form-item flex-1">
+          <text class="form-label">结束日期</text>
+          <picker mode="date" value="{{formData.endDate}}" bindchange="onEndDateChange">
+            <view class="input picker-input">{{formData.endDate}}</view>
+          </picker>
+        </view>
+      </view>
+      
+      <view class="form-row">
+        <view class="form-item flex-1">
+          <text class="form-label">每周打卡次数</text>
+          <picker mode="selector" range="{{[1,2,3,4,5,6,7]}}" value="{{formData.weeklyCheckInCount - 1}}" bindchange="onWeeklyCountChange">
+            <view class="input picker-input">{{formData.weeklyCheckInCount}} 次</view>
+          </picker>
+        </view>
+        
+        <view class="form-item flex-1">
+          <text class="form-label">每次至少</text>
+          <picker mode="selector" range="{{['15分钟','30分钟','45分钟','60分钟','90分钟','120分钟']}}" value="{{[15,30,45,60,90,120].indexOf(formData.checkInMinutes)}}" bindchange="onMinutesChange">
+            <view class="input picker-input">{{formData.checkInMinutes}} 分钟</view>
+          </picker>
+        </view>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">最多请假天数</text>
+        <picker mode="selector" range="{{['不允许','1天','2天','3天','5天','7天','10天','14天']}}" value="{{[0,1,2,3,5,7,10,14].indexOf(formData.maxLeaveDays)}}" bindchange="onMaxLeaveDaysChange">
+          <view class="input picker-input">{{formData.maxLeaveDays === 0 ? '不允许请假' : formData.maxLeaveDays + ' 天'}}</view>
+        </picker>
+        <text class="form-hint">设置 0 表示不允许请假</text>
+      </view>
+    </view>
+    
+    <view class="modal-footer">
+      <button class="btn-secondary flex-1" bindtap="hideCreateModal">取消</button>
+      <button class="btn-primary flex-1" bindtap="createChannel" disabled="{{isLoading}}">
+        {{isLoading ? '创建中...' : '创建'}}
+      </button>
+    </view>
+  </view>
+</view>

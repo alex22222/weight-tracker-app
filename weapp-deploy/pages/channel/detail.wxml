@@ -1,0 +1,401 @@
+<!--pages/channel/detail.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{!channel}}">
+    <view class="loading-spinner"></view>
+    <text class="loading-text">加载中...</text>
+  </view>
+  
+  <!-- 频道内容 -->
+  <view wx:if="{{channel}}" style="width: 100%;">
+  <!-- 频道信息卡片 -->
+  <view class="channel-header-card">
+    <view class="channel-title-section">
+      <view class="channel-name-wrap">
+        <text class="channel-name">{{channel.name}}</text>
+        <view class="channel-status" style="background: {{getStatusColor(channel.status)}};">
+          {{getStatusText(channel.status)}}
+        </view>
+      </view>
+      <view class="channel-actions" wx:if="{{isOwner}}">
+        <view wx:if="{{channel.status === 'PENDING'}}" class="action-btn primary" bindtap="startChannel">🚀 开始</view>
+        <view wx:if="{{channel.status === 'ACTIVE'}}" class="action-btn danger" bindtap="endChannel">⏹️ 结束</view>
+      </view>
+    </view>
+    <text class="channel-desc" wx:if="{{channel.description}}">{{channel.description}}</text>
+    <view class="channel-meta">
+      <view class="meta-item">
+        <text class="meta-icon">📅</text>
+        <text>{{channel.startDate}} 至 {{channel.endDate}}</text>
+      </view>
+      <view class="meta-item">
+        <text class="meta-icon">👥</text>
+        <text>{{(channel.members.length) || 1}} 人参与</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 规则与统计 -->
+  <view class="info-grid">
+    <!-- 打卡规则 -->
+    <view class="info-card rules">
+      <view class="info-title">📋 打卡规则</view>
+      <view class="rules-list">
+        <view class="rule-tag">
+          <text class="rule-dot" style="background: #10b981;"></text>
+          <text>每周 {{channel.weeklyCheckInCount}} 次</text>
+        </view>
+        <view class="rule-tag">
+          <text class="rule-dot" style="background: #3b82f6;"></text>
+          <text>每次 {{channel.checkInMinutes}} 分钟</text>
+        </view>
+        <view class="rule-tag">
+          <text class="rule-dot" style="background: #f59e0b;"></text>
+          <text>可请假 {{channel.maxLeaveDays}} 天</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 本周进度 -->
+    <view class="info-card progress" wx:if="{{weeklyStats}}">
+      <view class="progress-header">
+        <text class="info-title">📊 本周进度</text>
+        <text class="progress-ratio">{{weeklyStats.weeklyCount}}/{{weeklyStats.weeklyRequired}}</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{Math.min((weeklyStats.weeklyCount / weeklyStats.weeklyRequired) * 100, 100)}}%;"></view>
+      </view>
+      <text class="progress-hint" wx:if="{{weeklyStats.weeklyCount >= weeklyStats.weeklyRequired}}">🎉 本周目标已完成！</text>
+      <text class="progress-hint" wx:else>还需打卡 {{weeklyStats.weeklyRequired - weeklyStats.weeklyCount}} 次</text>
+    </view>
+  </view>
+
+  <!-- 快捷操作栏 -->
+  <view class="quick-actions">
+    <view class="action-item" bindtap="showCheckInModal">
+      <view class="action-icon checkin">📸</view>
+      <text class="action-label">打卡</text>
+    </view>
+    <view class="action-item" bindtap="showInviteModal" wx:if="{{isOwner && channel.status === 'ACTIVE'}}">
+      <view class="action-icon invite">👥</view>
+      <text class="action-label">邀请</text>
+    </view>
+    <view class="action-item" bindtap="showLeaveModal">
+      <view class="action-icon leave">🏖️</view>
+      <text class="action-label">请假</text>
+    </view>
+    <view class="action-item" bindtap="switchTab" data-tab="comment">
+      <view class="action-icon comment">💬</view>
+      <text class="action-label">评论</text>
+    </view>
+  </view>
+
+  <!-- 标签页切换 -->
+  <view class="tab-bar">
+    <view class="tab-item {{activeTab === 'checkin' ? 'active' : ''}}" bindtap="switchTab" data-tab="checkin">
+      <text>打卡记录</text>
+      <view class="tab-line" wx:if="{{activeTab === 'checkin'}}"></view>
+    </view>
+    <view class="tab-item {{activeTab === 'comment' ? 'active' : ''}}" bindtap="switchTab" data-tab="comment">
+      <text>讨论区</text>
+      <view class="tab-line" wx:if="{{activeTab === 'comment'}}"></view>
+    </view>
+    <view class="tab-item {{activeTab === 'leave' ? 'active' : ''}}" bindtap="switchTab" data-tab="leave">
+      <text>请假</text>
+      <view class="tab-line" wx:if="{{activeTab === 'leave'}}"></view>
+    </view>
+  </view>
+
+  <!-- 打卡记录 Tab -->
+  <view class="tab-content" wx:if="{{activeTab === 'checkin'}}">
+    <!-- 成员列表 -->
+    <view class="section" wx:if="{{channel.members}}">
+      <view class="section-title">
+        <text>👥 参与成员</text>
+      </view>
+      <view class="member-list">
+        <view class="member-item" wx:for="{{channel.members}}" wx:key="userId">
+          <view class="member-avatar">{{item.user.username[0] || '?'}}</view>
+          <view class="member-info">
+            <text class="member-name">{{item.user.username || '未知用户'}}</text>
+            <text class="member-role" wx:if="{{item.userId === channel.ownerId}}">创建者</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 打卡记录列表 -->
+    <view class="section">
+      <view class="section-title">
+        <text>📝 打卡记录 ({{checkIns.length}})</text>
+      </view>
+      <view class="checkin-list" wx:if="{{checkIns.length > 0}}">
+        <view class="checkin-item" wx:for="{{checkIns}}" wx:key="id">
+          <view class="checkin-left">
+            <view class="checkin-avatar">{{item.user.username[0] || '?'}}</view>
+            <view class="checkin-info">
+              <text class="checkin-user">{{item.user.username}}</text>
+              <text class="checkin-date">{{item.checkDate}}</text>
+            </view>
+          </view>
+          <view class="checkin-right">
+            <text class="checkin-duration">{{item.duration}} 分钟</text>
+            <text class="checkin-note" wx:if="{{item.note}}">{{item.note}}</text>
+            <image wx:if="{{item.imageUrl}}" class="checkin-image" src="{{item.imageUrl}}" mode="aspectFill" bindtap="previewCheckInImage" data-url="{{item.imageUrl}}"/>
+          </view>
+        </view>
+      </view>
+      <view class="empty-state" wx:if="{{checkIns.length === 0}}">
+        <text class="empty-icon">📝</text>
+        <text class="empty-text">还没有打卡记录</text>
+        <text class="empty-subtext">快来成为第一个打卡的人吧！</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 讨论区 Tab -->
+  <view class="tab-content" wx:if="{{activeTab === 'comment'}}">
+    <!-- 评论输入 -->
+    <view class="comment-input-section">
+      <input 
+        type="text" 
+        class="comment-input" 
+        placeholder="发表你的评论..."
+        value="{{commentText}}"
+        bindinput="onCommentInput"
+      />
+      <view class="send-btn {{isSubmittingComment ? 'disabled' : ''}}" bindtap="{{isSubmittingComment ? '' : 'submitComment'}}">
+        {{isSubmittingComment ? '⏳' : '发送'}}
+      </view>
+    </view>
+
+    <!-- 评论列表 -->
+    <view class="comment-list" wx:if="{{comments.length > 0}}">
+      <view class="comment-item" wx:for="{{comments}}" wx:key="id">
+        <view class="comment-avatar">{{item.user.username[0] || '?'}}</view>
+        <view class="comment-body">
+          <view class="comment-header">
+            <text class="comment-user">{{item.user.username}}</text>
+            <text class="comment-time">{{item.createdAt}}</text>
+          </view>
+          <text class="comment-content">{{item.content}}</text>
+          <view class="comment-actions" wx:if="{{item.userId === userInfo.id}}">
+            <text class="comment-delete" bindtap="deleteComment" data-id="{{item.id}}">删除</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="empty-state" wx:if="{{comments.length === 0}}">
+      <text class="empty-icon">💬</text>
+      <text class="empty-text">还没有评论</text>
+      <text class="empty-subtext">发表第一条评论吧！</text>
+    </view>
+  </view>
+
+  <!-- 请假 Tab -->
+  <view class="tab-content" wx:if="{{activeTab === 'leave'}}">
+    <!-- 请假统计 -->
+    <view class="leave-stats" wx:if="{{channel.maxLeaveDays > 0}}">
+      <view class="leave-stats-item">
+        <text class="stats-value">{{leaveStats.totalDays}}</text>
+        <text class="stats-label">已请假(天)</text>
+      </view>
+      <view class="leave-stats-item">
+        <text class="stats-value">{{channel.maxLeaveDays - leaveStats.totalDays}}</text>
+        <text class="stats-label">剩余(天)</text>
+      </view>
+      <view class="leave-stats-item">
+        <text class="stats-value">{{channel.maxLeaveDays}}</text>
+        <text class="stats-label">上限(天)</text>
+      </view>
+    </view>
+
+    <!-- 请假申请按钮 -->
+    <button class="btn-leave" bindtap="showLeaveModal" wx:if="{{channel.maxLeaveDays > 0}}">
+      <text>🏖️ 申请请假</text>
+    </button>
+    <view class="leave-disabled" wx:if="{{channel.maxLeaveDays === 0}}">
+      <text>该频道不允许请假</text>
+    </view>
+
+    <!-- 请假列表 -->
+    <view class="section" wx:if="{{leaves.length > 0}}">
+      <view class="section-title">
+        <text>📋 请假申请</text>
+      </view>
+      <view class="leave-list">
+        <view class="leave-item" wx:for="{{leaves}}" wx:key="id">
+          <view class="leave-header">
+            <view class="leave-user">
+              <view class="leave-avatar">{{item.user.username[0] || '?'}}</view>
+              <text>{{item.user.username}}</text>
+            </view>
+            <view class="leave-status" style="background: {{getLeaveStatusColor(item.status)}};">
+              {{getLeaveStatusText(item.status)}}
+            </view>
+          </view>
+          <view class="leave-dates">
+            <text>📅 {{item.startDate}} 至 {{item.endDate}}</text>
+          </view>
+          <text class="leave-reason" wx:if="{{item.reason}}">{{item.reason}}</text>
+          <!-- 审批操作 -->
+          <view class="leave-actions" wx:if="{{isOwner && item.status === 'PENDING'}}">
+            <view class="approve-btn" bindtap="handleLeaveRequest" data-id="{{item.id}}" data-action="approve">✓ 批准</view>
+            <view class="reject-btn" bindtap="handleLeaveRequest" data-id="{{item.id}}" data-action="reject">✕ 拒绝</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 打卡弹窗 -->
+<view class="modal" wx:if="{{showCheckInModal}}" bindtap="hideCheckInModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">📸 健身打卡</text>
+      <view class="modal-close" bindtap="hideCheckInModal">✕</view>
+    </view>
+    
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">打卡日期</text>
+        <picker mode="date" value="{{checkInData.date}}" bindchange="onCheckInDateChange">
+          <view class="input picker-input">{{checkInData.date}}</view>
+        </picker>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">运动时长 (分钟) *</text>
+        <input 
+          type="number" 
+          class="input" 
+          value="{{checkInData.duration}}"
+          bindinput="onDurationInput"
+        />
+        <text class="form-hint" wx:if="{{channel}}">至少 {{channel.checkInMinutes || 30}} 分钟</text>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">备注 (可选)</text>
+        <input 
+          type="text" 
+          class="input" 
+          placeholder="记录一下今天的运动内容..."
+          value="{{checkInData.note}}"
+          bindinput="onCheckInNoteInput"
+        />
+      </view>
+      
+      <!-- 拍照上传 -->
+      <view class="form-item">
+        <text class="form-label">运动照片</text>
+        <view class="image-upload">
+          <view class="upload-btn" bindtap="chooseImage" wx:if="{{!checkInData.imageUrl}}">
+            <text class="upload-icon">📷</text>
+            <text class="upload-text">拍照或选图</text>
+          </view>
+          <view class="image-preview" wx:if="{{checkInData.imageUrl}}">
+            <image class="preview-img" src="{{checkInData.imageUrl}}" mode="aspectFill" bindtap="previewImage"/>
+            <view class="delete-btn" bindtap="deleteImage">✕</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    
+    <view class="modal-footer">
+      <button class="btn-secondary flex-1" bindtap="hideCheckInModal" disabled="{{isSubmittingCheckIn}}">取消</button>
+      <button class="btn-primary flex-1" bindtap="submitCheckIn" disabled="{{isSubmittingCheckIn}}">
+        {{isSubmittingCheckIn ? '⏳ 提交中...' : '确认打卡'}}
+      </button>
+    </view>
+  </view>
+</view>
+
+<!-- 邀请弹窗 -->
+<view class="modal" wx:if="{{showInviteModal}}" bindtap="hideInviteModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">👥 邀请好友</text>
+      <view class="modal-close" bindtap="hideInviteModal">✕</view>
+    </view>
+    
+    <view class="modal-body">
+      <view class="friend-list" wx:if="{{friends.length > 0}}">
+        <view 
+          class="friend-item {{selectedFriends.includes(item.id) ? 'selected' : ''}}"
+          wx:for="{{friends}}"
+          wx:key="id"
+          bindtap="toggleFriend"
+          data-id="{{item.id}}"
+        >
+          <view class="friend-avatar">{{item.username[0]}}</view>
+          <text class="friend-name">{{item.username}}</text>
+          <view class="check-icon" wx:if="{{selectedFriends.includes(item.id)}}">✓</view>
+        </view>
+      </view>
+      
+      <view class="empty-state" wx:else>
+        <text class="empty-text">暂无可邀请的好友</text>
+        <text class="empty-subtext">先去添加一些好友吧</text>
+      </view>
+    </view>
+    
+    <view class="modal-footer" wx:if="{{friends.length > 0}}">
+      <button class="btn-secondary flex-1" bindtap="hideInviteModal">取消</button>
+      <button class="btn-primary flex-1" bindtap="sendInvites">
+        邀请 ({{selectedFriends.length}})
+      </button>
+    </view>
+  </view>
+</view>
+
+<!-- 请假弹窗 -->
+<view class="modal" wx:if="{{showLeaveModal}}" bindtap="hideLeaveModal">
+  <view class="modal-content" catchtap="stopPropagation">
+    <view class="modal-header">
+      <text class="modal-title">🏖️ 申请请假</text>
+      <view class="modal-close" bindtap="hideLeaveModal">✕</view>
+    </view>
+    
+    <view class="modal-body">
+      <view class="form-item">
+        <text class="form-label">开始日期</text>
+        <picker mode="date" value="{{leaveData.startDate}}" bindchange="onLeaveStartDateChange">
+          <view class="input picker-input">{{leaveData.startDate}}</view>
+        </picker>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">结束日期</text>
+        <picker mode="date" value="{{leaveData.endDate}}" bindchange="onLeaveEndDateChange">
+          <view class="input picker-input">{{leaveData.endDate}}</view>
+        </picker>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">请假原因 (可选)</text>
+        <input 
+          type="text" 
+          class="input" 
+          placeholder="请输入请假原因..."
+          value="{{leaveData.reason}}"
+          bindinput="onLeaveReasonInput"
+        />
+      </view>
+
+      <view class="leave-warning">
+        <text>💡 已请假 {{leaveStats.totalDays}} 天，最多可请假 {{channel.maxLeaveDays}} 天</text>
+      </view>
+    </view>
+    
+    <view class="modal-footer">
+      <button class="btn-secondary flex-1" bindtap="hideLeaveModal">取消</button>
+      <button class="btn-primary flex-1" bindtap="submitLeave" disabled="{{isSubmittingLeave}}">
+        {{isSubmittingLeave ? '⏳ 提交中...' : '提交申请'}}
+      </button>
+    </view>
+  </view>
+</view>
+
+</view>
