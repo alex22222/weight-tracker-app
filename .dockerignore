@@ -1,15 +1,17 @@
-# 依赖
+# Dependencies
 node_modules
-npm-debug.log
-yarn-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
 
-# 构建输出
+# Build outputs
 .next
 out
 dist
+build
 
-# 版本控制
+# Version control
 .git
 .gitignore
 .gitattributes
@@ -21,33 +23,53 @@ dist
 *.swo
 *~
 
-# 操作系统
+# OS
 .DS_Store
 Thumbs.db
 
-# 测试
+# Testing
 coverage
 .nyc_output
 
-# 日志
+# Logs
 *.log
 logs
 
-# 本地环境变量（除了必要的）
+# Environment variables (except examples)
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
 
-# 其他
+# Documentation
 README.md
 CHANGELOG.md
 *.md
-!.env.example
+!README.md
 
-# 项目特定
+# Project specific
 dev.db
+*.db
 weapp/
+wechat-miniprogram/
 scripts/
 .github/
 *.sh
+deploy-package/
+
+# Deployment files
+.vercel
+.cloudbase
+
+# Debug files
+.pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Misc
+.cache
+temp/
+tmp/
