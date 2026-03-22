@@ -1,32 +1,68 @@
-# CloudBase CloudRun Dockerfile
-FROM node:18-alpine
+# CloudBase CloudRun Dockerfile - Multi-stage build
+# Stage 1: Dependencies
+FROM node:18-alpine AS deps
+RUN apk add --no-cache libc6-compat openssl
 
-# 设置工作目录
 WORKDIR /app
 
-# 复制 package.json 和 package-lock.json
-COPY package*.json ./
+# Copy package files
+COPY package.json package-lock.json* ./
 
-# 安装依赖
-RUN npm ci --legacy-peer-deps
+# Install dependencies (production only for smaller size)
+RUN npm ci --legacy-peer-deps --ignore-scripts
 
-# 复制所有文件
+# Stage 2: Builder
+FROM node:18-alpine AS builder
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# 生成 Prisma 客户端
+# Generate Prisma Client
 RUN npx prisma generate
 
-# 构建应用
+# Build application
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# 暴露端口
+# Stage 3: Runner (Production image)
+FROM node:18-alpine AS runner
+RUN apk add --no-cache openssl
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy necessary files from builder
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Copy Prisma files for runtime
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
 EXPOSE 3000
 
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
-# 启动命令
-CMD ["npm", "start"]
+# Start the application
+CMD ["node", "server.js"]
