@@ -1,51 +1,32 @@
-# CloudBase CloudRun Dockerfile (标准模式)
-FROM node:18-alpine AS base
+# CloudBase CloudRun Dockerfile
+FROM node:18-alpine
 
-# 安装依赖阶段
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
+# 设置工作目录
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
 
-# 构建阶段
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# 复制 package.json
+COPY package.json ./
+
+# 安装依赖（不使用 package-lock.json）
+RUN npm install --legacy-peer-deps
+
+# 复制所有文件
 COPY . .
 
-# 修复 Next.js 的 generateBuildId 问题
-RUN sed -i "s/if (typeof buildId !== 'string')/if (typeof buildId !== 'string' \&\& buildId !== undefined)/" node_modules/next/dist/build/generate-build-id.js || true
-RUN sed -i 's/if (config.output === "standalone")/if (false \&\& config.output === "standalone")/' node_modules/next/dist/build/index.js || true
+# 生成 Prisma 客户端
+RUN npx prisma generate
 
-ENV NEXT_TELEMETRY_DISABLED=1
+# 构建应用
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# 运行阶段
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# 复制必要文件
-COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-
-USER nextjs
-
+# 暴露端口
 EXPOSE 3000
 
+# 健康检查
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" || exit 1
 
+# 启动命令
 CMD ["npm", "start"]
