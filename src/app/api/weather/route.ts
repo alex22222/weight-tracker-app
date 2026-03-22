@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 
+// 强制动态渲染，避免静态生成错误
+export const dynamic = 'force-dynamic'
+
 // 使用 Open-Meteo 免费天气 API (无需 API Key)
 // 默认使用北京坐标
 const DEFAULT_LAT = 39.9042
