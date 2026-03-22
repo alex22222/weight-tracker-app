@@ -1,16 +1,19 @@
 # CloudBase CloudRun Dockerfile
 FROM node:18-alpine
 
+# 安装必要依赖
+RUN apk add --no-cache openssl
+
 # 设置工作目录
 WORKDIR /app
 
 # 复制 package.json
 COPY package.json ./
 
-# 安装依赖（不使用 package-lock.json）
-RUN npm install --legacy-peer-deps
+# 安装依赖（跳过 postinstall）
+RUN npm install --legacy-peer-deps --ignore-scripts
 
-# 复制所有文件
+# 复制所有文件（包括 prisma/schema.prisma）
 COPY . .
 
 # 生成 Prisma 客户端
