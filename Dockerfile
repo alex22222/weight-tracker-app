@@ -9,7 +9,8 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Install dependencies (production only for smaller size)
-RUN npm ci --legacy-peer-deps --ignore-scripts
+# 使用 npm install 代替 npm ci，因为 package-lock.json 可能不存在
+RUN npm install --legacy-peer-deps --ignore-scripts
 
 # Stage 2: Builder
 FROM node:18-alpine AS builder

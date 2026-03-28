@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../../lib/db'
+import { adapter } from '../../../../lib/db-adapter'
 import { createHash } from 'crypto'
 
 // 简单的密码哈希函数
@@ -37,9 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 检查用户名是否已存在
-    const existingUser = await prisma.user.findUnique({
-      where: { username },
-    })
+    const existingUser = await adapter.findUserByUsername(username)
 
     if (existingUser) {
       return NextResponse.json(
@@ -50,29 +48,29 @@ export async function POST(request: NextRequest) {
 
     // 创建新用户
     const hashedPassword = hashPassword(password)
-    const user = await prisma.user.create({
-      data: {
-        username,
-        password: hashedPassword,
-        settings: {
-          create: {
-            height: 170,
-            targetWeight: 65,
-            gender: 'male',
-            age: 25,
-            avatar: '',
-          }
-        }
-      },
-      select: {
-        id: true,
-        username: true,
-        createdAt: true,
-      },
+    const user = await adapter.createUser({
+      username,
+      password: hashedPassword,
+      gender: 'male', // 默认性别
+    })
+
+    // 检查用户ID
+    if (!user.id) {
+      return NextResponse.json(
+        { error: '创建用户失败，请稍后重试' },
+        { status: 500 }
+      )
+    }
+
+    // 创建用户设置
+    await adapter.createUserSettings({
+      userId: user.id,
+      height: 170,
+      targetWeight: 65,
     })
 
     return NextResponse.json(
-      { message: '注册成功', user },
+      { message: '注册成功', user: { id: user.id, username: user.username, createdAt: user.createdAt } },
       { status: 201 }
     )
   } catch (error) {

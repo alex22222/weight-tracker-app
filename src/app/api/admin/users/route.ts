@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../../lib/db'
+import { adapter } from '../../../../lib/db-adapter'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -16,33 +16,24 @@ export async function GET(request: NextRequest) {
     }
 
     // 验证是否是 admin
-    const admin = await prisma.user.findUnique({
-      where: { id: parseInt(adminId) },
-    })
+    const admin = await adapter.getUserById(adminId)
 
     if (!admin || admin.username !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // 获取所有用户（排除 admin 自己）
-    const users = await prisma.user.findMany({
-      where: {
-        username: { not: 'admin' }
-      },
-      select: {
-        id: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
-        settings: true,
-        _count: {
-          select: {
-            weightEntries: true,
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    // 获取所有用户
+    const allUsers = await adapter.getAllUsers()
+    
+    // 过滤掉 admin 自己
+    const users = allUsers
+      .filter(u => u.username !== 'admin')
+      .map(u => ({
+        id: u.id,
+        username: u.username,
+        createdAt: u.createdAt,
+        updatedAt: u.updatedAt,
+      }))
 
     return NextResponse.json(users)
   } catch (error) {

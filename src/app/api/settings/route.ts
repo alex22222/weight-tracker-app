@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../lib/db'
+import { adapter } from '../../../lib/db-adapter'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -11,24 +11,17 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
 
-    if (!userId || isNaN(parseInt(userId))) {
+    if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    let settings = await prisma.userSettings.findUnique({
-      where: { userId: parseInt(userId) },
-    })
+    let settings = await adapter.getUserSettings(userId)
     
     if (!settings) {
-      settings = await prisma.userSettings.create({
-        data: {
-          userId: parseInt(userId),
-          height: 170,
-          targetWeight: 65,
-          gender: 'male',
-          age: 25,
-          avatar: '',
-        },
+      settings = await adapter.createUserSettings({
+        userId: userId,
+        height: 170,
+        targetWeight: 65,
       })
     }
     
@@ -45,7 +38,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { userId, height, targetWeight, gender, age, avatar } = body
 
-    if (!userId || isNaN(parseInt(userId))) {
+    if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
@@ -55,9 +48,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let settings = await prisma.userSettings.findUnique({
-      where: { userId: parseInt(userId) },
-    })
+    let settings = await adapter.getUserSettings(userId)
     
     const updateData: any = {}
     if (height !== undefined) updateData.height = parseFloat(height)
@@ -67,21 +58,17 @@ export async function POST(request: NextRequest) {
     if (avatar !== undefined) updateData.avatar = avatar
 
     if (settings) {
-      settings = await prisma.userSettings.update({
-        where: { userId: parseInt(userId) },
-        data: updateData,
-      })
+      settings = await adapter.updateUserSettings(userId, updateData)
     } else {
-      settings = await prisma.userSettings.create({
-        data: {
-          userId: parseInt(userId),
-          height: parseFloat(height) || 170,
-          targetWeight: parseFloat(targetWeight) || 65,
-          gender: gender || 'male',
-          age: parseInt(age) || 25,
-          avatar: avatar || '',
-        },
+      settings = await adapter.createUserSettings({
+        userId: userId,
+        height: parseFloat(height) || 170,
+        targetWeight: parseFloat(targetWeight) || 65,
       })
+      // 更新其他字段
+      if (Object.keys(updateData).length > 0) {
+        settings = await adapter.updateUserSettings(userId, updateData)
+      }
     }
 
     return NextResponse.json(settings)

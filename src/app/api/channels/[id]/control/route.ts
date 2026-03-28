@@ -48,19 +48,19 @@ export async function POST(
 
     if (action === 'start') {
       // 启动频道
-      if ((channel as any).status !== ChannelStatus.PENDING) {
+      if ((channel as any).status !== 'pending') {
         return NextResponse.json({ error: '频道已启动或已结束' }, { status: 400 })
       }
       
-      await adapter.updateChannelStatus(channelId, ChannelStatus.ACTIVE)
+      await adapter.updateChannelStatus(channelId, 'active')
       return NextResponse.json({ message: '频道已启动' })
     } else if (action === 'end') {
       // 提前结束频道
-      if ((channel as any).status === ChannelStatus.COMPLETED) {
+      if ((channel as any).status === 'completed') {
         return NextResponse.json({ error: '频道已结束' }, { status: 400 })
       }
       
-      await adapter.updateChannelStatus(channelId, ChannelStatus.COMPLETED)
+      await adapter.updateChannelStatus(channelId, 'completed')
       return NextResponse.json({ message: '频道已提前结束' })
     }
 

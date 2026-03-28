@@ -30,7 +30,7 @@ export async function GET(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const channel = await adapter.getFitnessChannelById(channelId)
 
     if (!channel) {
@@ -39,22 +39,22 @@ export async function GET(
 
     // 检查是否是成员或创建者
     const isMember = await adapter.isChannelMember(channelId, user.userId)
-    const ownerId = (channel as any).ownerId || (channel as any).owner?.id
     
-    if (ownerId !== user.userId && !isMember) {
+    if (channel.creatorId !== user.userId && !isMember) {
       return NextResponse.json({ error: '无权访问' }, { status: 403 })
     }
 
-    // 获取本周统计
-    const weeklyCount = await adapter.getWeeklyCheckInCount(channelId, user.userId)
+    // 获取频道统计
     const channelStats = await adapter.getChannelWeeklyStats(channelId)
+    const myStats = channelStats?.members?.find((m: any) => m.userId === user.userId)
+    const weeklyCount = myStats?.completed || 0
 
     return NextResponse.json({
       weeklyCount: weeklyCount,
-      weeklyRequired: (channel as any).weeklyCheckInCount || 3,
-      checkInMinutes: (channel as any).checkInMinutes || 30,
-      maxLeaveDays: (channel as any).maxLeaveDays ?? 3,
-      remaining: Math.max(0, ((channel as any).weeklyCheckInCount || 3) - weeklyCount),
+      weeklyRequired: channel.weeklyCheckInCount || 3,
+      checkInMinutes: channel.checkInMinutes || 30,
+      maxLeaveDays: 3,
+      remaining: Math.max(0, (channel.weeklyCheckInCount || 3) - weeklyCount),
       allMembers: channelStats?.members || [],
     })
   } catch (error) {

@@ -30,7 +30,7 @@ export async function GET(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const channel = await adapter.getFitnessChannelById(channelId)
 
     if (!channel) {
@@ -44,11 +44,11 @@ export async function GET(
     let realTimeStatus = channel.status
     
     if (now < startDate) {
-      realTimeStatus = 'PENDING'
+      realTimeStatus = 'pending'
     } else if (now >= startDate && now <= endDate) {
-      realTimeStatus = 'ACTIVE'
+      realTimeStatus = 'active'
     } else {
-      realTimeStatus = 'COMPLETED'
+      realTimeStatus = 'completed'
     }
     
     // 返回带实时状态的频道数据
@@ -58,10 +58,9 @@ export async function GET(
     }
 
     // 检查是否是成员或创建者
-    const ownerId = (channel as any).ownerId || (channel as any).owner?.id
     const isMember = await adapter.isChannelMember(channelId, user.userId)
     
-    if (ownerId !== user.userId && !isMember) {
+    if (channel.creatorId !== user.userId && !isMember) {
       return NextResponse.json({ error: '无权访问该频道' }, { status: 403 })
     }
 
@@ -88,7 +87,7 @@ export async function POST(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const channel = await adapter.getFitnessChannelById(channelId)
 
     if (!channel) {
@@ -96,8 +95,7 @@ export async function POST(
     }
 
     // 只有创建者可以邀请
-    const ownerId = (channel as any).ownerId || (channel as any).owner?.id
-    if (ownerId !== user.userId) {
+    if (channel.creatorId !== user.userId) {
       return NextResponse.json({ error: '无权邀请好友' }, { status: 403 })
     }
 
@@ -114,7 +112,10 @@ export async function POST(
       return NextResponse.json({ error: '用户不存在' }, { status: 404 })
     }
 
-    const targetUserId = (targetUser as any).id || (targetUser as any)._id
+    const targetUserId = targetUser.id
+    if (!targetUserId) {
+      return NextResponse.json({ error: '用户ID无效' }, { status: 404 })
+    }
 
     // 不能邀请自己
     if (targetUserId === user.userId) {
@@ -128,26 +129,26 @@ export async function POST(
     }
 
     // 检查好友是否已有进行中的频道
-    const friendActiveChannel = await adapter.getUserActiveChannel(targetUserId)
+    const friendActiveChannel = await adapter.getActiveChannelForUser(targetUserId)
     if (friendActiveChannel) {
       return NextResponse.json({ 
         error: '该用户已有进行中的健身频道',
-        message: `${username} 当前正在参与「${(friendActiveChannel as any).name}」频道，该频道将于 ${new Date((friendActiveChannel as any).endDate).toLocaleDateString('zh-CN')} 结束。请等待该用户完成当前健身计划后再邀请。`,
+        message: `${username} 当前正在参与「${friendActiveChannel.name}」频道，该频道将于 ${new Date(friendActiveChannel.endDate || '').toLocaleDateString('zh-CN')} 结束。请等待该用户完成当前健身计划后再邀请。`,
         activeChannel: {
-          id: (friendActiveChannel as any).id || (friendActiveChannel as any)._id,
-          name: (friendActiveChannel as any).name,
-          endDate: (friendActiveChannel as any).endDate,
+          id: friendActiveChannel.id,
+          name: friendActiveChannel.name,
+          endDate: friendActiveChannel.endDate,
         }
       }, { status: 409 })
     }
 
     // 添加成员
-    await adapter.addChannelMember({ channelId, userId: targetUserId })
+    await adapter.joinFitnessChannel(channelId, targetUserId, targetUser.username || username)
 
     // 发送邀请通知
     await adapter.createMessage({
       type: MessageType.CHANNEL_INVITE,
-      content: `${user.username} 邀请你加入健身频道「${(channel as any).name}」`,
+      content: `${user.username} 邀请你加入健身频道「${channel.name}」`,
       senderId: user.userId,
       receiverId: targetUserId,
     })
@@ -175,7 +176,7 @@ export async function DELETE(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const channel = await adapter.getFitnessChannelById(channelId)
 
     if (!channel) {
@@ -183,8 +184,7 @@ export async function DELETE(
     }
 
     // 只有创建者可以移除成员
-    const ownerId = (channel as any).ownerId || (channel as any).owner?.id
-    if (ownerId !== user.userId) {
+    if (channel.creatorId !== user.userId) {
       return NextResponse.json({ error: '无权操作' }, { status: 403 })
     }
 
@@ -195,7 +195,7 @@ export async function DELETE(
       return NextResponse.json({ error: '缺少成员ID' }, { status: 400 })
     }
 
-    await adapter.removeChannelMember(channelId, parseInt(memberId))
+    await adapter.leaveFitnessChannel(channelId, memberId)
     return NextResponse.json({ message: '成员已移除' })
   } catch (error) {
     console.error('Error removing member:', error)
