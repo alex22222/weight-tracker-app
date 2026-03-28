@@ -30,7 +30,7 @@ export async function GET(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const leaves = await adapter.getLeaveRequests(channelId)
 
     // 获取频道信息以检查权限
@@ -39,21 +39,25 @@ export async function GET(
       return NextResponse.json({ error: '频道不存在' }, { status: 404 })
     }
 
-    const ownerId = (channel as any).ownerId || (channel as any).owner?.id
-    const isOwner = ownerId === user.userId
+    const isOwner = channel.creatorId === user.userId
 
     // 如果不是创建者，只能看到自己的请假申请
     const filteredLeaves = isOwner 
       ? leaves 
       : leaves.filter((l: any) => l.userId === user.userId)
 
-    // 获取用户的请假天数统计
-    const leaveStats = await adapter.getUserLeaveDays(channelId, user.userId)
+    // 计算用户的请假天数统计
+    const userLeaves = leaves.filter((l: any) => l.userId === user.userId && l.status === 'approved')
+    const totalDays = userLeaves.reduce((sum: number, l: any) => {
+      const start = new Date(l.startDate)
+      const end = new Date(l.endDate)
+      return sum + Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    }, 0)
 
     return NextResponse.json({ 
       leaves: filteredLeaves,
-      leaveStats,
-      maxLeaveDays: (channel as any).maxLeaveDays || 3,
+      leaveStats: { totalDays, usedDays: totalDays },
+      maxLeaveDays: 3,
       isOwner,
     })
   } catch (error) {
@@ -78,7 +82,7 @@ export async function POST(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const body = await request.json()
     const { startDate, endDate, reason } = body
 
@@ -100,20 +104,24 @@ export async function POST(
     }
 
     // 检查是否允许请假
-    const maxLeaveDays = (channel as any).maxLeaveDays ?? 3
-    if (maxLeaveDays === 0) {
-      return NextResponse.json({ error: '该频道不允许请假' }, { status: 403 })
-    }
+    const maxLeaveDays = 3
 
     // 计算申请请假天数
     const requestDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
 
-    // 检查是否超过最大请假天数
-    const leaveStats = await adapter.getUserLeaveDays(channelId, user.userId)
-    if (leaveStats.totalDays + requestDays > maxLeaveDays) {
+    // 计算用户已请假天数
+    const leaves = await adapter.getLeaveRequests(channelId)
+    const userLeaves = leaves.filter((l: any) => l.userId === user.userId && l.status === 'approved')
+    const totalDays = userLeaves.reduce((sum: number, l: any) => {
+      const s = new Date(l.startDate)
+      const e = new Date(l.endDate)
+      return sum + Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    }, 0)
+
+    if (totalDays + requestDays > maxLeaveDays) {
       return NextResponse.json({ 
         error: `请假天数超限`,
-        message: `您已请假 ${leaveStats.totalDays} 天，最多可请假 ${maxLeaveDays} 天，本次申请 ${requestDays} 天将超出限制。`,
+        message: `您已请假 ${totalDays} 天，最多可请假 ${maxLeaveDays} 天，本次申请 ${requestDays} 天将超出限制。`,
       }, { status: 400 })
     }
 
@@ -148,7 +156,7 @@ export async function PATCH(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const body = await request.json()
     const { requestId, action } = body
 
@@ -163,8 +171,7 @@ export async function PATCH(
     }
 
     // 检查权限（仅创建者可以审批）
-    const ownerId = (channel as any).ownerId || (channel as any).owner?.id
-    if (ownerId !== user.userId) {
+    if (channel.creatorId !== user.userId) {
       return NextResponse.json({ error: '无权审批请假申请' }, { status: 403 })
     }
 
@@ -172,8 +179,8 @@ export async function PATCH(
       return NextResponse.json({ error: '无效的操作' }, { status: 400 })
     }
 
-    const status = action === 'approve' ? 'APPROVED' : 'REJECTED'
-    await adapter.updateLeaveStatus(parseInt(requestId), status)
+    const status = action === 'approve' ? 'approved' : 'rejected'
+    await adapter.updateLeaveStatus(requestId, status)
 
     return NextResponse.json({ 
       message: action === 'approve' ? '已批准请假申请' : '已拒绝请假申请' 

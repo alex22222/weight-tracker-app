@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import { prisma } from '../../../../lib/db'
+import { adapter } from '../../../../lib/db-adapter'
 import { createHash } from 'crypto'
 
 // 简单的密码哈希函数
@@ -11,28 +11,26 @@ function hashPassword(password: string): string {
 export async function POST() {
   try {
     // 检查 admin 用户是否已存在
-    let admin = await prisma.user.findUnique({
-      where: { username: 'admin' },
-    })
+    let admin = await adapter.findUserByUsername('admin')
 
     if (!admin) {
       // 创建 admin 用户
       const hashedPassword = hashPassword('123123')
-      admin = await prisma.user.create({
-        data: {
-          username: 'admin',
-          password: hashedPassword,
-          settings: {
-            create: {
-              height: 170,
-              targetWeight: 65,
-              gender: 'male',
-              age: 25,
-              avatar: '',
-            }
-          }
-        },
+      admin = await adapter.createUser({
+        username: 'admin',
+        password: hashedPassword,
+        gender: 'male',
       })
+      
+      // 创建 admin 设置
+      if (admin.id) {
+        await adapter.createUserSettings({
+          userId: admin.id,
+          height: 170,
+          targetWeight: 65,
+        })
+      }
+      
       return NextResponse.json({ message: 'Admin user created', admin: { id: admin.id, username: admin.username } })
     }
 

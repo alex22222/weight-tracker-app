@@ -104,11 +104,7 @@ export async function DELETE(
       return NextResponse.json({ error: '缺少评论ID' }, { status: 400 })
     }
 
-    const result = await adapter.deleteChannelComment(parseInt(commentId), user.userId)
-    
-    if (!result) {
-      return NextResponse.json({ error: '评论不存在或无权限删除' }, { status: 404 })
-    }
+    await adapter.deleteChannelComment(commentId)
 
     return NextResponse.json({ message: '评论已删除' })
   } catch (error) {

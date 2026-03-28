@@ -23,33 +23,20 @@ export async function GET(request: NextRequest) {
     const user = verifyToken(token)
     if (!user) return NextResponse.json({ error: '无效token' }, { status: 401 })
 
-    const { searchParams } = new URL(request.url)
-    const type = searchParams.get('type') || 'all' // all, joined, created
-
-    let channels: any[] = []
-
-    if (type === 'joined') {
-      channels = await adapter.getChannelsByMember(user.userId)
-    } else if (type === 'created') {
-      const allChannels = await adapter.getAllChannels()
-      channels = allChannels.filter((c: any) => c.creatorId === user.userId)
-    } else {
-      channels = await adapter.getAllChannels()
-    }
+    // 获取所有频道
+    const channels = await adapter.getFitnessChannels()
 
     // 为每个频道添加成员信息和我的加入状态
-    const channelsWithDetails = await Promise.all(
-      channels.map(async (channel) => {
-        const members = await adapter.getChannelMembers(channel.id)
-        const isMember = members.some((m: any) => m.userId === user.userId)
-        return {
-          ...channel,
-          memberCount: members.length,
-          isMember,
-          isCreator: channel.creatorId === user.userId,
-        }
-      })
-    )
+    const channelsWithDetails = channels.map((channel: any) => {
+      const members = channel.members || []
+      const isMember = members.some((m: any) => m.userId === user.userId)
+      return {
+        ...channel,
+        memberCount: members.length,
+        isMember,
+        isCreator: channel.creatorId === user.userId,
+      }
+    })
 
     return NextResponse.json({ channels: channelsWithDetails })
   } catch (error) {
@@ -67,29 +54,27 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: '无效token' }, { status: 401 })
 
     const body = await request.json()
-    const { name, description, targetDays, targetCheckIns } = body
+    const { name, description, weeklyCheckInCount, checkInMinutes, startDate, endDate } = body
 
     if (!name || !name.trim()) {
       return NextResponse.json({ error: '频道名称不能为空' }, { status: 400 })
     }
 
-    const channel = await adapter.createChannel({
+    const channel = await adapter.createFitnessChannel({
       name: name.trim(),
       description: description?.trim() || '',
       creatorId: user.userId,
-      targetDays: targetDays || 30,
-      targetCheckIns: targetCheckIns || 20,
+      weeklyCheckInCount: weeklyCheckInCount || 3,
+      checkInMinutes: checkInMinutes || 30,
+      startDate: startDate ? new Date(startDate) : new Date(),
+      endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     })
 
     // 自动将创建者加入频道
     if (!channel.id) {
       return NextResponse.json({ error: '创建频道失败' }, { status: 500 })
     }
-    await adapter.addChannelMember({
-      channelId: channel.id as number,
-      userId: user.userId,
-      role: 'CREATOR',
-    })
+    await adapter.joinFitnessChannel(channel.id, user.userId, user.username)
 
     return NextResponse.json({ message: '创建成功', channel }, { status: 201 })
   } catch (error) {

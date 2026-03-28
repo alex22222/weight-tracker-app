@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../../lib/db'
+import { adapter } from '../../../../lib/db-adapter'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 
-// GET /api/admin/user?adminId={adminId}&userId={userId} - 获取指定用户详情
+// GET /api/admin/user?adminId={adminId}&userId={userId} - 获取指定用户信息（仅 admin）
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -21,45 +21,37 @@ export async function GET(request: NextRequest) {
     }
 
     // 验证是否是 admin
-    const admin = await prisma.user.findUnique({
-      where: { id: parseInt(adminId) },
-    })
+    const admin = await adapter.getUserById(adminId)
 
     if (!admin || admin.username !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // 获取用户详情
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
-      select: {
-        id: true,
-        username: true,
-        createdAt: true,
-        updatedAt: true,
-        settings: true,
-        weightEntries: {
-          orderBy: { date: 'desc' },
-        },
-      },
-    })
+    // 获取目标用户
+    const user = await adapter.getUserById(userId)
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json(user)
+    // 获取用户设置
+    const settings = await adapter.getUserSettings(userId)
+
+    return NextResponse.json({
+      ...user,
+      settings,
+    })
   } catch (error) {
     console.error('Error fetching user:', error)
     return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 })
   }
 }
 
-// PUT /api/admin/user - 更新用户信息和设置
+// PUT /api/admin/user - 更新用户信息（仅 admin）
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json()
-    const { adminId, userId, username, settings } = body
+    const { adminId, userId, ...updateData } = body
 
     if (!adminId) {
       return NextResponse.json({ error: 'Admin ID required' }, { status: 401 })
@@ -70,48 +62,43 @@ export async function PUT(request: NextRequest) {
     }
 
     // 验证是否是 admin
-    const admin = await prisma.user.findUnique({
-      where: { id: parseInt(adminId) },
-    })
+    const admin = await adapter.getUserById(adminId)
 
     if (!admin || admin.username !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
+    // 不能修改 admin 自己通过此 API
+    const targetUser = await adapter.getUserById(userId)
+    if (!targetUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     // 更新用户信息
-    const updateData: any = {}
-    if (username !== undefined) updateData.username = username
-
-    // 更新用户
-    const updatedUser = await prisma.user.update({
-      where: { id: parseInt(userId) },
-      data: updateData,
-    })
-
-    // 更新用户设置
-    if (settings) {
-      const { height, targetWeight, gender, age, avatar } = settings
-      const updateSettingsData: any = {}
-      if (height !== undefined) updateSettingsData.height = parseFloat(height)
-      if (targetWeight !== undefined) updateSettingsData.targetWeight = parseFloat(targetWeight)
-      if (gender !== undefined) updateSettingsData.gender = gender
-      if (age !== undefined) updateSettingsData.age = parseInt(age)
-      if (avatar !== undefined) updateSettingsData.avatar = avatar
-
-      await prisma.userSettings.update({
-        where: { userId: parseInt(userId) },
-        data: updateSettingsData,
+    if (updateData.username || updateData.password) {
+      await adapter.updateUser(userId, {
+        username: updateData.username,
+        password: updateData.password,
       })
     }
 
-    return NextResponse.json({ message: 'User updated successfully', user: updatedUser })
+    // 更新用户设置
+    if (updateData.height !== undefined || updateData.targetWeight !== undefined || updateData.gender !== undefined) {
+      await adapter.updateUserSettings(userId, {
+        height: updateData.height,
+        targetWeight: updateData.targetWeight,
+        gender: updateData.gender,
+      })
+    }
+
+    return NextResponse.json({ message: 'User updated successfully' })
   } catch (error) {
     console.error('Error updating user:', error)
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 })
   }
 }
 
-// DELETE /api/admin/user?adminId={adminId}&userId={userId} - 删除用户
+// DELETE /api/admin/user?adminId={adminId}&userId={userId} - 删除用户（仅 admin）
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -127,19 +114,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 验证是否是 admin
-    const admin = await prisma.user.findUnique({
-      where: { id: parseInt(adminId) },
-    })
+    const admin = await adapter.getUserById(adminId)
 
     if (!admin || admin.username !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // 防止删除 admin 自己
-    const targetUser = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
-    })
-
+    // 不能删除 admin 自己
+    const targetUser = await adapter.getUserById(userId)
     if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
@@ -148,10 +130,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Cannot delete admin user' }, { status: 403 })
     }
 
-    // 删除用户（级联删除体重记录和设置）
-    await prisma.user.delete({
-      where: { id: parseInt(userId) },
-    })
+    // 删除用户（CloudBase 中需要手动删除关联数据）
+    await adapter.deleteUser(userId)
 
     return NextResponse.json({ message: 'User deleted successfully' })
   } catch (error) {

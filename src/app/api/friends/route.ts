@@ -80,10 +80,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 创建好友请求
-    const friendRequest = await adapter.createFriendRequest(
-      user.userId,
-      targetUserId
-    )
+    const friendRequest = await adapter.createFriendRequest({
+      userId: user.userId,
+      friendId: targetUserId,
+    })
 
     // 发送系统消息通知对方
     await adapter.createMessage({
@@ -135,7 +135,7 @@ export async function PATCH(request: NextRequest) {
 
     if (action === 'accept') {
       // 接受好友请求
-      await adapter.updateFriendStatus(friendId, FriendStatus.ACCEPTED)
+      await adapter.updateFriendStatus(friendId, 'accepted')
       
       // 发送接受通知
       await adapter.createMessage({
@@ -148,7 +148,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ message: '已接受好友请求' })
     } else {
       // 拒绝好友请求
-      await adapter.updateFriendStatus(friendId, FriendStatus.REJECTED)
+      await adapter.updateFriendStatus(friendId, 'rejected')
       
       // 发送拒绝通知
       await adapter.createMessage({
@@ -195,7 +195,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: '无权删除此好友' }, { status: 403 })
     }
 
-    await adapter.deleteFriend(parseInt(friendId))
+    await adapter.deleteFriendById(friendId)
     return NextResponse.json({ message: '好友已删除' })
   } catch (error) {
     console.error('Error deleting friend:', error)

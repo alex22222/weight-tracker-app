@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
-import { prisma } from '../../../../lib/db'
+import { adapter } from '../../../../lib/db-adapter'
 import { createHash } from 'crypto'
 
 // 强制动态渲染
@@ -26,18 +26,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证是否是 admin
-    const admin = await prisma.user.findUnique({
-      where: { id: parseInt(adminId) },
-    })
+    const admin = await adapter.getUserById(adminId)
 
     if (!admin || admin.username !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
     // 防止重置 admin 自己的密码
-    const targetUser = await prisma.user.findUnique({
-      where: { id: parseInt(userId) },
-    })
+    const targetUser = await adapter.getUserById(userId)
 
     if (!targetUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
@@ -51,10 +47,7 @@ export async function POST(request: NextRequest) {
     const defaultPassword = '111111'
     const hashedPassword = hashPassword(defaultPassword)
 
-    await prisma.user.update({
-      where: { id: parseInt(userId) },
-      data: { password: hashedPassword },
-    })
+    await adapter.updateUserPassword(userId, hashedPassword)
 
     return NextResponse.json({ 
       message: 'Password reset successfully',
