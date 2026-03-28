@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter } from '../../../lib/db-adapter'
-import { verifyToken } from '../../../lib/auth'
 
 // 验证 Token
-function getUserFromToken(request: NextRequest): { userId: number; username: string } | null {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) return null
-  return verifyToken(token)
+function getUserFromToken(request: NextRequest): { userId: string; username: string } | null {
+  try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+    if (!token) return null
+    const decoded = Buffer.from(token, 'base64').toString('utf-8')
+    const [username, userId] = decoded.split(':')
+    if (!username || !userId) return null
+    return { userId, username }
+  } catch {
+    return null
+  }
 }
 
 // GET /api/messages - 获取当前用户的消息列表

@@ -8,36 +8,32 @@ import tcb from '@cloudbase/node-sdk'
 // CloudBase 配置
 const envId = (process.env.CLOUDBASE_ENV_ID || 'weight-tracker-1ghr085dd7d6cff2').trim()
 
-// 检测是否在 CloudRun 环境
-const isCloudRun = !!(
-  process.env.KUBERNETES_SERVICE_HOST ||
-  process.env.CLOUDBASE_RUN_ENV ||
-  process.env.TCB_ENV_ID ||
-  process.env.TCB_SECRET_ID ||  // CloudRun 自动注入
-  process.env.TCB_SECRET_KEY    // CloudRun 自动注入
-)
-
-// 本地开发环境密钥
+// 尝试获取各种可能的环境变量
+const tcbSecretId = process.env.TCB_SECRET_ID?.trim()
+const tcbSecretKey = process.env.TCB_SECRET_KEY?.trim()
 const localSecretId = process.env.TENCENT_SECRET_ID?.trim()
 const localSecretKey = process.env.TENCENT_SECRET_KEY?.trim()
+
+// 确定使用哪组密钥
+const secretId = tcbSecretId || localSecretId
+const secretKey = tcbSecretKey || localSecretKey
 
 // 初始化 CloudBase
 let app: any
 
-if (!isCloudRun && localSecretId && localSecretKey) {
-  // 本地开发环境 - 使用密钥
-  console.log('[CloudBase] Local mode with credentials')
+if (secretId && secretKey) {
+  // 使用密钥认证（CloudRun 或本地开发）
+  console.log('[CloudBase] Using credential auth')
   app = tcb.init({
     env: envId,
-    secretId: localSecretId,
-    secretKey: localSecretKey,
+    secretId: secretId,
+    secretKey: secretKey,
   })
 } else {
-  // CloudRun 环境 - 使用匿名认证（CloudRun 会自动注入权限）
-  console.log('[CloudBase] CloudRun mode (anonymous auth)')
+  // 匿名认证（仅适用于某些特定环境）
+  console.log('[CloudBase] Using anonymous auth')
   app = tcb.init({
     env: envId,
-    // CloudRun 中不需要传密钥，SDK 会自动从环境获取
   })
 }
 

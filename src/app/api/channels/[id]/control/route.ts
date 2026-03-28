@@ -3,12 +3,12 @@ import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter, ChannelStatus } from '../../../../../lib/db-adapter'
 
 // 验证 Token
-function verifyToken(token: string): { userId: number; username: string } | null {
+function verifyToken(token: string): { userId: string; username: string } | null {
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf-8')
     const [username, userId] = decoded.split(':')
     if (!username || !userId) return null
-    return { userId: parseInt(userId), username }
+    return { userId, username }
   } catch {
     return null
   }

@@ -1,13 +1,19 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter, MessageType, FriendStatus } from '../../../lib/db-adapter'
-import { verifyToken } from '../../../lib/auth'
 
 // 验证 Token
-function getUserFromToken(request: NextRequest): { userId: number; username: string } | null {
-  const token = request.headers.get('authorization')?.replace('Bearer ', '')
-  if (!token) return null
-  return verifyToken(token)
+function getUserFromToken(request: NextRequest): { userId: string; username: string } | null {
+  try {
+    const token = request.headers.get('authorization')?.replace('Bearer ', '')
+    if (!token) return null
+    const decoded = Buffer.from(token, 'base64').toString('utf-8')
+    const [username, userId] = decoded.split(':')
+    if (!username || !userId) return null
+    return { userId, username }
+  } catch {
+    return null
+  }
 }
 
 // GET /api/friends - 获取好友列表和待处理请求
@@ -27,9 +33,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ requests })
     }
 
-    // 获取所有好友关系
+    // 获取所有好友关系，状态值转换为大写
     const friends = await adapter.getFriendsByUser(user.userId)
-    return NextResponse.json({ friends })
+    const friendsWithUpperCaseStatus = friends.map((f: any) => ({
+      ...f,
+      status: f.status?.toUpperCase?.() || f.status
+    }))
+    return NextResponse.json({ friends: friendsWithUpperCaseStatus })
   } catch (error) {
     console.error('Error getting friends:', error)
     return NextResponse.json({ error: '获取好友列表失败' }, { status: 500 })
