@@ -3,12 +3,12 @@ import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
 
 // 验证 Token
-function verifyToken(token: string): { userId: number; username: string } | null {
+function verifyToken(token: string): { userId: string; username: string } | null {
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf-8')
     const [username, userId] = decoded.split(':')
     if (!username || !userId) return null
-    return { userId: parseInt(userId), username }
+    return { userId, username }
   } catch {
     return null
   }
@@ -51,10 +51,10 @@ export async function GET(
       realTimeStatus = 'completed'
     }
     
-    // 返回带实时状态的频道数据
+    // 返回带实时状态的频道数据，状态值转换为大写
     const channelWithRealTimeStatus = {
       ...channel,
-      status: realTimeStatus
+      status: realTimeStatus?.toUpperCase?.() || realTimeStatus
     }
 
     // 检查是否是成员或创建者

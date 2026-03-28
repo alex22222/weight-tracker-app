@@ -8,6 +8,11 @@ function hashPassword(password: string): string {
   return createHash('sha256').update(password).digest('hex')
 }
 
+// 生成 Token
+function generateToken(username: string, userId: string): string {
+  return Buffer.from(`${username}:${userId}`).toString('base64')
+}
+
 // POST /api/auth/login - 用户登录
 export async function POST(request: NextRequest) {
   try {
@@ -52,9 +57,13 @@ export async function POST(request: NextRequest) {
     // 更新最后登录时间
     await adapter.updateUserLoginTime(user.id)
 
-    // 登录成功，返回用户信息（不包含密码）
+    // 生成 token
+    const token = generateToken(user.username, String(user.id))
+
+    // 登录成功，返回用户信息和 token
     return NextResponse.json({
       message: '登录成功',
+      token,
       user: {
         id: user.id,
         username: user.username,

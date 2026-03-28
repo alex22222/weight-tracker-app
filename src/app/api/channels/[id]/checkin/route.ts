@@ -4,12 +4,12 @@ import { adapter } from '../../../../../lib/db-adapter'
 
 export const dynamic = 'force-dynamic'
 
-function verifyToken(token: string): { userId: number; username: string } | null {
+function verifyToken(token: string): { userId: string; username: string } | null {
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf-8')
     const [username, userId] = decoded.split(':')
     if (!username || !userId) return null
-    return { userId: parseInt(userId), username }
+    return { userId, username }
   } catch {
     return null
   }

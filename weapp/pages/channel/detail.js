@@ -84,7 +84,7 @@ Page({
       })
       const checkIns = checkInsResult.checkIns || checkInsResult || []
       
-      const isOwner = channel.ownerId === app.globalData.userInfo?.id
+      const isOwner = channel.creatorId === app.globalData.userInfo?.id
       
       this.setData({
         channel,
@@ -290,6 +290,7 @@ Page({
   uploadImage(filePath) {
     const app = getApp()
     const token = app.globalData.token
+    const config = require('../../config.js')
     
     console.log('=== 开始上传图片 ===')
     console.log('文件路径:', filePath)
@@ -303,7 +304,7 @@ Page({
     wx.showLoading({ title: '上传中...' })
     
     // 构建 URL（token 可能有特殊字符，需要编码）
-    const apiBaseUrl = 'http://localhost:54112/api'
+    const apiBaseUrl = config.apiBaseUrl.replace('/api', '')
     const uploadUrl = `${apiBaseUrl}/upload?token=${encodeURIComponent(token)}`
     console.log('上传地址:', uploadUrl)
     

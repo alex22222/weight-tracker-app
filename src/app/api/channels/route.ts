@@ -4,12 +4,12 @@ import { adapter } from '../../../lib/db-adapter'
 
 export const dynamic = 'force-dynamic'
 
-function verifyToken(token: string): { userId: number; username: string } | null {
+function verifyToken(token: string): { userId: string; username: string } | null {
   try {
     const decoded = Buffer.from(token, 'base64').toString('utf-8')
     const [username, userId] = decoded.split(':')
     if (!username || !userId) return null
-    return { userId: parseInt(userId), username }
+    return { userId, username }
   } catch {
     return null
   }
@@ -26,12 +26,13 @@ export async function GET(request: NextRequest) {
     // 获取所有频道
     const channels = await adapter.getFitnessChannels()
 
-    // 为每个频道添加成员信息和我的加入状态
+    // 为每个频道添加成员信息和我的加入状态，并转换状态值为大写
     const channelsWithDetails = channels.map((channel: any) => {
       const members = channel.members || []
       const isMember = members.some((m: any) => m.userId === user.userId)
       return {
         ...channel,
+        status: channel.status?.toUpperCase?.() || channel.status,
         memberCount: members.length,
         isMember,
         isCreator: channel.creatorId === user.userId,

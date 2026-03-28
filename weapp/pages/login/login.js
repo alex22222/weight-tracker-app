@@ -201,20 +201,20 @@ Page({
           return
         }
 
-        await app.request({
+        const result = await app.request({
           url: '/auth/register',
           method: 'POST',
           data: { username, password },
           needAuth: false
         })
 
+        // 注册成功后自动登录
+        app.login(result.token, result.user)
         wx.showToast({ title: '注册成功', icon: 'success' })
-        this.setData({
-          isRegister: false,
-          password: '',
-          confirmPassword: '',
-          isLoading: false
-        })
+
+        setTimeout(() => {
+          wx.switchTab({ url: '/pages/index/index' })
+        }, 500)
       } else {
         // 登录
         const result = await app.request({
@@ -242,14 +242,13 @@ Page({
 
     try {
       const result = await app.request({
-        url: '/auth/login',
+        url: '/auth/guest',
         method: 'POST',
-        data: { username: 'user1', password: '111111' },
         needAuth: false
       })
 
       app.login(result.token, result.user)
-      wx.showToast({ title: '登录成功', icon: 'success' })
+      wx.showToast({ title: '游客登录成功', icon: 'success' })
 
       setTimeout(() => {
         wx.switchTab({ url: '/pages/index/index' })

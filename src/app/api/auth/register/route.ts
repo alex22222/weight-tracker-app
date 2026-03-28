@@ -8,6 +8,11 @@ function hashPassword(password: string): string {
   return createHash('sha256').update(password).digest('hex')
 }
 
+// 生成 Token
+function generateToken(username: string, userId: string): string {
+  return Buffer.from(`${username}:${userId}`).toString('base64')
+}
+
 // POST /api/auth/register - 用户注册
 export async function POST(request: NextRequest) {
   try {
@@ -69,8 +74,15 @@ export async function POST(request: NextRequest) {
       targetWeight: 65,
     })
 
+    // 生成 token
+    const token = generateToken(user.username, String(user.id))
+
     return NextResponse.json(
-      { message: '注册成功', user: { id: user.id, username: user.username, createdAt: user.createdAt } },
+      { 
+        message: '注册成功', 
+        token,
+        user: { id: user.id, username: user.username, createdAt: user.createdAt } 
+      },
       { status: 201 }
     )
   } catch (error) {

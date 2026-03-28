@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
-import { generateToken } from '../../../../lib/auth'
 
 // 微信登录配置
 const WECHAT_APPID = process.env.WECHAT_APPID || ''
 const WECHAT_SECRET = process.env.WECHAT_SECRET || ''
+
+// 生成 Token
+function generateToken(username: string, userId: string): string {
+  return Buffer.from(`${username}:${userId}`).toString('base64')
+}
 
 // POST /api/auth/wechat-login - 微信小程序登录
 export async function POST(request: NextRequest) {
@@ -113,11 +117,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 生成安全 token
+    // 生成 token
     if (!user?.id) {
       return NextResponse.json({ error: '用户数据异常' }, { status: 500 })
     }
-    const token = generateToken(typeof user.id === 'string' ? parseInt(user.id) || 0 : user.id, user.nickname || user.username || '微信用户')
+    const token = generateToken(user.nickname || user.username || '微信用户', String(user.id))
 
     // 返回用户信息
     return NextResponse.json({

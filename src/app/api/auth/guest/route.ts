@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import { adapter } from '../../../../lib/db-adapter'
 
+// 生成 Token
+function generateToken(username: string, userId: string): string {
+  return Buffer.from(`${username}:${userId}`).toString('base64')
+}
+
 // POST /api/auth/guest - 创建游客用户
 export async function POST() {
   try {
@@ -27,8 +32,12 @@ export async function POST() {
       targetWeight: 65,
     })
 
+    // 生成 token
+    const token = generateToken(user.username, String(user.id))
+
     return NextResponse.json({
       message: '游客登录成功',
+      token,
       user: {
         id: user.id,
         username: user.username,
