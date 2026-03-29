@@ -297,14 +297,33 @@ const cloudbaseAdapter = {
 
   async getWeightEntriesByUser(userId: number | string): Promise<WeightEntry[]> {
     try {
-      const result = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
+      console.log('[DB] Getting weight entries for user:', userId)
+      
+      // 检查 tcbDb 是否可用
+      if (!tcbDb || !tcbDb.collection) {
+        console.error('[DB] CloudBase database not initialized')
+        return []
+      }
+      
+      const collection = tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
+      console.log('[DB] Collection object:', typeof collection)
+      
+      const result = await collection
         .where({ userId })
         .orderBy('date', 'desc')
         .get()
-      const data = result.data || []
-      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
-    } catch (error) {
-      console.error('Error getting weight entries:', error)
+      
+      console.log('[DB] Query result:', typeof result, result ? Object.keys(result) : 'null')
+      
+      const data = result?.data || []
+      console.log('[DB] Raw data:', Array.isArray(data) ? data.length : 'not array', data)
+      
+      const entries = Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+      console.log('[DB] Parsed entries:', entries.length)
+      
+      return entries
+    } catch (error: any) {
+      console.error('[DB] Error getting weight entries:', error.message || error)
       return []
     }
   },

@@ -1,6 +1,37 @@
-// pages/index/index.js
+// pages/index/index.js - 防缓存版本 v2
 const util = require('../../utils/util.js')
 const app = getApp()
+
+// 强制转换为数组的纯函数（不依赖 this）
+function forceArray(input) {
+  if (Array.isArray(input)) return input
+  if (input === null || input === undefined) return []
+  if (typeof input === 'object') {
+    if (Array.isArray(input.entries)) return input.entries
+    if (Array.isArray(input.data)) return input.data
+    if (Array.isArray(input.list)) return input.list
+  }
+  console.warn('【INDEX】无法转换为数组:', typeof input, input)
+  return []
+}
+
+// 安全排序的纯函数
+function safeSort(entries, desc = true) {
+  const arr = forceArray(entries)
+  if (arr.length <= 1) return arr
+  
+  try {
+    const sorted = arr.slice().sort((a, b) => {
+      const timeA = a && a.date ? new Date(a.date).getTime() : 0
+      const timeB = b && b.date ? new Date(b.date).getTime() : 0
+      return desc ? timeB - timeA : timeA - timeB
+    })
+    return sorted
+  } catch (e) {
+    console.error('【INDEX】排序失败:', e)
+    return arr
+  }
+}
 
 Page({
   data: {
@@ -12,6 +43,7 @@ Page({
     tempHeight: '170',
     tempTargetWeight: '65',
     tempGender: 'other',
+    tempNickname: '', // 昵称临时值
     showSettings: false,
     gender: 'other',
     entries: [],
@@ -23,10 +55,12 @@ Page({
     chartData: [],
     userInfo: null,
     activeChannel: null,
-    weather: null
+    weather: null,
+    _version: 'v2-' + Date.now() // 缓存破坏标记
   },
 
   onLoad() {
+    console.log('【INDEX】Page onLoad, version:', this.data._version)
     this.setData({
       date: util.getTodayString(),
       userInfo: app.globalData.userInfo
@@ -34,138 +68,133 @@ Page({
   },
 
   onShow() {
+    console.log('【INDEX】Page onShow')
     this.loadData()
     this.loadActiveChannel()
     this.loadWeather()
   },
 
-  // 加载数据
+  // 加载数据 - 彻底重写，避免任何可能的 sort 调用错误
   async loadData() {
+    console.log('【INDEX】=== 开始加载数据 ===')
+    
+    let entries = []
+    let settings = { height: 170, targetWeight: 65 }
+    let gender = 'other'
+    
     try {
-      console.log('=== 开始加载数据 ===')
-      let weightResult, settingsResult
-      
+      // 获取体重数据
+      let weightResponse = null
       try {
-        weightResult = await app.request({ url: '/weight' })
+        weightResponse = await app.request({ url: '/weight' })
+        console.log('【INDEX】体重API返回:', typeof weightResponse)
       } catch (e) {
-        console.error('获取体重数据请求失败:', e)
-        weightResult = { entries: [] }
+        console.error('【INDEX】请求体重数据失败:', e)
       }
       
+      // 强制转换为数组
+      entries = forceArray(weightResponse)
+      console.log('【INDEX】entries 数组长度:', entries.length)
+      
+      // 获取设置数据
+      let settingsResponse = null
       try {
-        settingsResult = await app.request({ url: '/settings' })
+        settingsResponse = await app.request({ url: '/settings' })
       } catch (e) {
-        console.error('获取设置数据请求失败:', e)
-        settingsResult = { settings: { height: 170, targetWeight: 65 } }
+        console.error('【INDEX】请求设置数据失败:', e)
       }
       
-      console.log('体重数据:', weightResult)
-      console.log('设置数据:', settingsResult)
-      
-      // 提取 entries（确保是数组）- 终极防护
-      let entries = []
-      if (Array.isArray(weightResult)) {
-        entries = weightResult
-      } else if (weightResult && typeof weightResult === 'object') {
-        if (Array.isArray(weightResult.entries)) {
-          entries = weightResult.entries
-        } else if (weightResult.entries === null || weightResult.entries === undefined) {
-          entries = []
-        } else {
-          console.warn('weightResult.entries 不是数组:', weightResult.entries)
-          entries = []
+      // 解析设置
+      if (settingsResponse && typeof settingsResponse === 'object') {
+        const s = settingsResponse.settings || settingsResponse
+        if (s && typeof s === 'object') {
+          settings.height = s.height || 170
+          settings.targetWeight = s.targetWeight || 65
+        }
+        gender = settingsResponse.gender || settingsResponse.user?.gender || 'other'
+        
+        // 保存昵称和头像到 data
+        if (settingsResponse.user?.nickname) {
+          this.setData({ tempNickname: settingsResponse.user.nickname })
+        }
+        if (settingsResponse.user?.avatar) {
+          const newUserInfo = { ...app.globalData.userInfo, avatar: settingsResponse.user.avatar }
+          app.updateUserInfo(newUserInfo)
+          this.setData({ userInfo: newUserInfo })
         }
       }
       
-      console.log('entries 类型:', typeof entries, '是数组:', Array.isArray(entries), '长度:', entries.length)
-      
-      // 提取 settings
-      let settings = { height: 170, targetWeight: 65 }
-      if (settingsResult && typeof settingsResult === 'object') {
-        if (settingsResult.settings) {
-          settings = settingsResult.settings
-        } else if (settingsResult.height !== undefined) {
-          settings = settingsResult
-        }
-      }
-      
-      // 提取 gender
-      const gender = (settingsResult && (settingsResult.user?.gender || settingsResult.gender)) || 'other'
-      
-      console.log('提取的 entries:', entries.length, '条')
-      console.log('提取的 settings:', settings)
-      
-      // 排序（最新的在前）
-      if (entries.length > 0) {
-        entries.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
-      }
-      
-      // 计算统计数据
-      const currentWeight = entries.length > 0 ? (parseFloat(entries[0].weight) || 0) : 0
-      const bmi = util.calculateBMI(currentWeight, settings.height)
-      const bmiCategory = util.getBMICategory(bmi)
-      const bmiStyle = util.getBMIStyles(bmi)
-      const weightDiff = currentWeight - (settings.targetWeight || 65)
-      
-      // 生成图表数据（按日期升序，取最近7条）
-      const chartData = entries.length > 0 
-        ? [...entries]
-            .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0))
-            .slice(-7)
-            .map(e => ({
-              date: util.formatShortDate(e.date),
-              weight: parseFloat(e.weight) || 0,
-              fullDate: e.date
-            }))
-        : []
-      
-      console.log('currentWeight:', currentWeight, 'bmi:', bmi)
-      
-      this.setData({
-        entries, 
-        settings, 
-        gender,
-        tempHeight: String(settings.height || 170),
-        tempTargetWeight: String(settings.targetWeight || 65),
-        tempGender: gender,
-        currentWeight, 
-        bmi, 
-        bmiCategory, 
-        bmiStyle, 
-        weightDiff, 
-        chartData
-      }, () => {
-        if (chartData.length > 0) {
-          this.drawChart()
-        }
-      })
-    } catch (err) {
-      console.error('加载数据失败:', err)
-      wx.showToast({
-        title: '加载失败: ' + (err.message || '请检查网络'),
-        icon: 'none'
-      })
-      this.setDefaultData()
+    } catch (overallError) {
+      console.error('【INDEX】loadData 整体错误:', overallError)
     }
-  },
-  
-  // 设置默认数据
-  setDefaultData() {
-    this.setData({
-      entries: [],
-      currentWeight: 0,
-      bmi: 0,
-      bmiCategory: { label: '暂无数据', color: '#94a3b8' },
-      bmiStyle: { bg: 'bg-gray-light', color: '#94a3b8', border: '2rpx solid #e2e8f0' },
-      weightDiff: 0,
-      chartData: []
+    
+    // === 关键：确保 entries 一定是数组 ===
+    if (!Array.isArray(entries)) {
+      console.error('【INDEX】entries 不是数组，强制设为空数组')
+      entries = []
+    }
+    
+    console.log('【INDEX】处理 entries:', entries.length, '条')
+    
+    // === 关键：使用安全排序，不直接调用 entries.sort ===
+    const sortedEntries = safeSort(entries, true)
+    
+    // 计算统计数据
+    const currentWeight = sortedEntries.length > 0 ? (parseFloat(sortedEntries[0].weight) || 0) : 0
+    const bmi = util.calculateBMI(currentWeight, settings.height)
+    const bmiCategory = util.getBMICategory(bmi)
+    const bmiStyle = util.getBMIStyles(bmi)
+    const weightDiff = currentWeight - (settings.targetWeight || 65)
+    
+    // 生成图表数据 - 使用安全排序
+    let chartData = []
+    try {
+      if (sortedEntries.length > 0) {
+        const chartSorted = safeSort(sortedEntries, false).slice(-7)
+        chartData = chartSorted.map(e => ({
+          date: util.formatShortDate(e.date),
+          weight: parseFloat(e.weight) || 0,
+          fullDate: e.date
+        }))
+      }
+    } catch (chartError) {
+      console.error('【INDEX】图表数据处理失败:', chartError)
+    }
+    
+    console.log('【INDEX】更新页面数据:', { 
+      currentWeight, 
+      entriesCount: sortedEntries.length,
+      chartCount: chartData.length 
     })
+    
+    // 更新页面数据
+    this.setData({
+      entries: sortedEntries, 
+      settings, 
+      gender,
+      tempHeight: String(settings.height || 170),
+      tempTargetWeight: String(settings.targetWeight || 65),
+      tempGender: gender,
+      currentWeight, 
+      bmi, 
+      bmiCategory, 
+      bmiStyle, 
+      weightDiff, 
+      chartData
+    }, () => {
+      if (chartData.length > 0) {
+        this.drawChart()
+      }
+    })
+    
+    console.log('【INDEX】=== 加载数据完成 ===')
   },
   
   async loadActiveChannel() {
     try {
       const result = await app.request({ url: '/channels' })
-      const activeChannel = result.channels?.find(
+      const channels = forceArray(result.channels || result)
+      const activeChannel = channels.find(
         c => c.status === 'PENDING' || c.status === 'ACTIVE'
       )
       this.setData({ activeChannel: activeChannel || null })
@@ -191,6 +220,74 @@ Page({
   onGenderChange(e) {
     const genders = ['male', 'female', 'other']
     this.setData({ tempGender: genders[e.detail.value] })
+  },
+
+  onNicknameInput(e) {
+    this.setData({ tempNickname: e.detail.value })
+  },
+
+  // 选择头像
+  async chooseAvatar() {
+    try {
+      const res = await wx.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sourceType: ['album', 'camera'],
+        sizeType: ['compressed']
+      })
+      
+      const tempFilePath = res.tempFiles[0].tempFilePath
+      
+      // 上传图片到服务器
+      wx.showLoading({ title: '上传中...' })
+      
+      const uploadRes = await this.uploadFile(tempFilePath)
+      
+      // 更新用户头像
+      await app.request({
+        url: '/settings',
+        method: 'POST',
+        data: { avatar: uploadRes.url }
+      })
+      
+      // 更新本地显示
+      const newUserInfo = { ...app.globalData.userInfo, avatar: uploadRes.url }
+      app.updateUserInfo(newUserInfo)
+      this.setData({ userInfo: newUserInfo })
+      
+      wx.showToast({ title: '头像已更新', icon: 'success' })
+    } catch (err) {
+      console.error('选择头像失败:', err)
+      wx.showToast({ title: '上传失败', icon: 'none' })
+    }
+  },
+
+  // 上传文件到服务器
+  uploadFile(filePath) {
+    return new Promise((resolve, reject) => {
+      const config = require('../../config.js')
+      // 上传接口需要从 query 传递 token
+      const uploadUrl = `${config.apiBaseUrl}/upload?token=${encodeURIComponent(app.globalData.token || '')}`
+      
+      wx.uploadFile({
+        url: uploadUrl,
+        filePath: filePath,
+        name: 'file',
+        success: (res) => {
+          try {
+            const data = JSON.parse(res.data)
+            if (data.url) {
+              resolve(data)
+            } else {
+              reject(new Error(data.error || '上传失败'))
+            }
+          } catch (e) {
+            reject(e)
+          }
+        },
+        fail: reject
+      })
+    })
   },
 
   async addEntry() {
@@ -237,16 +334,29 @@ Page({
     }
 
     try {
+      // 保存身高、体重目标和昵称
       await app.request({
         url: '/settings',
         method: 'POST',
-        data: { height, targetWeight }
+        data: { 
+          height, 
+          targetWeight,
+          nickname: this.data.tempNickname 
+        }
       })
       await app.request({
         url: '/settings',
         method: 'PATCH',
         data: { gender: this.data.tempGender }
       })
+      
+      // 更新全局用户信息
+      const newUserInfo = { 
+        ...app.globalData.userInfo, 
+        nickname: this.data.tempNickname || app.globalData.userInfo?.nickname
+      }
+      app.updateUserInfo(newUserInfo)
+      this.setData({ userInfo: newUserInfo })
 
       wx.showToast({ title: '设置已保存', icon: 'success' })
       this.setData({ showSettings: false })
@@ -258,7 +368,7 @@ Page({
 
   drawChart() {
     const { chartData } = this.data
-    if (chartData.length === 0) return
+    if (!Array.isArray(chartData) || chartData.length === 0) return
 
     const query = wx.createSelectorQuery()
     query.select('#weightChart')
@@ -380,7 +490,7 @@ Page({
   onChartTouch() {},
 
   onShareAppMessage() {
-    const username = this.data.userInfo?.username || '好友'
+    const username = this.data.userInfo?.nickname || this.data.userInfo?.username || '好友'
     return {
       title: `${username} 邀请你一起记录体重，坚持健身！`,
       path: '/pages/login/login'
@@ -388,7 +498,7 @@ Page({
   },
 
   onShareTimeline() {
-    const username = this.data.userInfo?.username || '好友'
+    const username = this.data.userInfo?.nickname || this.data.userInfo?.username || '好友'
     return {
       title: `${username} 正在用体重管理器记录体重变化，邀请你一起加入！`,
       query: 'from=timeline'

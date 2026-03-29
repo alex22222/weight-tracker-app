@@ -1,46 +1,74 @@
-// pages/logs/logs.js
+// pages/logs/logs.js - 防缓存版本 v2
 const util = require('../../utils/util.js')
 const app = getApp()
 
+// 强制转换为数组的纯函数
+function forceArray(input) {
+  if (Array.isArray(input)) return input
+  if (input === null || input === undefined) return []
+  if (typeof input === 'object') {
+    if (Array.isArray(input.entries)) return input.entries
+    if (Array.isArray(input.data)) return input.data
+    if (Array.isArray(input.list)) return input.list
+  }
+  console.warn('【LOGS】无法转换为数组:', typeof input, input)
+  return []
+}
+
+// 安全排序的纯函数
+function safeSort(entries) {
+  const arr = forceArray(entries)
+  if (arr.length <= 1) return arr
+  
+  try {
+    return arr.slice().sort((a, b) => {
+      const timeA = a && a.date ? new Date(a.date).getTime() : 0
+      const timeB = b && b.date ? new Date(b.date).getTime() : 0
+      return timeB - timeA
+    })
+  } catch (e) {
+    console.error('【LOGS】排序失败:', e)
+    return arr
+  }
+}
+
 Page({
   data: {
-    entries: []
+    entries: [],
+    _version: 'v2-' + Date.now() // 缓存破坏标记
   },
 
   onLoad() {
-    // 检查登录状态
-    if (!app.globalData.isLoggedIn) {
-      wx.redirectTo({
-        url: '/pages/login/login'
-      })
-      return
-    }
+    console.log('【LOGS】Page onLoad, version:', this.data._version)
+    this.loadData()
   },
 
   onShow() {
-    // 检查登录状态
-    if (!app.globalData.isLoggedIn) {
-      wx.redirectTo({
-        url: '/pages/login/login'
-      })
-      return
-    }
+    console.log('【LOGS】Page onShow')
     this.loadData()
   },
 
   async loadData() {
+    console.log('【LOGS】=== 开始加载数据 ===')
+    
     try {
-      const entries = await app.request({
+      const result = await app.request({
         url: '/weight'
       })
       
-      // 按日期降序排序
-      entries.sort((a, b) => new Date(b.date) - new Date(a.date))
+      console.log('【LOGS】API返回:', typeof result)
+      
+      // 强制转换为数组
+      const entries = forceArray(result)
+      console.log('【LOGS】entries 数组长度:', entries.length)
+      
+      // 安全排序
+      const sortedEntries = safeSort(entries)
       
       // 添加格式化日期和变化量
-      const formattedEntries = entries.map((entry, index) => {
-        const nextEntry = entries[index + 1]
-        const change = nextEntry ? entry.weight - nextEntry.weight : null
+      const formattedEntries = sortedEntries.map((entry, index) => {
+        const nextEntry = sortedEntries[index + 1]
+        const change = nextEntry ? (parseFloat(entry.weight) || 0) - (parseFloat(nextEntry.weight) || 0) : null
         
         return {
           ...entry,
@@ -50,52 +78,18 @@ Page({
       })
       
       this.setData({ entries: formattedEntries })
+      console.log('【LOGS】=== 加载完成 ===')
+      
     } catch (err) {
-      console.error('加载记录失败:', err)
-      wx.showToast({
-        title: '加载失败',
-        icon: 'none'
-      })
+      console.error('【LOGS】加载记录失败:', err)
+      wx.showToast({ title: '加载失败', icon: 'none' })
+      this.setData({ entries: [] })
     }
   },
 
-  // 删除单条记录
-  async deleteEntry(e) {
-    const id = e.currentTarget.dataset.id
-    
-    wx.showModal({
-      title: '确认删除',
-      content: '确定要删除这条记录吗？',
-      confirmColor: '#ef4444',
-      success: async (res) => {
-        if (res.confirm) {
-          try {
-            await app.request({
-              url: `/weight?id=${id}`,
-              method: 'DELETE'
-            })
-            
-            wx.showToast({
-              title: '已删除',
-              icon: 'success'
-            })
-            
-            this.loadData()
-          } catch (err) {
-            wx.showToast({
-              title: err.message || '删除失败',
-              icon: 'none'
-            })
-          }
-        }
-      }
-    })
-  },
-
-  // 跳转到记录页
-  goToRecord() {
-    wx.switchTab({
-      url: '/pages/index/index'
-    })
+  // 下拉刷新
+  async onPullDownRefresh() {
+    await this.loadData()
+    wx.stopPullDownRefresh()
   }
 })

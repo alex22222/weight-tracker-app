@@ -42,10 +42,11 @@
     </view>
     <view class="suggestion-list">
       <view class="suggestion-item" wx:for="{{suggestions}}" wx:key="id">
-        <view class="user-avatar">{{item.username[0]}}</view>
+        <view class="user-avatar">{{(item.nickname || item.username)[0]}}</view>
         <view class="user-detail">
-          <text class="user-name">{{item.username}}</text>
-          <text class="user-hint">系统用户</text>
+          <text class="user-name">{{item.displayName}}</text>
+          <text class="user-hint" wx:if="{{item.nickname}}">@{{item.username}}</text>
+          <text class="user-hint" wx:else>系统用户</text>
         </view>
         <button 
           class="btn-add-small" 

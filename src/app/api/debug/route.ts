@@ -1,0 +1,64 @@
+import { NextResponse } from 'next/dist/server/web/spec-extension/response'
+import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { db, cloudbaseApp, cloudbaseInitError } from '../../../lib/cloudbase'
+import { COLLECTIONS } from '../../../lib/db-adapter'
+
+export const dynamic = 'force-dynamic'
+
+export async function GET(request: NextRequest) {
+  const debug = {
+    timestamp: new Date().toISOString(),
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      CLOUDBASE_ENV_ID: process.env.CLOUDBASE_ENV_ID,
+      HAS_TCB_SECRET: !!process.env.TCB_SECRET_ID,
+      HAS_TENCENT_SECRET: !!process.env.TENCENT_SECRET_ID,
+    },
+    cloudbase: {
+      initialized: !!cloudbaseApp,
+      hasDatabase: !!db,
+      initError: cloudbaseInitError?.message || null,
+    },
+    collections: {} as any,
+    tests: {} as any
+  }
+
+  // 测试数据库连接
+  try {
+    if (db && db.collection) {
+      // 测试 users 集合
+      try {
+        const usersResult = await db.collection(COLLECTIONS.USERS).limit(1).get()
+        debug.tests.users = {
+          success: true,
+          dataType: typeof usersResult,
+          hasData: !!usersResult.data,
+          dataLength: usersResult.data?.length || 0
+        }
+        debug.collections.users = usersResult.data?.length || 0
+      } catch (e: any) {
+        debug.tests.users = { success: false, error: e.message }
+      }
+
+      // 测试 weight_entries 集合
+      try {
+        const weightResult = await db.collection(COLLECTIONS.WEIGHT_ENTRIES).limit(1).get()
+        debug.tests.weight_entries = {
+          success: true,
+          dataType: typeof weightResult,
+          hasData: !!weightResult.data,
+          dataLength: weightResult.data?.length || 0
+        }
+        debug.collections.weight_entries = weightResult.data?.length || 0
+      } catch (e: any) {
+        debug.tests.weight_entries = { success: false, error: e.message }
+      }
+    } else {
+      debug.tests.database = { success: false, error: 'Database not initialized' }
+    }
+  } catch (e: any) {
+    debug.tests.overall = { success: false, error: e.message }
+  }
+
+  return NextResponse.json(debug)
+}

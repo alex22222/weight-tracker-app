@@ -3,9 +3,12 @@
   <!-- 顶部导航 -->
   <view class="header">
     <view class="header-left">
-      <view class="header-icon">⚖️</view>
+      <view class="header-avatar" bindtap="chooseAvatar">
+        <image wx:if="{{userInfo.avatar}}" class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" />
+        <text wx:else class="avatar-text">{{(userInfo.nickname || userInfo.username || '用')[0]}}</text>
+      </view>
       <view class="header-title">
-        <text class="title-main">欢迎「{{userInfo.username || '用户'}}」</text>
+        <text class="title-main">欢迎「{{userInfo.nickname || userInfo.username || '用户'}}」</text>
         <view class="channel-info" bindtap="goToChannel">
           <text wx:if="{{activeChannel}}">当前频道：{{activeChannel.name}} ({{activeChannel.status === 'PENDING' ? '未开始' : '进行中'}})</text>
           <text wx:else>暂无进行中的健身频道，点击加入 ></text>
@@ -148,6 +151,27 @@
           class="input" 
           value="{{tempTargetWeight}}"
           bindinput="onTargetWeightInput"
+        />
+      </view>
+      <!-- 头像设置 -->
+      <view class="form-item form-item-full avatar-setting">
+        <text class="form-label">头像</text>
+        <view class="avatar-upload" bindtap="chooseAvatar">
+          <image wx:if="{{userInfo.avatar}}" class="avatar-preview" src="{{userInfo.avatar}}" mode="aspectFill" />
+          <view wx:else class="avatar-placeholder">
+            <text>{{(tempNickname || userInfo.username || '用')[0]}}</text>
+          </view>
+          <text class="avatar-hint">点击更换</text>
+        </view>
+      </view>
+      <view class="form-item form-item-full">
+        <text class="form-label">昵称</text>
+        <input 
+          type="text" 
+          class="input" 
+          placeholder="设置您的昵称" 
+          value="{{tempNickname}}"
+          bindinput="onNicknameInput"
         />
       </view>
       <view class="form-item form-item-full">

@@ -38,20 +38,33 @@ export async function GET(request: NextRequest) {
       const allUsers = await adapter.getAllUsers()
       const friends = await adapter.getFriendsByUser(user.userId)
       
-      // 获取已是好友的用户ID列表
-      const friendIds = new Set(friends.map((f: any) => f.friendId || f.userId).filter(Boolean))
+      // 获取已是好友的用户ID列表（转为字符串比较）
+      const friendIds = new Set(
+        friends
+          .map((f: any) => String(f.friendId || f.userId))
+          .filter(Boolean)
+      )
+      
+      // 当前用户ID转为字符串
+      const currentUserId = String(user.userId)
+      
+      console.log('[Friends Suggestions] Current user:', currentUserId)
+      console.log('[Friends Suggestions] Total users:', allUsers.length)
+      console.log('[Friends Suggestions] Friend IDs:', Array.from(friendIds))
       
       // 过滤：排除admin、排除自己、排除已是好友的
       const suggestions = allUsers
         .filter((u: any) => u.username !== 'admin')                          // 排除admin
-        .filter((u: any) => u.id !== user.userId)                           // 排除自己
-        .filter((u: any) => !friendIds.has(u.id))                           // 排除已是好友的
+        .filter((u: any) => String(u.id) !== currentUserId)                  // 排除自己（强制字符串比较）
+        .filter((u: any) => !friendIds.has(String(u.id)))                    // 排除已是好友的
         .map((u: any) => ({
           id: u.id,
           username: u.username,
-          nickname: u.nickname || u.username,
-          avatar: u.avatar || ''
+          nickname: u.nickname || null,                                       // 保留原始nickname
+          displayName: u.nickname ? `${u.nickname} (${u.username})` : u.username  // 展示用名称
         }))
+      
+      console.log('[Friends Suggestions] Filtered suggestions:', suggestions.length)
       
       return NextResponse.json({ suggestions })
     }

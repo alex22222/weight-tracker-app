@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter } from '../../../lib/db-adapter'
+import { testCloudBaseConnection } from '../../../lib/cloudbase'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -36,23 +37,49 @@ async function getUserId(request: NextRequest): Promise<string | null> {
 
 // GET /api/weight?userId={userId} - 获取用户的体重记录
 export async function GET(request: NextRequest) {
+  console.log('[API /weight] GET request received')
+  
   try {
     const userId = await getUserId(request)
+    console.log('[API /weight] User ID:', userId)
     
     if (!userId) {
+      console.log('[API /weight] No user ID found')
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
+    // 测试 CloudBase 连接
+    const connTest = await testCloudBaseConnection()
+    console.log('[API /weight] CloudBase connection:', connTest)
+    
+    if (!connTest.success) {
+      console.error('[API /weight] CloudBase not connected:', connTest.error)
+      return NextResponse.json({ 
+        error: 'Database connection failed', 
+        details: connTest.error,
+        entries: [] 
+      }, { status: 500 })
+    }
+
+    console.log('[API /weight] Fetching entries for user:', userId)
     const entries = await adapter.getWeightEntriesByUser(userId)
+    console.log('[API /weight] Entries fetched:', entries.length)
+    
     return NextResponse.json({ entries })
-  } catch (error) {
-    console.error('Error fetching weight entries:', error)
-    return NextResponse.json({ error: 'Failed to fetch entries' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[API /weight] Error:', error.message || error)
+    return NextResponse.json({ 
+      error: 'Failed to fetch entries',
+      details: error.message,
+      entries: []
+    }, { status: 500 })
   }
 }
 
-// POST /api/weight - 添加体重记录
+// POST /api/weight - 添加或更新体重记录（同一天覆盖）
 export async function POST(request: NextRequest) {
+  console.log('[API /weight] POST request received')
+  
   try {
     const body = await request.json()
     const { weight, note, date, userId: userIdFromBody } = body
@@ -79,22 +106,50 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid weight value' }, { status: 400 })
     }
 
-    const entry = await adapter.createWeightEntry({
-      weight: parseFloat(weight),
-      note: note || null,
-      date: date ? new Date(date) : new Date(),
-      userId: userId,
+    const entryDate = date ? new Date(date) : new Date()
+    const dateStr = entryDate.toISOString().split('T')[0] // YYYY-MM-DD
+    
+    console.log('[API /weight] Processing entry for user:', userId, 'date:', dateStr, 'weight:', weight)
+    
+    // 检查是否已有同一天的记录
+    const existingEntries = await adapter.getWeightEntriesByUser(userId)
+    const existingEntry = existingEntries.find(e => {
+      const entryDateStr = new Date(e.date).toISOString().split('T')[0]
+      return entryDateStr === dateStr
     })
+    
+    let entry
+    if (existingEntry) {
+      // 更新已有记录
+      console.log('[API /weight] Updating existing entry:', existingEntry.id)
+      entry = await adapter.updateWeightEntry(existingEntry.id, {
+        weight: parseFloat(weight),
+        note: note || null,
+        date: entryDate,
+      })
+      console.log('[API /weight] Entry updated:', entry)
+    } else {
+      // 创建新记录
+      entry = await adapter.createWeightEntry({
+        weight: parseFloat(weight),
+        note: note || null,
+        date: entryDate,
+        userId: userId,
+      })
+      console.log('[API /weight] Entry created:', entry)
+    }
 
     return NextResponse.json(entry)
-  } catch (error) {
-    console.error('Error creating weight entry:', error)
-    return NextResponse.json({ error: 'Failed to create entry' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[API /weight] POST Error:', error.message || error)
+    return NextResponse.json({ error: 'Failed to create entry', details: error.message }, { status: 500 })
   }
 }
 
 // DELETE /api/weight?id={id}&userId={userId} - 删除体重记录
 export async function DELETE(request: NextRequest) {
+  console.log('[API /weight] DELETE request received')
+  
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -131,8 +186,8 @@ export async function DELETE(request: NextRequest) {
     await adapter.deleteWeightEntry(id)
 
     return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error deleting weight entry:', error)
-    return NextResponse.json({ error: 'Failed to delete entry' }, { status: 500 })
+  } catch (error: any) {
+    console.error('[API /weight] DELETE Error:', error.message || error)
+    return NextResponse.json({ error: 'Failed to delete entry', details: error.message }, { status: 500 })
   }
 }

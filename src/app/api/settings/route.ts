@@ -59,7 +59,19 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ 
       settings,
-      user: user ? { id: user.id, username: user.username, gender: user.gender } : { id: userId, username: username || '用户', gender: 'other' }
+      user: user ? { 
+        id: user.id, 
+        username: user.username, 
+        nickname: user.nickname,
+        avatar: user.avatar,
+        gender: user.gender 
+      } : { 
+        id: userId, 
+        username: username || '用户', 
+        nickname: null,
+        avatar: null,
+        gender: 'other' 
+      }
     })
   } catch (error) {
     console.error('Error fetching settings:', error)
@@ -71,7 +83,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId: userIdFromBody, height, targetWeight, gender, age, avatar } = body
+    const { userId: userIdFromBody, height, targetWeight, gender, age, avatar, nickname } = body
 
     // 获取 userId（优先从 Token，其次从 Body）
     let userId: string | null = null
@@ -104,6 +116,11 @@ export async function POST(request: NextRequest) {
     if (gender !== undefined) updateData.gender = gender
     if (age !== undefined) updateData.age = parseInt(age)
     if (avatar !== undefined) updateData.avatar = avatar
+    
+    // 更新用户昵称（存储在 users 表中）
+    if (nickname !== undefined && userId) {
+      await adapter.updateUser(userId, { nickname })
+    }
 
     if (settings) {
       settings = await adapter.updateUserSettings(userId, updateData)
