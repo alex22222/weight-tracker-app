@@ -35,6 +35,30 @@
     </view>
   </view>
 
+  <!-- 可能认识 -->
+  <view class="section" wx:if="{{suggestions.length > 0}}">
+    <view class="section-title">
+      <text>💡 可能认识</text>
+    </view>
+    <view class="suggestion-list">
+      <view class="suggestion-item" wx:for="{{suggestions}}" wx:key="id">
+        <view class="user-avatar">{{item.username[0]}}</view>
+        <view class="user-detail">
+          <text class="user-name">{{item.username}}</text>
+          <text class="user-hint">系统用户</text>
+        </view>
+        <button 
+          class="btn-add-small" 
+          bindtap="quickAddFriend" 
+          data-username="{{item.username}}"
+          disabled="{{isLoading}}"
+        >
+          加为好友
+        </button>
+      </view>
+    </view>
+  </view>
+
   <!-- 好友列表 -->
   <view class="section" wx:if="{{friends.length > 0}}">
     <view class="section-title">
@@ -52,7 +76,7 @@
   </view>
 
   <!-- 空状态 -->
-  <view class="empty-state" wx:if="{{friends.length === 0 && pendingRequests.length === 0}}">
+  <view class="empty-state" wx:if="{{friends.length === 0 && pendingRequests.length === 0 && suggestions.length === 0}}">
     <text class="empty-icon">👋</text>
     <text class="empty-text">还没有好友</text>
     <text class="empty-subtext">点击右上角添加好友，一起运动打卡吧！</text>

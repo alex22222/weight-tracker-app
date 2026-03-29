@@ -33,6 +33,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ requests })
     }
 
+    if (type === 'suggestions') {
+      // 获取可能认识的用户（所有非admin用户，排除已经是好友的）
+      const allUsers = await adapter.getAllUsers()
+      const friends = await adapter.getFriendsByUser(user.userId)
+      
+      // 获取已是好友的用户ID列表
+      const friendIds = new Set(friends.map((f: any) => f.friendId || f.userId).filter(Boolean))
+      
+      // 过滤：排除admin、排除自己、排除已是好友的
+      const suggestions = allUsers
+        .filter((u: any) => u.username !== 'admin')                          // 排除admin
+        .filter((u: any) => u.id !== user.userId)                           // 排除自己
+        .filter((u: any) => !friendIds.has(u.id))                           // 排除已是好友的
+        .map((u: any) => ({
+          id: u.id,
+          username: u.username,
+          nickname: u.nickname || u.username,
+          avatar: u.avatar || ''
+        }))
+      
+      return NextResponse.json({ suggestions })
+    }
+
     // 获取所有好友关系，状态值转换为大写
     const friends = await adapter.getFriendsByUser(user.userId)
     const friendsWithUpperCaseStatus = friends.map((f: any) => ({
@@ -187,12 +210,12 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const friendId = searchParams.get('id')
 
-    if (!friendId || isNaN(parseInt(friendId))) {
+    if (!friendId) {
       return NextResponse.json({ error: '无效的好友ID' }, { status: 400 })
     }
 
     // 查找好友关系
-    const friendRequest = await adapter.findFriendById(parseInt(friendId))
+    const friendRequest = await adapter.findFriendById(friendId)
     if (!friendRequest) {
       return NextResponse.json({ error: '好友关系不存在' }, { status: 404 })
     }

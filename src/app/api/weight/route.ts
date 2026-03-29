@@ -26,18 +26,10 @@ async function getUserId(request: NextRequest): Promise<string | null> {
     if (user) return user.userId
   }
   
-  // 2. 尝试从 Query 参数获取（GET/DELETE）
+  // 2. 尝试从 Query 参数获取
   const { searchParams } = new URL(request.url)
   const userIdFromQuery = searchParams.get('userId')
   if (userIdFromQuery) return userIdFromQuery
-  
-  // 3. 尝试从 Body 获取（POST）
-  try {
-    const body = await request.json()
-    if (body.userId) return body.userId
-  } catch {
-    // 解析 Body 失败，忽略
-  }
   
   return null
 }
@@ -52,7 +44,7 @@ export async function GET(request: NextRequest) {
     }
 
     const entries = await adapter.getWeightEntriesByUser(userId)
-    return NextResponse.json(entries)
+    return NextResponse.json({ entries })
   } catch (error) {
     console.error('Error fetching weight entries:', error)
     return NextResponse.json({ error: 'Failed to fetch entries' }, { status: 500 })

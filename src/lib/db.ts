@@ -1,9 +1,5 @@
-import { PrismaClient } from '@prisma/client'
+// 数据库客户端导出
+// 使用 CloudBase 适配器，Prisma 已移除
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// 为了向后兼容，导出一个空对象
+export const prisma = {} as any

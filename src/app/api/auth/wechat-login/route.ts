@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/dist/server/web/spec-extension/response'
 import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
+import { createHash } from 'crypto'
 
 // 微信登录配置
 const WECHAT_APPID = process.env.WECHAT_APPID || ''
 const WECHAT_SECRET = process.env.WECHAT_SECRET || ''
+
+// 密码哈希
+function hashPassword(password: string): string {
+  return createHash('sha256').update(password).digest('hex')
+}
 
 // 生成 Token
 function generateToken(username: string, userId: string): string {
@@ -54,33 +60,62 @@ export async function POST(request: NextRequest) {
     let isNewUser = false
 
     if (!user) {
-      // 创建新用户
+      // ===== 创建新用户 =====
+      // 生成默认用户名（wx_ + openid后8位）
+      const defaultUsername = `wx_${openid.slice(-8)}`
+      // 默认密码 111111
+      const defaultPassword = hashPassword('111111')
+      
       const nickname = userInfo?.nickName || `微信用户${openid.slice(-6)}`
       const avatar = userInfo?.avatarUrl || null
       const gender = userInfo?.gender === 1 ? 'male' : userInfo?.gender === 2 ? 'female' : null
 
-      user = await adapter.createWechatUser({
-        wechatOpenId: openid,
-        wechatUnionId: unionid || null,
-        nickname,
-        avatar,
-        gender,
-        role: 'user',
+      // 使用 createUser 创建带用户名和密码的用户
+      user = await adapter.createUser({
+        username: defaultUsername,
+        password: defaultPassword,
+        gender: gender || 'male',
       })
+
+      // 更新微信相关信息
+      if (user.id) {
+        await adapter.updateUser(user.id, {
+          wechatOpenId: openid,
+          wechatUnionId: unionid || null,
+          nickname,
+          avatar,
+        })
+        
+        // 重新获取完整用户信息
+        const updatedUser = await adapter.getUserById(user.id)
+        if (updatedUser) {
+          user = updatedUser
+        }
+
+        // 创建用户设置
+        if (user.id) {
+          await adapter.createUserSettings({
+            userId: user.id,
+            height: 170,
+            targetWeight: 65,
+          })
+        }
+      }
 
       isNewUser = true
 
       // 发送欢迎消息
       await adapter.createMessage({
         type: MessageType.SYSTEM_LOGIN,
-        content: `欢迎使用体重管理器！您的微信账号已绑定成功。`,
-        senderId: 0, // 系统消息
+        content: `欢迎使用体重管理器！您的微信账号已绑定成功。默认用户名：${defaultUsername}，密码：111111（可在设置中修改）`,
+        senderId: 0,
         receiverId: user.id,
       })
     } else {
-      // 更新用户信息（如果提供了新的用户信息）
+      // ===== 更新现有用户信息 =====
+      const updateData: any = {}
+      
       if (userInfo) {
-        const updateData: any = {}
         if (userInfo.nickName && userInfo.nickName !== user.nickname) {
           updateData.nickname = userInfo.nickName
         }
@@ -93,25 +128,22 @@ export async function POST(request: NextRequest) {
             updateData.gender = gender
           }
         }
-
-        if (Object.keys(updateData).length > 0 && user.id) {
-          await adapter.updateUser(user.id, updateData)
-          user = { ...user, ...updateData }
-        }
       }
-
+      
       // 更新最后登录时间
-      if (user?.id) {
-        await adapter.updateUserLoginTime(user.id)
+      updateData.lastLoginAt = new Date()
+
+      if (Object.keys(updateData).length > 0 && user.id) {
+        await adapter.updateUser(user.id, updateData)
+        user = { ...user, ...updateData }
       }
 
       // 发送登录提醒
-      if (user?.lastLoginAt && user?.id) {
-        const lastLoginTime = new Date(user.lastLoginAt).toLocaleString('zh-CN')
+      if (user?.id) {
         await adapter.createMessage({
           type: MessageType.SYSTEM_LOGIN,
-          content: `您的账号于 ${new Date().toLocaleString('zh-CN')} 登录。上次登录时间：${lastLoginTime}`,
-          senderId: 0, // 系统消息
+          content: `您的账号于 ${new Date().toLocaleString('zh-CN')} 登录成功`,
+          senderId: 0,
           receiverId: user.id,
         })
       }
@@ -121,7 +153,10 @@ export async function POST(request: NextRequest) {
     if (!user?.id) {
       return NextResponse.json({ error: '用户数据异常' }, { status: 500 })
     }
-    const token = generateToken(user.nickname || user.username || '微信用户', String(user.id))
+    
+    // 使用 username 生成 token（如果没有则使用生成的默认用户名）
+    const tokenUsername = user.username || user.nickname || '微信用户'
+    const token = generateToken(tokenUsername, String(user.id))
 
     // 返回用户信息
     return NextResponse.json({
@@ -130,7 +165,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         nickname: user.nickname,
-        username: user.username,
+        username: user.username,  // 确保返回 username
         avatar: user.avatar,
         gender: user.gender,
         role: user.role,

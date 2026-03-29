@@ -49,7 +49,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ message: '全部已标记为已读' })
     }
 
-    if (!messageId || isNaN(parseInt(messageId))) {
+    if (!messageId) {
       return NextResponse.json({ error: '无效的消息ID' }, { status: 400 })
     }
 
@@ -82,7 +82,7 @@ export async function DELETE(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const messageId = searchParams.get('id')
 
-    if (!messageId || isNaN(parseInt(messageId))) {
+    if (!messageId) {
       return NextResponse.json({ error: '无效的消息ID' }, { status: 400 })
     }
 
@@ -96,7 +96,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: '消息不存在或无权限删除' }, { status: 404 })
     }
 
-    await adapter.deleteMessage(parseInt(messageId))
+    await adapter.deleteMessage(messageId)
     return NextResponse.json({ message: '消息已删除' })
   } catch (error) {
     console.error('Error deleting message:', error)

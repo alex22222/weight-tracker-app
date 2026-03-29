@@ -30,7 +30,7 @@ export async function POST(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const channel = await adapter.getFitnessChannelById(channelId)
 
     if (!channel) {

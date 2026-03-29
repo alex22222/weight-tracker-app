@@ -25,11 +25,15 @@ export async function GET(request: NextRequest) {
     
     // 获取 userId（优先从 Token，其次从 Query）
     let userId: string | null = null
+    let username: string | null = null
     
     const token = request.headers.get('authorization')?.replace('Bearer ', '')
     if (token) {
       const user = verifyToken(token)
-      if (user) userId = user.userId
+      if (user) {
+        userId = user.userId
+        username = user.username
+      }
     }
     
     if (!userId && userIdFromQuery) {
@@ -50,7 +54,13 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    return NextResponse.json(settings)
+    // 获取用户信息
+    const user = await adapter.getUserById(userId)
+    
+    return NextResponse.json({ 
+      settings,
+      user: user ? { id: user.id, username: user.username, gender: user.gender } : { id: userId, username: username || '用户', gender: 'other' }
+    })
   } catch (error) {
     console.error('Error fetching settings:', error)
     return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })

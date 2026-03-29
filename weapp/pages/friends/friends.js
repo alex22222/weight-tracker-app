@@ -5,6 +5,7 @@ Page({
   data: {
     friends: [],
     pendingRequests: [],
+    suggestions: [], // 可能认识的用户
     showAddModal: false,
     searchUsername: '',
     isLoading: false
@@ -12,10 +13,56 @@ Page({
 
   onLoad() {
     this.loadFriends()
+    this.loadSuggestions()
   },
 
   onShow() {
     this.loadFriends()
+    this.loadSuggestions()
+  },
+
+  // 加载可能认识的用户
+  async loadSuggestions() {
+    try {
+      const result = await app.request({
+        url: '/friends?type=suggestions'
+      })
+      this.setData({
+        suggestions: result.suggestions || []
+      })
+    } catch (err) {
+      console.error('加载推荐用户失败:', err)
+    }
+  },
+
+  // 快速添加好友（来自推荐列表）
+  async quickAddFriend(e) {
+    const { username } = e.currentTarget.dataset
+    
+    this.setData({ isLoading: true })
+    
+    try {
+      await app.request({
+        url: '/friends',
+        method: 'POST',
+        data: { username }
+      })
+
+      wx.showToast({
+        title: '请求已发送',
+        icon: 'success'
+      })
+
+      // 从推荐列表中移除
+      const suggestions = this.data.suggestions.filter(s => s.username !== username)
+      this.setData({ suggestions, isLoading: false })
+    } catch (err) {
+      wx.showToast({
+        title: err.message || '添加失败',
+        icon: 'none'
+      })
+      this.setData({ isLoading: false })
+    }
   },
 
   // 加载好友列表

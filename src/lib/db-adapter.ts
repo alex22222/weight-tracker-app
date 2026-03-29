@@ -296,11 +296,17 @@ const cloudbaseAdapter = {
   },
 
   async getWeightEntriesByUser(userId: number | string): Promise<WeightEntry[]> {
-    const { data } = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
-      .where({ userId })
-      .orderBy('date', 'desc')
-      .get()
-    return data.map((d: any) => ({ ...d, id: d._id }))
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
+        .where({ userId })
+        .orderBy('date', 'desc')
+        .get()
+      const data = result.data || []
+      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+    } catch (error) {
+      console.error('Error getting weight entries:', error)
+      return []
+    }
   },
 
   async getWeightEntryById(id: number | string): Promise<WeightEntry | null> {

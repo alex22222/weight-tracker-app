@@ -42,41 +42,124 @@ Page({
   // 加载数据
   async loadData() {
     try {
-      const entries = await app.request({ url: '/weight' })
-      const settingsResult = await app.request({ url: '/settings' })
+      console.log('=== 开始加载数据 ===')
+      let weightResult, settingsResult
       
-      const settings = settingsResult.settings || { height: 170, targetWeight: 65 }
-      const gender = settingsResult.user?.gender || 'other'
+      try {
+        weightResult = await app.request({ url: '/weight' })
+      } catch (e) {
+        console.error('获取体重数据请求失败:', e)
+        weightResult = { entries: [] }
+      }
       
-      entries.sort((a, b) => new Date(b.date) - new Date(a.date))
+      try {
+        settingsResult = await app.request({ url: '/settings' })
+      } catch (e) {
+        console.error('获取设置数据请求失败:', e)
+        settingsResult = { settings: { height: 170, targetWeight: 65 } }
+      }
       
-      const currentWeight = entries.length > 0 ? entries[0].weight : 0
+      console.log('体重数据:', weightResult)
+      console.log('设置数据:', settingsResult)
+      
+      // 提取 entries（确保是数组）- 终极防护
+      let entries = []
+      if (Array.isArray(weightResult)) {
+        entries = weightResult
+      } else if (weightResult && typeof weightResult === 'object') {
+        if (Array.isArray(weightResult.entries)) {
+          entries = weightResult.entries
+        } else if (weightResult.entries === null || weightResult.entries === undefined) {
+          entries = []
+        } else {
+          console.warn('weightResult.entries 不是数组:', weightResult.entries)
+          entries = []
+        }
+      }
+      
+      console.log('entries 类型:', typeof entries, '是数组:', Array.isArray(entries), '长度:', entries.length)
+      
+      // 提取 settings
+      let settings = { height: 170, targetWeight: 65 }
+      if (settingsResult && typeof settingsResult === 'object') {
+        if (settingsResult.settings) {
+          settings = settingsResult.settings
+        } else if (settingsResult.height !== undefined) {
+          settings = settingsResult
+        }
+      }
+      
+      // 提取 gender
+      const gender = (settingsResult && (settingsResult.user?.gender || settingsResult.gender)) || 'other'
+      
+      console.log('提取的 entries:', entries.length, '条')
+      console.log('提取的 settings:', settings)
+      
+      // 排序（最新的在前）
+      if (entries.length > 0) {
+        entries.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+      }
+      
+      // 计算统计数据
+      const currentWeight = entries.length > 0 ? (parseFloat(entries[0].weight) || 0) : 0
       const bmi = util.calculateBMI(currentWeight, settings.height)
       const bmiCategory = util.getBMICategory(bmi)
       const bmiStyle = util.getBMIStyles(bmi)
-      const weightDiff = currentWeight - settings.targetWeight
+      const weightDiff = currentWeight - (settings.targetWeight || 65)
       
-      const chartData = [...entries]
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
-        .slice(-7)
-        .map(e => ({
-          date: util.formatShortDate(e.date),
-          weight: e.weight,
-          fullDate: e.date
-        }))
+      // 生成图表数据（按日期升序，取最近7条）
+      const chartData = entries.length > 0 
+        ? [...entries]
+            .sort((a, b) => new Date(a.date || 0) - new Date(b.date || 0))
+            .slice(-7)
+            .map(e => ({
+              date: util.formatShortDate(e.date),
+              weight: parseFloat(e.weight) || 0,
+              fullDate: e.date
+            }))
+        : []
+      
+      console.log('currentWeight:', currentWeight, 'bmi:', bmi)
       
       this.setData({
-        entries, settings, gender,
-        tempHeight: String(settings.height),
-        tempTargetWeight: String(settings.targetWeight),
+        entries, 
+        settings, 
+        gender,
+        tempHeight: String(settings.height || 170),
+        tempTargetWeight: String(settings.targetWeight || 65),
         tempGender: gender,
-        currentWeight, bmi, bmiCategory, bmiStyle, weightDiff, chartData
+        currentWeight, 
+        bmi, 
+        bmiCategory, 
+        bmiStyle, 
+        weightDiff, 
+        chartData
       }, () => {
-        if (chartData.length > 0) this.drawChart()
+        if (chartData.length > 0) {
+          this.drawChart()
+        }
       })
     } catch (err) {
       console.error('加载数据失败:', err)
+      wx.showToast({
+        title: '加载失败: ' + (err.message || '请检查网络'),
+        icon: 'none'
+      })
+      this.setDefaultData()
     }
+  },
+  
+  // 设置默认数据
+  setDefaultData() {
+    this.setData({
+      entries: [],
+      currentWeight: 0,
+      bmi: 0,
+      bmiCategory: { label: '暂无数据', color: '#94a3b8' },
+      bmiStyle: { bg: 'bg-gray-light', color: '#94a3b8', border: '2rpx solid #e2e8f0' },
+      weightDiff: 0,
+      chartData: []
+    })
   },
   
   async loadActiveChannel() {

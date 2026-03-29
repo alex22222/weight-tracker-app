@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const user = verifyToken(token)
     if (!user) return NextResponse.json({ error: '无效token' }, { status: 401 })
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const checkIns = await adapter.getCheckInsByChannel(channelId)
     return NextResponse.json({ checkIns })
   } catch (error) {
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const user = verifyToken(token)
     if (!user) return NextResponse.json({ error: '无效token' }, { status: 401 })
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const body = await request.json()
     const { checkDate, duration, note, imageUrl } = body
 

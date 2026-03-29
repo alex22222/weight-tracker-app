@@ -30,7 +30,7 @@ export async function GET(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const comments = await adapter.getChannelComments(channelId)
 
     return NextResponse.json({ comments })
@@ -56,7 +56,7 @@ export async function POST(
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
 
-    const channelId = parseInt(params.id)
+    const channelId = params.id
     const body = await request.json()
     const { content } = body
 
