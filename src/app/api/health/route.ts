@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
+import { NextResponse } from 'next/server'
 import { testCloudBaseConnection, cloudbaseInitError } from '../../../lib/cloudbase'
 import { adapter, CURRENT_DB } from '../../../lib/db-adapter'
 

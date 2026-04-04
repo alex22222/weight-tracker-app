@@ -1,0 +1,341 @@
+<!--pages/home/home.wxml-->
+<view class="container">
+  <!-- 头部用户信息 -->
+  <view class="header">
+    <view class="header-left">
+      <view class="header-avatar" bindtap="goToSettings">
+        <image wx:if="{{userInfo.avatar && userInfo.avatar.startsWith('http')}}" class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" />
+        <view wx:elif="{{userInfo.avatar}}" class="avatar-img avatar-emoji">{{userInfo.avatar}}</view>
+        <text wx:else class="avatar-text">{{avatarText}}</text>
+      </view>
+      <view class="header-title">
+        <text class="title-main">欢迎「{{welcomeName}}」</text>
+        <text class="title-sub" wx:if="{{todayDate}}">{{todayDate}}</text>
+      </view>
+    </view>
+    <view class="header-right">
+      <view class="weather-info" wx:if="{{weather}}">
+        <text class="weather-icon">{{weatherIcon}}</text>
+        <text class="weather-temp">{{weather.temperature}}°C</text>
+      </view>
+      <view class="message-btn" bindtap="openMessageModal">
+        <text class="message-icon">🔔</text>
+        <view class="message-badge" wx:if="{{unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
+      </view>
+      <view class="logout-btn" bindtap="logout">🚪</view>
+    </view>
+  </view>
+
+  <!-- 我要打卡 -->
+  <view class="section-card">
+    <view class="card-header">
+      <view class="card-title">
+        <view class="card-icon">📅</view>
+        <text>我要打卡</text>
+      </view>
+    </view>
+    <view class="checkin-grid">
+      <view class="checkin-item {{fitnessChecked ? 'checked' : ''}}" bindtap="goToFitness">
+        <view class="checkin-icon">🏋️</view>
+        <view class="checkin-name">健身</view>
+        <view class="checkin-status">{{fitnessChecked ? '已打卡' : '未打卡'}}</view>
+        <view class="checkin-check" wx:if="{{fitnessChecked}}">✓</view>
+      </view>
+      <view class="checkin-item {{readingChecked ? 'checked' : ''}}" bindtap="goToReading">
+        <view class="checkin-icon">📖</view>
+        <view class="checkin-name">读书</view>
+        <view class="checkin-status">{{readingChecked ? '已打卡' : '未打卡'}}</view>
+        <view class="checkin-check" wx:if="{{readingChecked}}">✓</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 好友动态 -->
+  <view class="section-card" wx:if="{{friendActivities.length > 0}}">
+    <view class="card-header">
+      <view class="card-title">
+        <view class="card-icon">👥</view>
+        <text>好友动态</text>
+      </view>
+      <text class="card-more" bindtap="goToFriends">查看全部</text>
+    </view>
+    
+    <view class="activity-list">
+      <view class="activity-item" wx:for="{{friendActivities}}" wx:key="index">
+        <view class="activity-avatar">
+          <image wx:if="{{item.avatar}}" class="avatar-img" src="{{item.avatar}}" mode="aspectFill" />
+          <text wx:else class="avatar-text">{{item.username[0]}}</text>
+        </view>
+        <view class="activity-content">
+          <view class="activity-row">
+            <text class="activity-username">{{item.username}}</text>
+            <text class="activity-time">{{item.timeAgo}}</text>
+          </view>
+          <view class="activity-action">
+            <text class="activity-icon">{{item.type === 'weight' ? '⚖️' : item.type === 'reading' ? '📖' : '🚩'}}</text>
+            <text class="activity-text">{{item.content}}</text>
+          </view>
+          <text class="activity-note" wx:if="{{item.note}}">{{item.note}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-row">
+    <view class="stat-card">
+      <view class="stat-icon blue">📈</view>
+      <view class="stat-value">{{totalCheckIns}}</view>
+      <view class="stat-label">总打卡</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-icon orange">🔥</view>
+      <view class="stat-value">{{fitnessStreak}}</view>
+      <view class="stat-label">健身连续</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-icon purple">📚</view>
+      <view class="stat-value">{{readingStreak}}</view>
+      <view class="stat-label">读书连续</view>
+    </view>
+  </view>
+
+  <!-- 我要立flag -->
+  <view class="section-card">
+    <view class="card-header">
+      <view class="card-title">
+        <view class="card-icon">🚩</view>
+        <text>我要立flag</text>
+      </view>
+      <text class="card-more" bindtap="goToGoals">+ 立个flag</text>
+    </view>
+    
+    <!-- 有目标时显示 -->
+    <view class="goals-list" wx:if="{{goals.length > 0}}">
+      <view class="goal-item" wx:for="{{goals}}" wx:key="id">
+        <view class="goal-icon">{{item.category === 'fitness' ? '💪' : item.category === 'reading' ? '📚' : item.category === 'study' ? '📝' : item.category === 'work' ? '💼' : item.category === 'life' ? '🌱' : '🎯'}}</view>
+        <view class="goal-info">
+          <text class="goal-name">{{item.title}}</text>
+          <view class="goal-progress-row">
+            <view class="progress-bar">
+              <view class="progress-fill" style="width: {{item.progress}}%"></view>
+            </view>
+            <text class="progress-text">{{item.currentCount}}/{{item.targetCount}}{{item.unit}}</text>
+          </view>
+        </view>
+        <view class="goal-action {{!item.canCheckIn ? 'disabled' : ''}}" bindtap="{{item.canCheckIn ? 'checkInGoal' : ''}}" data-id="{{item.id}}">
+          <text>{{item.canCheckIn ? '打卡' : (item.status === 'completed' ? '已完成' : '已放弃')}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 空状态 -->
+    <view class="empty-state" wx:else>
+      <view class="empty-icon">🚩</view>
+      <text class="empty-text">还没有立flag，快来定个小目标吧</text>
+      <button class="btn-primary" bindtap="createFirstGoal">我要立flag</button>
+    </view>
+  </view>
+</view>
+
+<!-- 设置面板 -->
+<view class="settings-modal {{showSettings ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+  <view class="settings-overlay" bindtap="toggleSettings"></view>
+  <view class="settings-panel">
+    <view class="settings-header">
+      <text class="settings-title">个人设置</text>
+      <view class="settings-close" bindtap="toggleSettings">✕</view>
+    </view>
+    
+    <view class="settings-content">
+      <!-- 头像 -->
+      <view class="setting-item">
+        <text class="setting-label">头像</text>
+        <view class="setting-value avatar-setting" bindtap="showAvatarSelector">
+          <image wx:if="{{tempAvatar && tempAvatar.startsWith('http')}}" class="avatar-img" src="{{tempAvatar}}" mode="aspectFill" />
+          <view wx:elif="{{tempAvatar}}" class="avatar-img avatar-emoji">{{tempAvatar}}</view>
+          <view wx:else class="avatar-placeholder">{{avatarText}}</view>
+          <text class="edit-icon">✏️</text>
+        </view>
+      </view>
+      
+      <!-- 昵称 -->
+      <view class="setting-item">
+        <text class="setting-label">昵称</text>
+        <input class="setting-input" value="{{tempNickname}}" bindinput="onNicknameInput" placeholder="请输入昵称" />
+      </view>
+      
+      <!-- 性别 -->
+      <view class="setting-item">
+        <text class="setting-label">性别</text>
+        <view class="setting-value gender-select">
+          <view class="gender-option {{tempGender === 'male' ? 'active' : ''}}" bindtap="onGenderChange" data-value="male">👨 男</view>
+          <view class="gender-option {{tempGender === 'female' ? 'active' : ''}}" bindtap="onGenderChange" data-value="female">👩 女</view>
+        </view>
+      </view>
+      
+      <!-- 身高 -->
+      <view class="setting-item">
+        <text class="setting-label">身高 (cm)</text>
+        <input class="setting-input" type="digit" value="{{tempHeight}}" bindinput="onHeightInput" placeholder="170" />
+      </view>
+      
+      <!-- 目标体重 -->
+      <view class="setting-item">
+        <text class="setting-label">目标体重 (kg)</text>
+        <input class="setting-input" type="digit" value="{{tempTargetWeight}}" bindinput="onTargetWeightInput" placeholder="65" />
+      </view>
+      
+      <!-- 年龄 -->
+      <view class="setting-item">
+        <text class="setting-label">年龄 (岁)</text>
+        <input class="setting-input" type="number" value="{{tempAge}}" bindinput="onAgeInput" placeholder="25" />
+      </view>
+    </view>
+    
+    <view class="settings-footer">
+      <button class="btn-save" bindtap="saveSettings">保存设置</button>
+    </view>
+  </view>
+</view>
+
+<!-- 头像选择弹窗 -->
+<view class="avatar-modal {{showAvatarSelector ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+  <view class="avatar-overlay" bindtap="hideAvatarSelector"></view>
+  <view class="avatar-selector-panel">
+    <view class="avatar-selector-header">
+      <text class="avatar-selector-title">选择头像</text>
+      <view class="avatar-selector-close" bindtap="hideAvatarSelector">✕</view>
+    </view>
+    
+    <view class="avatar-selector-content">
+      <view class="avatar-grid">
+        <view class="avatar-item {{tempAvatar === item.emoji ? 'selected' : ''}}" 
+              wx:for="{{presetAvatars}}" 
+              wx:key="id"
+              bindtap="selectPresetAvatar" 
+              data-avatar="{{item.emoji}}">
+          <text class="avatar-emoji">{{item.emoji}}</text>
+          <text class="avatar-name">{{item.name}}</text>
+        </view>
+      </view>
+      
+      <view class="avatar-divider"></view>
+      
+      <view class="avatar-upload-option" bindtap="chooseAvatar">
+        <text class="upload-icon">📷</text>
+        <text class="upload-text">上传自己的照片</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 立flag弹窗 -->
+<view class="goal-modal {{showGoalModal ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+  <view class="goal-overlay" bindtap="toggleGoalModal"></view>
+  <view class="goal-panel">
+    <view class="goal-header">
+      <text class="goal-title">🚩 立个flag</text>
+      <view class="goal-close" bindtap="toggleGoalModal">✕</view>
+    </view>
+    
+    <view class="goal-content">
+      <!-- 标题 -->
+      <view class="goal-form-item">
+        <text class="goal-label">目标标题 *</text>
+        <input class="goal-input" value="{{goalForm.title}}" bindinput="onGoalTitleInput" placeholder="例如：每天跑步5公里" />
+      </view>
+      
+      <!-- 描述 -->
+      <view class="goal-form-item">
+        <text class="goal-label">目标描述</text>
+        <input class="goal-input" value="{{goalForm.description}}" bindinput="onGoalDescInput" placeholder="简单描述一下你的目标（可选）" />
+      </view>
+      
+      <!-- 分类 -->
+      <view class="goal-form-item">
+        <text class="goal-label">分类</text>
+        <picker mode="selector" range="{{['健身', '阅读', '学习', '工作', '生活', '其他']}}" value="{{['fitness', 'reading', 'study', 'work', 'life', 'other'].indexOf(goalForm.category)}}" bindchange="onGoalCategoryChange">
+          <view class="goal-picker">
+            <text>{{goalForm.category === 'fitness' ? '💪 健身' : goalForm.category === 'reading' ? '📚 阅读' : goalForm.category === 'study' ? '📝 学习' : goalForm.category === 'work' ? '💼 工作' : goalForm.category === 'life' ? '🌱 生活' : '🎯 其他'}}</text>
+            <text class="picker-arrow">›</text>
+          </view>
+        </picker>
+      </view>
+      
+      <!-- 目标次数和单位 -->
+      <view class="goal-form-row">
+        <view class="goal-form-item flex-1">
+          <text class="goal-label">目标次数 *</text>
+          <input class="goal-input" type="number" value="{{goalForm.targetCount}}" bindinput="onGoalTargetInput" placeholder="30" />
+        </view>
+        <view class="goal-form-item" style="width: 160rpx;">
+          <text class="goal-label">单位</text>
+          <input class="goal-input" value="{{goalForm.unit}}" bindinput="onGoalUnitInput" placeholder="次" />
+        </view>
+      </view>
+      
+      <!-- 频率 -->
+      <view class="goal-form-item">
+        <text class="goal-label">打卡频率</text>
+        <picker mode="selector" range="{{['每天', '每周', '每月', '一次性']}}" value="{{['daily', 'weekly', 'monthly', 'once'].indexOf(goalForm.frequency)}}" bindchange="onGoalFreqChange">
+          <view class="goal-picker">
+            <text>{{goalForm.frequency === 'daily' ? '每天' : goalForm.frequency === 'weekly' ? '每周' : goalForm.frequency === 'monthly' ? '每月' : '一次性'}}</text>
+            <text class="picker-arrow">›</text>
+          </view>
+        </picker>
+      </view>
+    </view>
+    
+    <view class="goal-footer">
+      <button class="btn-save" bindtap="submitGoal">立下flag</button>
+    </view>
+  </view>
+</view>
+
+
+<!-- 消息中心弹窗 -->
+<view class="message-modal {{showMessageModal ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+  <view class="message-overlay" bindtap="closeMessageModal"></view>
+  <view class="message-panel">
+    <view class="message-header">
+      <text class="message-title">🔔 消息中心</text>
+      <view class="message-close" bindtap="closeMessageModal">✕</view>
+    </view>
+    
+    <view class="message-content">
+      <!-- 有消息时显示 -->
+      <view class="message-list" wx:if="{{messages.length > 0}}">
+        <view class="message-item {{!item.isRead ? 'unread' : ''}}" wx:for="{{messages}}" wx:key="id">
+          <view class="message-icon">{{item.type === 'FRIEND_REQUEST' || item.type === 'SYSTEM_FRIEND_REQUEST' ? '👋' : item.type === 'FRIEND_ACCEPT' || item.type === 'SYSTEM_FRIEND_ACCEPT' ? '✅' : item.type === 'FRIEND_REJECT' || item.type === 'SYSTEM_FRIEND_REJECT' ? '❌' : item.type === 'CHANNEL_INVITE' ? '📢' : item.type === 'CHANNEL_CHECKIN' ? '✓' : '📢'}}</view>
+          <view class="message-body">
+            <view class="message-row">
+              <text class="message-text">{{item.content}}</text>
+              <view class="message-unread-dot" wx:if="{{!item.isRead}}"></view>
+            </view>
+            <text class="message-time">{{item.timeAgo}}</text>
+            <!-- 好友请求操作按钮 -->
+            <view class="message-actions" wx:if="{{item.type === 'FRIEND_REQUEST' || item.type === 'SYSTEM_FRIEND_REQUEST'}}">
+              <view class="action-btn accept" catchtap="handleFriendRequest" data-id="{{item.friendRequestId}}" data-action="accept">接受</view>
+              <view class="action-btn reject" catchtap="handleFriendRequest" data-id="{{item.friendRequestId}}" data-action="reject">拒绝</view>
+            </view>
+          </view>
+          <view class="message-delete" catchtap="deleteMessage" data-id="{{item.id}}">🗑️</view>
+        </view>
+      </view>
+      
+      <!-- 空状态 -->
+      <view class="message-empty" wx:else>
+        <view class="empty-icon">📭</view>
+        <text class="empty-text">暂无消息</text>
+      </view>
+    </view>
+    
+    <!-- 底部操作栏 -->
+    <view class="message-footer" wx:if="{{messages.length > 0}}">
+      <button class="btn-mark-all" bindtap="markAllAsRead" disabled="{{unreadCount === 0}}">
+        全部标为已读
+      </button>
+    </view>
+  </view>
+</view>

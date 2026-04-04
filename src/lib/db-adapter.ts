@@ -19,6 +19,7 @@ console.log('[DB Adapter] CURRENT_DB:', CURRENT_DB)
 // 集合/表名称映射
 export const COLLECTIONS = {
   WEIGHT_ENTRIES: 'weight_entries',
+  READING_ENTRIES: 'reading_entries',
   USERS: 'users',
   USER_SETTINGS: 'user_settings',
   MESSAGES: 'messages',
@@ -28,6 +29,10 @@ export const COLLECTIONS = {
   CHECK_INS: 'check_ins',
   CHANNEL_COMMENTS: 'channel_comments',
   LEAVE_REQUESTS: 'leave_requests',
+  GOALS: 'goals',
+  TASKS: 'tasks',
+  TASK_MEMBERS: 'task_members',
+  TASK_CHECK_INS: 'task_check_ins',
 }
 
 // ==================== 常量定义 ====================
@@ -79,6 +84,16 @@ export interface WeightEntry {
   userId?: number | string
 }
 
+export interface ReadingEntry {
+  id?: number | string
+  bookName: string
+  pages: number
+  note?: string | null
+  date: Date
+  createdAt?: Date
+  userId?: number | string
+}
+
 export interface User {
   id?: number | string
   username: string
@@ -113,6 +128,7 @@ export interface Message {
   type: MessageTypeValue
   isRead?: boolean
   createdAt?: Date
+  friendRequestId?: number | string | null
 }
 
 export interface Friend {
@@ -135,6 +151,21 @@ export interface FitnessChannel {
   endDate: Date
   status: 'pending' | 'active' | 'completed'
   members?: ChannelMember[]
+}
+
+export interface Goal {
+  id?: number | string
+  title: string
+  description?: string
+  category: 'fitness' | 'reading' | 'study' | 'work' | 'life' | 'other'
+  targetCount: number
+  currentCount: number
+  unit: string
+  frequency: 'daily' | 'weekly' | 'monthly' | 'once'
+  startDate: Date
+  endDate?: Date
+  status: 'active' | 'completed' | 'abandoned'
+  userId?: number | string
   createdAt?: Date
   updatedAt?: Date
 }
@@ -158,6 +189,43 @@ export interface CheckIn {
 export interface ChannelComment {
   id?: number | string
   channelId: number | string
+  userId: number | string
+  content: string
+  createdAt?: Date
+}
+
+// ========== 打卡任务相关接口 ==========
+export interface Task {
+  id?: number | string
+  title: string
+  description?: string
+  type: 'fitness' | 'reading'
+  creatorId: number | string
+  startDate: Date
+  endDate: Date
+  status: 'pending' | 'active' | 'completed' | 'cancelled'
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export interface TaskMember {
+  id?: number | string
+  taskId: number | string
+  userId: number | string
+  status: 'invited' | 'joined' | 'declined' | 'removed'
+  joinedAt?: Date
+  totalCount: number
+}
+
+export interface TaskCheckIn {
+  id?: number | string
+  taskId: number | string
+  userId: number | string
+  entryId: number | string
+  entryType: 'weight' | 'reading'
+  checkedAt: Date
+  createdAt?: Date
+}
   userId: number | string
   content: string
   createdAt?: Date
@@ -383,8 +451,8 @@ const cloudbaseAdapter = {
   },
 
   // ========== 消息相关 ==========
-  async createMessage(data: { senderId: number | string; receiverId?: number | string; channelId?: number | string; content: string; type: MessageTypeValue }): Promise<Message> {
-    const { id } = await tcbDb.collection(COLLECTIONS.MESSAGES).add({
+  async createMessage(data: { senderId: number | string; receiverId?: number | string; channelId?: number | string; content: string; type: MessageTypeValue; friendRequestId?: number | string }): Promise<Message> {
+    const messageData: any = {
       senderId: data.senderId,
       receiverId: data.receiverId,
       channelId: data.channelId,
@@ -392,7 +460,12 @@ const cloudbaseAdapter = {
       type: data.type,
       isRead: false,
       createdAt: new Date(),
-    })
+    }
+    if (data.friendRequestId) {
+      messageData.friendRequestId = String(data.friendRequestId)
+    }
+    const { id } = await tcbDb.collection(COLLECTIONS.MESSAGES).add(messageData)
+    console.log('[DB] Created message with friendRequestId:', data.friendRequestId, 'message id:', id)
     return { id, ...data } as Message
   },
 
@@ -584,10 +657,11 @@ const cloudbaseAdapter = {
     const channel = await this.getFitnessChannelById(channelId)
     if (!channel) throw new Error('Channel not found')
     
+    const userIdStr = String(userId)
     const members = channel.members || []
-    if (!members.find((m: any) => m.userId === userId)) {
+    if (!members.find((m: any) => String(m.userId) === userIdStr)) {
       members.push({
-        userId,
+        userId: userIdStr,
         username,
         joinedAt: new Date()
       })
@@ -604,7 +678,8 @@ const cloudbaseAdapter = {
     const channel = await this.getFitnessChannelById(channelId)
     if (!channel) throw new Error('Channel not found')
     
-    const members = (channel.members || []).filter((m: any) => m.userId !== userId)
+    const userIdStr = String(userId)
+    const members = (channel.members || []).filter((m: any) => String(m.userId) !== userIdStr)
     const doc = await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
       .doc(String(channelId))
     await doc.update({
@@ -685,12 +760,13 @@ const cloudbaseAdapter = {
 
   async isChannelCreator(channelId: number | string, userId: number | string): Promise<boolean> {
     const channel = await this.getFitnessChannelById(channelId)
-    return channel?.creatorId === userId
+    return String(channel?.creatorId) === String(userId)
   },
 
   async isChannelMember(channelId: number | string, userId: number | string): Promise<boolean> {
     const channel = await this.getFitnessChannelById(channelId)
-    return !!(channel?.members?.find((m: any) => m.userId === userId))
+    const userIdStr = String(userId)
+    return !!(channel?.members?.find((m: any) => String(m.userId) === userIdStr))
   },
 
   async getActiveChannelForUser(userId: number | string): Promise<FitnessChannel | null> {
@@ -823,9 +899,479 @@ const cloudbaseAdapter = {
     return data.map((d: any) => ({ ...d, id: d._id }))
   },
 
+  // ========== 读书打卡相关 ==========
+  async createReadingEntry(data: { bookName: string; pages: number; note?: string; date: Date; userId: number | string }): Promise<ReadingEntry> {
+    const { id } = await tcbDb.collection(COLLECTIONS.READING_ENTRIES).add({
+      bookName: data.bookName,
+      pages: data.pages,
+      note: data.note || null,
+      date: data.date,
+      userId: data.userId,
+      createdAt: new Date(),
+    })
+    return { id, ...data } as ReadingEntry
+  },
+
+  async getReadingEntriesByUser(userId: number | string): Promise<ReadingEntry[]> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.READING_ENTRIES)
+        .where({ userId })
+        .orderBy('date', 'desc')
+        .get()
+      const data = result.data || []
+      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+    } catch (error) {
+      console.error('Error getting reading entries:', error)
+      return []
+    }
+  },
+
+  async getReadingEntriesByDate(userId: number | string, dateStr: string): Promise<ReadingEntry | null> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.READING_ENTRIES)
+        .where({ userId })
+        .get()
+      const entries = (result.data || []) as any[]
+      const entry = entries.find(e => {
+        const entryDateStr = new Date(e.date).toISOString().split('T')[0]
+        return entryDateStr === dateStr
+      })
+      return entry ? { ...entry, id: entry._id } : null
+    } catch (error) {
+      console.error('Error getting reading entry by date:', error)
+      return null
+    }
+  },
+
+  async getReadingStreak(userId: number | string): Promise<number> {
+    try {
+      const entries = await this.getReadingEntriesByUser(userId)
+      if (entries.length === 0) return 0
+
+      // 按日期去重并排序
+      const dates = [...new Set(entries.map(e => new Date(e.date).toISOString().split('T')[0]))].sort().reverse()
+      
+      let streak = 0
+      const today = new Date().toISOString().split('T')[0]
+      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
+      
+      // 检查今天或昨天是否有打卡
+      if (dates[0] === today || dates[0] === yesterday) {
+        streak = 1
+        for (let i = 1; i < dates.length; i++) {
+          const prevDate = new Date(dates[i - 1])
+          const currDate = new Date(dates[i])
+          const diffDays = Math.floor((prevDate.getTime() - currDate.getTime()) / 86400000)
+          if (diffDays === 1) {
+            streak++
+          } else {
+            break
+          }
+        }
+      }
+      
+      return streak
+    } catch (error) {
+      console.error('Error calculating reading streak:', error)
+      return 0
+    }
+  },
+
+  // ========== 目标/Flag 相关 ==========
+  async createGoal(data: { title: string; description?: string; category: string; targetCount: number; unit: string; frequency: string; startDate: Date; endDate?: Date; userId: number | string }): Promise<Goal> {
+    const { id } = await tcbDb.collection(COLLECTIONS.GOALS).add({
+      title: data.title,
+      description: data.description || null,
+      category: data.category,
+      targetCount: data.targetCount,
+      currentCount: 0,
+      unit: data.unit,
+      frequency: data.frequency,
+      startDate: data.startDate,
+      endDate: data.endDate || null,
+      status: 'active',
+      userId: data.userId,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    return { id, ...data, currentCount: 0, status: 'active' } as Goal
+  },
+
+  async getGoalsByUser(userId: number | string): Promise<Goal[]> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.GOALS)
+        .where({ userId })
+        .orderBy('createdAt', 'desc')
+        .get()
+      const data = result.data || []
+      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+    } catch (error) {
+      console.error('Error getting goals:', error)
+      return []
+    }
+  },
+
+  async getActiveGoalsByUser(userId: number | string): Promise<Goal[]> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.GOALS)
+        .where({ userId, status: 'active' })
+        .orderBy('createdAt', 'desc')
+        .get()
+      const data = result.data || []
+      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+    } catch (error) {
+      console.error('Error getting active goals:', error)
+      return []
+    }
+  },
+
+  async getGoalById(id: number | string): Promise<Goal | null> {
+    try {
+      const { data } = await tcbDb.collection(COLLECTIONS.GOALS)
+        .where({ _id: id })
+        .limit(1)
+        .get()
+      return data[0] ? { ...data[0], id: data[0]._id } : null
+    } catch (error) {
+      console.error('Error getting goal by id:', error)
+      return null
+    }
+  },
+
+  async updateGoal(id: number | string, data: Partial<Goal>): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.GOALS)
+      .doc(String(id))
+    await doc.update({
+      ...data,
+      updatedAt: new Date(),
+    })
+  },
+
+  async incrementGoalProgress(id: number | string, amount: number = 1): Promise<void> {
+    const goal = await this.getGoalById(id)
+    if (!goal) throw new Error('Goal not found')
+    
+    const newCount = (goal.currentCount || 0) + amount
+    const isCompleted = newCount >= goal.targetCount
+    
+    await this.updateGoal(id, {
+      currentCount: newCount,
+      status: isCompleted ? 'completed' : 'active'
+    })
+  },
+
+  async deleteGoal(id: number | string): Promise<void> {
+    await tcbDb.collection(COLLECTIONS.GOALS)
+      .doc(String(id))
+      .remove()
+  },
+
   // 删除用户
   async deleteUser(id: number | string): Promise<void> {
     const doc = await tcbDb.collection(COLLECTIONS.USERS).doc(String(id)).remove()
+  },
+
+  // ========== 打卡任务相关 ==========
+  async createTask(data: { title: string; description?: string; type: 'fitness' | 'reading'; startDate: Date; endDate: Date; creatorId: number | string }): Promise<Task> {
+    const { id } = await tcbDb.collection(COLLECTIONS.TASKS).add({
+      title: data.title,
+      description: data.description || null,
+      type: data.type,
+      creatorId: data.creatorId,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      status: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    return { id, ...data, status: 'pending' } as Task
+  },
+
+  async getTasksByUser(userId: number | string): Promise<Task[]> {
+    try {
+      // 获取用户创建的任务
+      const { data: createdTasks } = await tcbDb.collection(COLLECTIONS.TASKS)
+        .where({ creatorId: userId })
+        .orderBy('createdAt', 'desc')
+        .get()
+      
+      // 获取用户参与的任务
+      const { data: memberships } = await tcbDb.collection(COLLECTIONS.TASK_MEMBERS)
+        .where({ userId, status: 'joined' })
+        .get()
+      
+      const taskIds = memberships.map((m: any) => m.taskId)
+      
+      let joinedTasks: any[] = []
+      if (taskIds.length > 0) {
+        const { data: tasks } = await tcbDb.collection(COLLECTIONS.TASKS)
+          .where({ _id: { $in: taskIds } })
+          .get()
+        joinedTasks = tasks || []
+      }
+      
+      // 合并并去重
+      const allTasks = [...createdTasks, ...joinedTasks]
+      const uniqueTasks = allTasks.filter((t, i, arr) => 
+        arr.findIndex(item => item._id === t._id) === i
+      )
+      
+      return uniqueTasks.map((d: any) => ({ ...d, id: d._id }))
+    } catch (error) {
+      console.error('Error getting tasks:', error)
+      return []
+    }
+  },
+
+  async getTaskById(id: number | string): Promise<Task | null> {
+    try {
+      const { data } = await tcbDb.collection(COLLECTIONS.TASKS)
+        .where({ _id: id })
+        .limit(1)
+        .get()
+      return data[0] ? { ...data[0], id: data[0]._id } : null
+    } catch (error) {
+      console.error('Error getting task by id:', error)
+      return null
+    }
+  },
+
+  async updateTask(id: number | string, data: Partial<Task>): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.TASKS)
+      .doc(String(id))
+    await doc.update({
+      ...data,
+      updatedAt: new Date(),
+    })
+  },
+
+  async deleteTask(id: number | string): Promise<void> {
+    await tcbDb.collection(COLLECTIONS.TASKS)
+      .doc(String(id))
+      .remove()
+  },
+
+  // 任务成员相关
+  async addTaskMember(data: { taskId: number | string; userId: number | string }): Promise<TaskMember> {
+    const { id } = await tcbDb.collection(COLLECTIONS.TASK_MEMBERS).add({
+      taskId: data.taskId,
+      userId: data.userId,
+      status: 'invited',
+      totalCount: 0,
+      joinedAt: null,
+    })
+    return { id, ...data, status: 'invited', totalCount: 0 } as TaskMember
+  },
+
+  async updateTaskMemberStatus(taskId: number | string, userId: number | string, status: 'invited' | 'joined' | 'declined' | 'removed'): Promise<void> {
+    const { data } = await tcbDb.collection(COLLECTIONS.TASK_MEMBERS)
+      .where({ taskId, userId })
+      .limit(1)
+      .get()
+    
+    if (data && data.length > 0) {
+      const doc = await tcbDb.collection(COLLECTIONS.TASK_MEMBERS)
+        .doc(String(data[0]._id))
+      await doc.update({
+        status,
+        joinedAt: status === 'joined' ? new Date() : data[0].joinedAt,
+      })
+    }
+  },
+
+  async getTaskMembers(taskId: number | string): Promise<TaskMember[]> {
+    try {
+      const { data } = await tcbDb.collection(COLLECTIONS.TASK_MEMBERS)
+        .where({ taskId })
+        .get()
+      return data.map((d: any) => ({ ...d, id: d._id }))
+    } catch (error) {
+      console.error('Error getting task members:', error)
+      return []
+    }
+  },
+
+  async getTaskMember(taskId: number | string, userId: number | string): Promise<TaskMember | null> {
+    try {
+      const { data } = await tcbDb.collection(COLLECTIONS.TASK_MEMBERS)
+        .where({ taskId, userId })
+        .limit(1)
+        .get()
+      return data[0] ? { ...data[0], id: data[0]._id } : null
+    } catch (error) {
+      console.error('Error getting task member:', error)
+      return null
+    }
+  },
+
+  // 任务打卡相关
+  async createTaskCheckIn(data: { taskId: number | string; userId: number | string; entryId: number | string; entryType: 'weight' | 'reading' }): Promise<TaskCheckIn> {
+    const checkInData = {
+      taskId: data.taskId,
+      userId: data.userId,
+      entryId: data.entryId,
+      entryType: data.entryType,
+      checkedAt: new Date(),
+      createdAt: new Date(),
+    }
+    const { id } = await tcbDb.collection(COLLECTIONS.TASK_CHECK_INS).add(checkInData)
+    
+    // 更新成员打卡计数
+    const { data: members } = await tcbDb.collection(COLLECTIONS.TASK_MEMBERS)
+      .where({ taskId: data.taskId, userId: data.userId })
+      .get()
+    
+    if (members && members.length > 0) {
+      const member = members[0]
+      const doc = await tcbDb.collection(COLLECTIONS.TASK_MEMBERS)
+        .doc(String(member._id))
+      await doc.update({ totalCount: (member.totalCount || 0) + 1 })
+    }
+    
+    return { id, ...checkInData } as TaskCheckIn
+  },
+
+  async getTaskCheckIns(taskId: number | string): Promise<TaskCheckIn[]> {
+    try {
+      const { data } = await tcbDb.collection(COLLECTIONS.TASK_CHECK_INS)
+        .where({ taskId })
+        .orderBy('checkedAt', 'desc')
+        .get()
+      return data.map((d: any) => ({ ...d, id: d._id }))
+    } catch (error) {
+      console.error('Error getting task check-ins:', error)
+      return []
+    }
+  },
+
+  async getUserTaskCheckIns(taskId: number | string, userId: number | string): Promise<TaskCheckIn[]> {
+    try {
+      const { data } = await tcbDb.collection(COLLECTIONS.TASK_CHECK_INS)
+        .where({ taskId, userId })
+        .orderBy('checkedAt', 'desc')
+        .get()
+      return data.map((d: any) => ({ ...d, id: d._id }))
+    } catch (error) {
+      console.error('Error getting user task check-ins:', error)
+      return []
+    }
+  },
+
+  // ========== 好友动态相关 ==========
+  async getFriendsRecentActivity(userId: number | string): Promise<any[]> {
+    try {
+      // 获取好友列表
+      const friends = await this.getFriendsByUser(userId)
+      if (friends.length === 0) return []
+
+      const friendIds = friends.map(f => String(f.friendId || f.userId)).filter(Boolean)
+      
+      // 获取所有好友的体重记录（最近10条）
+      const weightPromises = friendIds.map(async (fid) => {
+        const { data } = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
+          .where({ userId: fid })
+          .orderBy('date', 'desc')
+          .limit(1)
+          .get()
+        if (data && data.length > 0) {
+          const entry = data[0]
+          const user = await this.findUserById(fid)
+          return {
+            type: 'weight',
+            userId: fid,
+            username: user?.nickname || user?.username || '未知用户',
+            avatar: user?.avatar || null,
+            content: `记录了体重 ${entry.weight} kg`,
+            note: entry.note || '',
+            date: entry.date,
+            createdAt: entry.createdAt,
+          }
+        }
+        return null
+      })
+
+      // 获取所有好友的读书记录（最近10条）
+      const readingPromises = friendIds.map(async (fid) => {
+        const { data } = await tcbDb.collection(COLLECTIONS.READING_ENTRIES)
+          .where({ userId: fid })
+          .orderBy('date', 'desc')
+          .limit(1)
+          .get()
+        if (data && data.length > 0) {
+          const entry = data[0]
+          const user = await this.findUserById(fid)
+          return {
+            type: 'reading',
+            userId: fid,
+            username: user?.nickname || user?.username || '未知用户',
+            avatar: user?.avatar || null,
+            content: `阅读了《${entry.bookName}》${entry.pages} 页`,
+            note: entry.note || '',
+            date: entry.date,
+            createdAt: entry.createdAt,
+          }
+        }
+        return null
+      })
+
+      // 获取所有好友的目标打卡记录
+      const goalPromises = friendIds.map(async (fid) => {
+        const { data } = await tcbDb.collection(COLLECTIONS.GOALS)
+          .where({ userId: fid, status: 'active' })
+          .orderBy('updatedAt', 'desc')
+          .limit(1)
+          .get()
+        if (data && data.length > 0) {
+          const goal = data[0]
+          // 只返回最近更新的目标
+          const updatedAt = new Date(goal.updatedAt || goal.createdAt)
+          const now = new Date()
+          const hoursDiff = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60)
+          
+          // 只显示24小时内更新的目标
+          if (hoursDiff <= 24 && goal.currentCount > 0) {
+            const user = await this.findUserById(fid)
+            return {
+              type: 'goal',
+              userId: fid,
+              username: user?.nickname || user?.username || '未知用户',
+              avatar: user?.avatar || null,
+              content: `打卡了目标「${goal.title}」(${goal.currentCount}/${goal.targetCount}${goal.unit})`,
+              note: '',
+              date: goal.updatedAt || goal.createdAt,
+              createdAt: goal.updatedAt || goal.createdAt,
+            }
+          }
+        }
+        return null
+      })
+
+      const [weightResults, readingResults, goalResults] = await Promise.all([
+        Promise.all(weightPromises),
+        Promise.all(readingPromises),
+        Promise.all(goalPromises),
+      ])
+
+      // 合并所有结果，过滤空值，按时间排序
+      const allActivities = [
+        ...weightResults.filter(Boolean),
+        ...readingResults.filter(Boolean),
+        ...goalResults.filter(Boolean),
+      ]
+
+      // 按日期排序（最新的在前）
+      allActivities.sort((a, b) => {
+        const dateA = new Date(a.createdAt || a.date)
+        const dateB = new Date(b.createdAt || b.date)
+        return dateB.getTime() - dateA.getTime()
+      })
+
+      // 限制返回数量
+      return allActivities.slice(0, 10)
+    } catch (error) {
+      console.error('Error getting friends recent activity:', error)
+      return []
+    }
   },
 }
 

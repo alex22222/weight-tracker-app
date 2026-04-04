@@ -42,7 +42,7 @@
     </view>
     <view class="suggestion-list">
       <view class="suggestion-item" wx:for="{{suggestions}}" wx:key="id">
-        <view class="user-avatar">{{(item.nickname || item.username)[0]}}</view>
+        <view class="user-avatar">{{item.avatarText}}</view>
         <view class="user-detail">
           <text class="user-name">{{item.displayName}}</text>
           <text class="user-hint" wx:if="{{item.nickname}}">@{{item.username}}</text>

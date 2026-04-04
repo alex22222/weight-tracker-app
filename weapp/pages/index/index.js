@@ -42,10 +42,10 @@ Page({
     settings: { height: 170, targetWeight: 65 },
     tempHeight: '170',
     tempTargetWeight: '65',
-    tempGender: 'other',
+    tempGender: 'male',
     tempNickname: '', // 昵称临时值
     showSettings: false,
-    gender: 'other',
+    gender: 'male',
     entries: [],
     currentWeight: 0,
     bmi: 0,
@@ -54,24 +54,39 @@ Page({
     weightDiff: 0,
     chartData: [],
     userInfo: null,
+    avatarText: '用',
+    welcomeName: '用户',
     activeChannel: null,
-    weather: null,
+    activeChannelStatusText: '',
+    currentWeightText: '--',
+    weightDiffText: '',
+    weightDiffValue: '',
+    weightDiffClass: '',
     _version: 'v2-' + Date.now() // 缓存破坏标记
   },
 
   onLoad() {
     console.log('【INDEX】Page onLoad, version:', this.data._version)
+    const userInfo = app.globalData.userInfo
     this.setData({
       date: util.getTodayString(),
-      userInfo: app.globalData.userInfo
+      userInfo: userInfo,
+      avatarText: this.getAvatarText(userInfo),
+      welcomeName: (userInfo?.nickname || userInfo?.username || '用户')
     })
+  },
+
+  // 获取头像文字
+  getAvatarText(userInfo) {
+    if (!userInfo) return '用'
+    const name = userInfo.nickname || userInfo.username || '用'
+    return name.charAt(0)
   },
 
   onShow() {
     console.log('【INDEX】Page onShow')
     this.loadData()
     this.loadActiveChannel()
-    this.loadWeather()
   },
 
   // 加载数据 - 彻底重写，避免任何可能的 sort 调用错误
@@ -80,7 +95,7 @@ Page({
     
     let entries = []
     let settings = { height: 170, targetWeight: 65 }
-    let gender = 'other'
+    let gender = 'male'
     
     try {
       // 获取体重数据
@@ -111,7 +126,7 @@ Page({
           settings.height = s.height || 170
           settings.targetWeight = s.targetWeight || 65
         }
-        gender = settingsResponse.gender || settingsResponse.user?.gender || 'other'
+        gender = settingsResponse.gender || settingsResponse.user?.gender || 'male'
         
         // 保存昵称和头像到 data
         if (settingsResponse.user?.nickname) {
@@ -120,7 +135,10 @@ Page({
         if (settingsResponse.user?.avatar) {
           const newUserInfo = { ...app.globalData.userInfo, avatar: settingsResponse.user.avatar }
           app.updateUserInfo(newUserInfo)
-          this.setData({ userInfo: newUserInfo })
+          this.setData({ 
+            userInfo: newUserInfo,
+            avatarText: this.getAvatarText(newUserInfo)
+          })
         }
       }
       
@@ -145,6 +163,14 @@ Page({
     const bmiCategory = util.getBMICategory(bmi)
     const bmiStyle = util.getBMIStyles(bmi)
     const weightDiff = currentWeight - (settings.targetWeight || 65)
+    
+    // 计算展示用的值（避免 WXML 复杂表达式）
+    const userInfo = this.data.userInfo
+    const welcomeName = (userInfo?.nickname || userInfo?.username || '用户')
+    const currentWeightText = currentWeight > 0 ? currentWeight.toFixed(1) : '--'
+    const weightDiffText = weightDiff > 0 ? '超出' : '距离'
+    const weightDiffValue = Math.abs(weightDiff).toFixed(1)
+    const weightDiffClass = weightDiff > 0 ? 'text-danger' : 'text-success'
     
     // 生成图表数据 - 使用安全排序
     let chartData = []
@@ -176,10 +202,15 @@ Page({
       tempTargetWeight: String(settings.targetWeight || 65),
       tempGender: gender,
       currentWeight, 
+      currentWeightText,
       bmi, 
       bmiCategory, 
       bmiStyle, 
       weightDiff, 
+      weightDiffText,
+      weightDiffValue,
+      weightDiffClass,
+      welcomeName,
       chartData
     }, () => {
       if (chartData.length > 0) {
@@ -197,33 +228,36 @@ Page({
       const activeChannel = channels.find(
         c => c.status === 'PENDING' || c.status === 'ACTIVE'
       )
-      this.setData({ activeChannel: activeChannel || null })
+      // 计算状态文本
+      const activeChannelStatusText = activeChannel 
+        ? (activeChannel.status === 'PENDING' ? '未开始' : '进行中')
+        : ''
+      this.setData({ 
+        activeChannel: activeChannel || null,
+        activeChannelStatusText
+      })
     } catch (err) {
       console.error('加载频道失败:', err)
     }
   },
   
-  async loadWeather() {
-    try {
-      const result = await app.request({ url: '/weather' })
-      this.setData({ weather: result })
-    } catch (err) {
-      console.error('加载天气失败:', err)
-    }
-  },
-
   onDateChange(e) { this.setData({ date: e.detail.value }) },
   onWeightInput(e) { this.setData({ weight: e.detail.value }) },
   onNoteInput(e) { this.setData({ note: e.detail.value }) },
   onHeightInput(e) { this.setData({ tempHeight: e.detail.value }) },
   onTargetWeightInput(e) { this.setData({ tempTargetWeight: e.detail.value }) },
   onGenderChange(e) {
-    const genders = ['male', 'female', 'other']
+    const genders = ['male', 'female']
     this.setData({ tempGender: genders[e.detail.value] })
   },
 
   onNicknameInput(e) {
-    this.setData({ tempNickname: e.detail.value })
+    const tempNickname = e.detail.value
+    // 更新昵称和头像文字（设置面板中显示）
+    this.setData({ 
+      tempNickname,
+      avatarText: tempNickname ? tempNickname.charAt(0) : this.getAvatarText(this.data.userInfo)
+    })
   },
 
   // 选择头像
@@ -253,7 +287,10 @@ Page({
       // 更新本地显示
       const newUserInfo = { ...app.globalData.userInfo, avatar: uploadRes.url }
       app.updateUserInfo(newUserInfo)
-      this.setData({ userInfo: newUserInfo })
+      this.setData({ 
+        userInfo: newUserInfo,
+        avatarText: this.getAvatarText(newUserInfo)
+      })
       
       wx.showToast({ title: '头像已更新', icon: 'success' })
     } catch (err) {
@@ -356,7 +393,11 @@ Page({
         nickname: this.data.tempNickname || app.globalData.userInfo?.nickname
       }
       app.updateUserInfo(newUserInfo)
-      this.setData({ userInfo: newUserInfo })
+      this.setData({ 
+        userInfo: newUserInfo,
+        avatarText: this.getAvatarText(newUserInfo),
+        welcomeName: (newUserInfo?.nickname || newUserInfo?.username || '用户')
+      })
 
       wx.showToast({ title: '设置已保存', icon: 'success' })
       this.setData({ showSettings: false })
@@ -474,19 +515,6 @@ Page({
     }
   },
 
-  logout() {
-    wx.showModal({
-      title: '确认登出',
-      content: '确定要退出登录吗？',
-      success: (res) => {
-        if (res.confirm) {
-          app.logout()
-          wx.reLaunch({ url: '/pages/login/login' })
-        }
-      }
-    })
-  },
-
   onChartTouch() {},
 
   onShareAppMessage() {
@@ -500,7 +528,7 @@ Page({
   onShareTimeline() {
     const username = this.data.userInfo?.nickname || this.data.userInfo?.username || '好友'
     return {
-      title: `${username} 正在用体重管理器记录体重变化，邀请你一起加入！`,
+      title: `${username} 正在打卡记录，邀请你一起加入！`,
       query: 'from=timeline'
     }
   }

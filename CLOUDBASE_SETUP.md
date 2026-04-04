@@ -28,6 +28,11 @@
 - `weight_entries` - 存储体重记录
 - `users` - 存储用户信息
 - `user_settings` - 存储用户设置
+- `reading_entries` - 存储读书记录
+- `goals` - 存储用户目标/flag
+- `tasks` - 存储打卡任务
+- `task_members` - 存储任务成员
+- `task_check_ins` - 存储任务打卡记录
 
 ### 步骤 3: 配置项目
 
@@ -88,6 +93,75 @@ npm run dev
   "targetWeight": "number",
   "createdAt": "timestamp",
   "updatedAt": "timestamp",
+  "_openid": "string (optional - 用户标识)"
+}
+```
+
+### goals 集合
+
+```json
+{
+  "_id": "string",
+  "title": "string",
+  "description": "string (optional)",
+  "category": "string (fitness|reading|study|work|life|other)",
+  "targetCount": "number",
+  "currentCount": "number",
+  "unit": "string",
+  "frequency": "string (daily|weekly|monthly|once)",
+  "startDate": "timestamp",
+  "endDate": "timestamp (optional)",
+  "status": "string (active|completed|abandoned)",
+  "userId": "string",
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp",
+  "_openid": "string (optional - 用户标识)"
+}
+```
+
+### tasks 集合
+
+```json
+{
+  "_id": "string",
+  "title": "string",
+  "description": "string (optional)",
+  "type": "string (fitness|reading)",
+  "creatorId": "string",
+  "startDate": "timestamp",
+  "endDate": "timestamp",
+  "status": "string (pending|active|completed|cancelled)",
+  "createdAt": "timestamp",
+  "updatedAt": "timestamp",
+  "_openid": "string (optional - 用户标识)"
+}
+```
+
+### task_members 集合
+
+```json
+{
+  "_id": "string",
+  "taskId": "string",
+  "userId": "string",
+  "status": "string (invited|joined|declined|removed)",
+  "joinedAt": "timestamp (optional)",
+  "totalCount": "number",
+  "_openid": "string (optional - 用户标识)"
+}
+```
+
+### task_check_ins 集合
+
+```json
+{
+  "_id": "string",
+  "taskId": "string",
+  "userId": "string",
+  "entryId": "string",
+  "entryType": "string (weight|reading)",
+  "checkedAt": "timestamp",
+  "createdAt": "timestamp",
   "_openid": "string (optional - 用户标识)"
 }
 ```

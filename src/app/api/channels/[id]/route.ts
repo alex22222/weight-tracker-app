@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
 
 // 验证 Token
@@ -57,10 +57,13 @@ export async function GET(
       status: realTimeStatus?.toUpperCase?.() || realTimeStatus
     }
 
-    // 检查是否是成员或创建者
+    // 检查是否是成员或创建者（使用字符串比较避免类型不匹配）
     const isMember = await adapter.isChannelMember(channelId, user.userId)
+    const isCreator = String(channel.creatorId) === String(user.userId)
     
-    if (channel.creatorId !== user.userId && !isMember) {
+    console.log('[Channel Detail] User:', user.userId, 'Creator:', channel.creatorId, 'isMember:', isMember, 'isCreator:', isCreator)
+    
+    if (!isCreator && !isMember) {
       return NextResponse.json({ error: '无权访问该频道' }, { status: 403 })
     }
 

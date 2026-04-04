@@ -1,0 +1,169 @@
+<!--pages/onboarding/onboarding.wxml-->
+<view class="container">
+  <!-- 进度指示器 -->
+  <view class="progress-bar">
+    <view class="progress-dots">
+      <view class="dot {{index === currentStep ? 'active' : ''}} {{index < currentStep ? 'completed' : ''}}" 
+            wx:for="{{steps}}" 
+            wx:key="index"></view>
+    </view>
+    <view class="progress-text">{{currentStep + 1}} / {{totalSteps}}</view>
+  </view>
+
+  <!-- 步骤内容 -->
+  <view class="step-content">
+    <!-- 步骤 0: 欢迎页 -->
+    <view class="step welcome-step" wx:if="{{currentStep === 0}}">
+      <view class="welcome-icon">🎉</view>
+      <view class="welcome-title">欢迎来到体重追踪</view>
+      <view class="welcome-subtitle">让我们花一分钟了解你，为你提供更好的服务</view>
+      <view class="welcome-desc">所有信息都是非必填的，你可以随时跳过</view>
+    </view>
+
+    <!-- 步骤 1: 选择头像 -->
+    <view class="step" wx:if="{{currentStep === 1}}">
+      <view class="step-title">{{steps[1].title}}</view>
+      <view class="step-subtitle">{{steps[1].subtitle}}</view>
+      
+      <view class="avatar-grid">
+        <view class="avatar-item {{formData.avatar === item.emoji ? 'selected' : ''}}" 
+              wx:for="{{presetAvatars}}" 
+              wx:key="id"
+              bindtap="selectAvatar" 
+              data-avatar="{{item.emoji}}">
+          <text class="avatar-emoji">{{item.emoji}}</text>
+          <text class="avatar-name">{{item.name}}</text>
+        </view>
+      </view>
+      
+      <view class="avatar-divider"></view>
+      
+      <view class="avatar-upload-option" bindtap="uploadCustomAvatar">
+        <text class="upload-icon">📷</text>
+        <text class="upload-text">上传自己的照片</text>
+      </view>
+      
+      <view class="avatar-preview" wx:if="{{formData.avatar}}">
+        <text class="preview-label">已选择：</text>
+        <text class="preview-emoji">{{formData.avatar}}</text>
+      </view>
+    </view>
+
+    <!-- 步骤 2: 性别 -->
+    <view class="step" wx:if="{{currentStep === 2}}">
+      <view class="step-title">{{steps[2].title}}</view>
+      <view class="step-subtitle">{{steps[2].subtitle}}</view>
+      
+      <view class="gender-options">
+        <view class="gender-card {{formData.gender === 'male' ? 'selected' : ''}}" 
+              bindtap="selectGender" 
+              data-gender="male">
+          <view class="gender-icon">👨</view>
+          <text class="gender-text">男生</text>
+        </view>
+        
+        <view class="gender-card {{formData.gender === 'female' ? 'selected' : ''}}" 
+              bindtap="selectGender" 
+              data-gender="female">
+          <view class="gender-icon">👩</view>
+          <text class="gender-text">女生</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 步骤 3: 身高 -->
+    <view class="step" wx:if="{{currentStep === 3}}">
+      <view class="step-title">{{steps[3].title}}</view>
+      <view class="step-subtitle">{{steps[3].subtitle}}</view>
+      
+      <view class="input-wrapper">
+        <input class="large-input" 
+               type="digit" 
+               value="{{formData.height}}" 
+               bindinput="onHeightInput"
+               placeholder="170"
+               maxlength="5" />
+        <text class="input-unit">cm</text>
+      </view>
+      
+      <view class="input-hint">例如：170、175.5</view>
+    </view>
+
+    <!-- 步骤 4: 体重 -->
+    <view class="step" wx:if="{{currentStep === 4}}">
+      <view class="step-title">{{steps[4].title}}</view>
+      <view class="step-subtitle">{{steps[4].subtitle}}</view>
+      
+      <view class="input-wrapper">
+        <input class="large-input" 
+               type="digit" 
+               value="{{formData.weight}}" 
+               bindinput="onWeightInput"
+               placeholder="65"
+               maxlength="5" />
+        <text class="input-unit">kg</text>
+      </view>
+      
+      <view class="input-hint">例如：60、70.5</view>
+    </view>
+
+    <!-- 步骤 5: 年龄 -->
+    <view class="step" wx:if="{{currentStep === 5}}">
+      <view class="step-title">{{steps[5].title}}</view>
+      <view class="step-subtitle">{{steps[5].subtitle}}</view>
+      
+      <view class="input-wrapper">
+        <input class="large-input" 
+               type="number" 
+               value="{{formData.age}}" 
+               bindinput="onAgeInput"
+               placeholder="25"
+               maxlength="3" />
+        <text class="input-unit">岁</text>
+      </view>
+      
+      <view class="input-hint">例如：20、30</view>
+    </view>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="footer">
+    <!-- 欢迎页按钮 -->
+    <block wx:if="{{currentStep === 0}}">
+      <button class="btn-primary" bindtap="nextStep">开始设置</button>
+      <button class="btn-text" bindtap="skipAll">跳过，直接进入</button>
+    </block>
+
+    <!-- 头像选择页按钮 -->
+    <block wx:if="{{currentStep === 1}}">
+      <button class="btn-secondary" bindtap="skipStep">跳过</button>
+      <button class="btn-text" bindtap="prevStep">上一步</button>
+    </block>
+
+    <!-- 性别页按钮 -->
+    <block wx:if="{{currentStep === 2}}">
+      <button class="btn-secondary" bindtap="skipStep">跳过</button>
+      <button class="btn-text" bindtap="prevStep">上一步</button>
+    </block>
+
+    <!-- 身高/体重/年龄页按钮 -->
+    <block wx:if="{{currentStep >= 3 && currentStep <= 4}}">
+      <button class="btn-primary" bindtap="nextStep">下一步</button>
+      <view class="btn-row">
+        <button class="btn-text" bindtap="prevStep">上一步</button>
+        <button class="btn-text" bindtap="skipStep">跳过</button>
+      </view>
+    </block>
+
+    <!-- 最后一步按钮 -->
+    <block wx:if="{{currentStep === 5}}">
+      <button class="btn-primary {{isLoading ? 'loading' : ''}}" bindtap="completeOnboarding" disabled="{{isLoading}}">
+        {{isLoading ? '保存中...' : '完成'}}
+      </button>
+      <view class="btn-row">
+        <button class="btn-text" bindtap="prevStep">上一步</button>
+        <button class="btn-text" bindtap="skipStep">跳过</button>
+      </view>
+    </block>
+  </view>
+</view>

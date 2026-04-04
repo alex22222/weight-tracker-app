@@ -256,6 +256,7 @@ describe('首页/记录页 (pages/index)', () => {
       page.data.tempHeight = '175';
       page.data.tempTargetWeight = '68';
       page.data.tempGender = 'male';
+      page.data.tempNickname = 'testnick';
 
       const app = getApp();
       app.request.mockResolvedValue({});
@@ -265,7 +266,7 @@ describe('首页/记录页 (pages/index)', () => {
       expect(app.request).toHaveBeenCalledWith({
         url: '/settings',
         method: 'POST',
-        data: { height: 175, targetWeight: 68 }
+        data: { height: 175, targetWeight: 68, nickname: 'testnick' }
       });
       expect(app.request).toHaveBeenCalledWith({
         url: '/settings',
@@ -289,6 +290,7 @@ describe('首页/记录页 (pages/index)', () => {
     test('成功保存后应该关闭面板并刷新数据', async () => {
       page.data.tempHeight = '175';
       page.data.tempTargetWeight = '68';
+      page.data.tempNickname = 'testnick';
 
       const app = getApp();
       app.request.mockResolvedValue({});

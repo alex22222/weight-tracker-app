@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { adapter, MessageType, FriendStatus } from '../../../lib/db-adapter'
 
 // 验证 Token
@@ -31,6 +31,12 @@ export async function GET(request: NextRequest) {
       // 获取待处理的好友请求
       const requests = await adapter.getPendingFriendRequests(user.userId)
       return NextResponse.json({ requests })
+    }
+
+    if (type === 'activity') {
+      // 获取好友的最新打卡动态
+      const activities = await adapter.getFriendsRecentActivity(user.userId)
+      return NextResponse.json({ activities })
     }
 
     if (type === 'suggestions') {
@@ -114,6 +120,10 @@ export async function POST(request: NextRequest) {
     }
 
     const targetUserId = (targetUser as any).id || (targetUser as any)._id
+    
+    if (!targetUserId) {
+      return NextResponse.json({ error: '用户信息无效' }, { status: 400 })
+    }
 
     // 检查是否已经是好友或已有待处理请求
     const existingRequest = await adapter.findFriendRequest(
@@ -137,6 +147,7 @@ export async function POST(request: NextRequest) {
       content: `${user.username} 请求添加你为好友`,
       senderId: user.userId,
       receiverId: targetUserId,
+      friendRequestId: friendRequest.id,
     })
 
     return NextResponse.json({ message: '好友请求已发送' }, { status: 201 })
@@ -172,12 +183,12 @@ export async function PATCH(request: NextRequest) {
     }
 
     // 验证权限（只能处理发给自己的请求）
-    const requestToUserId = (friendRequest as any).toUserId
-    if (requestToUserId !== user.userId) {
+    const requestToUserId = (friendRequest as any).friendId
+    if (String(requestToUserId) !== String(user.userId)) {
       return NextResponse.json({ error: '无权操作此请求' }, { status: 403 })
     }
 
-    const fromUserId = (friendRequest as any).fromUserId
+    const fromUserId = (friendRequest as any).userId
 
     if (action === 'accept') {
       // 接受好友请求
@@ -234,10 +245,10 @@ export async function DELETE(request: NextRequest) {
     }
 
     // 验证权限（只能删除与自己相关的好友关系）
-    const fromUserId = (friendRequest as any).fromUserId
-    const toUserId = (friendRequest as any).toUserId
+    const requestUserId = (friendRequest as any).userId
+    const requestFriendId = (friendRequest as any).friendId
     
-    if (fromUserId !== user.userId && toUserId !== user.userId) {
+    if (String(requestUserId) !== String(user.userId) && String(requestFriendId) !== String(user.userId)) {
       return NextResponse.json({ error: '无权删除此好友' }, { status: 403 })
     }
 

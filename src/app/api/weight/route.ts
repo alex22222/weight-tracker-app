@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { adapter } from '../../../lib/db-adapter'
 import { testCloudBaseConnection } from '../../../lib/cloudbase'
 
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     })
     
     let entry
-    if (existingEntry) {
+    if (existingEntry && existingEntry.id) {
       // 更新已有记录
       console.log('[API /weight] Updating existing entry:', existingEntry.id)
       entry = await adapter.updateWeightEntry(existingEntry.id, {

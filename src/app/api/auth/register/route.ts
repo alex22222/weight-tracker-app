@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
 import { createHash } from 'crypto'
 
@@ -81,7 +81,12 @@ export async function POST(request: NextRequest) {
       { 
         message: '注册成功', 
         token,
-        user: { id: user.id, username: user.username, createdAt: user.createdAt } 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          createdAt: user.createdAt,
+          isNewUser: true // 标记为新用户
+        } 
       },
       { status: 201 }
     )

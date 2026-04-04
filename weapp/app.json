@@ -1,6 +1,8 @@
 {
   "pages": [
     "pages/login/login",
+    "pages/home/home",
+    "pages/reading/reading",
     "pages/index/index",
     "pages/channel/channel",
     "pages/channel/detail",
@@ -11,7 +13,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#10b981",
-    "navigationBarTitleText": "燃脂俱乐部",
+    "navigationBarTitleText": "打卡了吗",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
@@ -21,8 +23,16 @@
     "borderStyle": "white",
     "list": [
       {
+        "pagePath": "pages/home/home",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/reading/reading",
+        "text": "读书"
+      },
+      {
         "pagePath": "pages/index/index",
-        "text": "记录"
+        "text": "健身"
       },
       {
         "pagePath": "pages/channel/channel",
@@ -31,10 +41,6 @@
       {
         "pagePath": "pages/friends/friends",
         "text": "好友"
-      },
-      {
-        "pagePath": "pages/messages/messages",
-        "text": "消息"
       }
     ]
   },

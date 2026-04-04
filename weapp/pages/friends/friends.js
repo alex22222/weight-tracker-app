@@ -27,9 +27,12 @@ Page({
       const result = await app.request({
         url: '/friends?type=suggestions'
       })
-      this.setData({
-        suggestions: result.suggestions || []
-      })
+      // 处理数据，添加 avatarText 字段
+      const suggestions = (result.suggestions || []).map(item => ({
+        ...item,
+        avatarText: (item.nickname || item.username || '?').charAt(0)
+      }))
+      this.setData({ suggestions })
     } catch (err) {
       console.error('加载推荐用户失败:', err)
     }

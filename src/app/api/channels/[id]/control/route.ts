@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { adapter, ChannelStatus } from '../../../../../lib/db-adapter'
 
 // 验证 Token

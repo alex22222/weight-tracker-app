@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
-import type { NextRequest } from 'next/dist/server/web/spec-extension/request'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import { db, cloudbaseApp, cloudbaseInitError } from '../../../lib/cloudbase'
 import { COLLECTIONS } from '../../../lib/db-adapter'
 

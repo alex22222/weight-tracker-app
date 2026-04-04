@@ -23,7 +23,7 @@ Page({
     // 如果已登录，跳转到首页
     if (app.globalData.isLoggedIn) {
       wx.switchTab({
-        url: '/pages/index/index'
+        url: '/pages/home/home'
       })
     }
   },
@@ -93,9 +93,16 @@ Page({
         icon: 'success'
       })
 
-      // 5. 跳转到首页
+      // 5. 跳转到引导页（新用户）或首页（老用户）
       setTimeout(() => {
-        wx.switchTab({ url: '/pages/index/index' })
+        if (result.user.isNewUser) {
+          // 新用户：清除引导完成标记，跳转到引导页
+          wx.removeStorageSync('onboardingCompleted')
+          wx.redirectTo({ url: '/pages/onboarding/onboarding' })
+        } else {
+          // 老用户：直接跳转到首页
+          wx.switchTab({ url: '/pages/home/home' })
+        }
       }, 500)
 
     } catch (err) {
@@ -138,11 +145,16 @@ Page({
       })
 
       setTimeout(() => {
-        wx.switchTab({ url: '/pages/index/index' })
+        if (result.user.isNewUser) {
+          wx.removeStorageSync('onboardingCompleted')
+          wx.redirectTo({ url: '/pages/onboarding/onboarding' })
+        } else {
+          wx.switchTab({ url: '/pages/home/home' })
+        }
       }, 500)
 
     } catch (err) {
-      console.error('微信登录失败:', err)
+      console.error('微信静默登录失败:', err)
       this.setData({
         error: err.message || '微信登录失败，请重试',
         isLoading: false
@@ -213,7 +225,9 @@ Page({
         wx.showToast({ title: '注册成功', icon: 'success' })
 
         setTimeout(() => {
-          wx.switchTab({ url: '/pages/index/index' })
+          // 新用户跳转到引导页
+          wx.removeStorageSync('onboardingCompleted')
+          wx.redirectTo({ url: '/pages/onboarding/onboarding' })
         }, 500)
       } else {
         // 登录
@@ -228,7 +242,7 @@ Page({
         wx.showToast({ title: '登录成功', icon: 'success' })
 
         setTimeout(() => {
-          wx.switchTab({ url: '/pages/index/index' })
+          wx.switchTab({ url: '/pages/home/home' })
         }, 500)
       }
     } catch (err) {
@@ -251,7 +265,7 @@ Page({
       wx.showToast({ title: '游客登录成功', icon: 'success' })
 
       setTimeout(() => {
-        wx.switchTab({ url: '/pages/index/index' })
+        wx.switchTab({ url: '/pages/home/home' })
       }, 500)
     } catch (err) {
       this.setData({ error: err.message || '登录失败', isLoading: false })

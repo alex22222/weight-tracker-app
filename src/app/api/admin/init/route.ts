@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/dist/server/web/spec-extension/response'
+import { NextResponse } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
 import { createHash } from 'crypto'
 

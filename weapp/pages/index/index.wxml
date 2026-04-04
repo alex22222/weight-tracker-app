@@ -5,22 +5,14 @@
     <view class="header-left">
       <view class="header-avatar" bindtap="chooseAvatar">
         <image wx:if="{{userInfo.avatar}}" class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" />
-        <text wx:else class="avatar-text">{{(userInfo.nickname || userInfo.username || '用')[0]}}</text>
+        <text wx:else class="avatar-text">{{avatarText}}</text>
       </view>
       <view class="header-title">
-        <text class="title-main">欢迎「{{userInfo.nickname || userInfo.username || '用户'}}」</text>
-        <view class="channel-info" bindtap="goToChannel">
-          <text wx:if="{{activeChannel}}">当前频道：{{activeChannel.name}} ({{activeChannel.status === 'PENDING' ? '未开始' : '进行中'}})</text>
-          <text wx:else>暂无进行中的健身频道，点击加入 ></text>
+        <text class="title-main">欢迎「{{welcomeName}}」</text>
+        <view class="channel-info" bindtap="goToChannel" wx:if="{{activeChannel}}">
+          <text>参与活动：{{activeChannel.name}} ({{activeChannelStatusText}})</text>
         </view>
       </view>
-    </view>
-    <view class="header-right">
-      <view class="weather-info" wx:if="{{weather}}">
-        <text class="weather-icon">{{weather.weathercode <= 3 ? '☀️' : weather.weathercode <= 50 ? '☁️' : '🌧️'}}</text>
-        <text class="weather-temp">{{weather.temperature}}°C</text>
-      </view>
-      <view class="header-btn logout-btn" bindtap="logout">🚪</view>
     </view>
   </view>
 
@@ -35,11 +27,11 @@
         <text class="stat-label">当前体重</text>
       </view>
       <view class="stat-value-row">
-        <text class="stat-value">{{currentWeight > 0 ? currentWeight.toFixed(1) : '--'}}</text>
+        <text class="stat-value">{{currentWeightText}}</text>
         <text class="stat-unit">kg</text>
       </view>
-      <text class="stat-hint {{weightDiff > 0 ? 'text-danger' : 'text-success'}}" wx:if="{{currentWeight > 0}}">
-        {{weightDiff > 0 ? '超出' : '距离'}}目标 {{Math.abs(weightDiff).toFixed(1)}} kg
+      <text class="stat-hint {{weightDiffClass}}" wx:if="{{currentWeight > 0}}">
+        {{weightDiffText}}目标 {{weightDiffValue}} kg
       </text>
     </view>
 
@@ -159,7 +151,7 @@
         <view class="avatar-upload" bindtap="chooseAvatar">
           <image wx:if="{{userInfo.avatar}}" class="avatar-preview" src="{{userInfo.avatar}}" mode="aspectFill" />
           <view wx:else class="avatar-placeholder">
-            <text>{{(tempNickname || userInfo.username || '用')[0]}}</text>
+            <text>{{avatarText}}</text>
           </view>
           <text class="avatar-hint">点击更换</text>
         </view>
@@ -176,8 +168,8 @@
       </view>
       <view class="form-item form-item-full">
         <text class="form-label">性别</text>
-        <picker mode="selector" range="{{['男', '女', '其他']}}" value="{{tempGender === 'male' ? 0 : tempGender === 'female' ? 1 : 2}}" bindchange="onGenderChange">
-          <view class="input picker-input">{{tempGender === 'male' ? '男' : tempGender === 'female' ? '女' : '其他'}}</view>
+        <picker mode="selector" range="{{['男', '女']}}" value="{{tempGender === 'male' ? 0 : 1}}" bindchange="onGenderChange">
+          <view class="input picker-input">{{tempGender === 'male' ? '男' : '女'}}</view>
         </picker>
       </view>
     </view>

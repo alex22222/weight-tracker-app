@@ -280,6 +280,9 @@ const mockApp = {
     mockApp.globalData.userInfo = null;
     mockApp.globalData.isLoggedIn = false;
     console.log('App logout called');
+  }),
+  updateUserInfo: jest.fn((userInfo) => {
+    mockApp.globalData.userInfo = { ...mockApp.globalData.userInfo, ...userInfo };
   })
 };
 global.getApp = jest.fn(() => mockApp);
