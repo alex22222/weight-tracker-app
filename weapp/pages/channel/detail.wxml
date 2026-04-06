@@ -97,12 +97,12 @@
             <view class="checkin-content">
               <text class="checkin-icon">{{item.entryType === 'weight' ? '⚖️' : '📖'}}</text>
               <block wx:if="{{item.entryType === 'weight'}}">
-                <text>记录了体重 {{item.detail?.weight}} kg</text>
-                <text wx:if="{{item.detail?.note}}" class="checkin-note">{{item.detail.note}}</text>
+                <text>记录了体重 {{item.detail && item.detail.weight ? item.detail.weight : '-'}} kg</text>
+                <text wx:if="{{item.detail && item.detail.note}}" class="checkin-note">{{item.detail.note}}</text>
               </block>
               <block wx:else>
-                <text>阅读了《{{item.detail?.bookName}}》{{item.detail?.pages}} 页</text>
-                <text wx:if="{{item.detail?.note}}" class="checkin-note">{{item.detail.note}}</text>
+                <text>阅读了《{{item.detail && item.detail.bookName ? item.detail.bookName : '-'}}》{{item.detail && item.detail.pages ? item.detail.pages : '-'}} 页</text>
+                <text wx:if="{{item.detail && item.detail.note}}" class="checkin-note">{{item.detail.note}}</text>
               </block>
             </view>
           </view>

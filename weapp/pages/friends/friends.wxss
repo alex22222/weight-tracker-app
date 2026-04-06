@@ -1,13 +1,25 @@
 /* pages/friends/friends.wxss */
 
+page {
+  background: #f8fafc;
+}
+
+.container {
+  padding: 24rpx;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
 /* 头部 */
 .header-section {
   display: flex;
   align-items: center;
   padding: 30rpx;
-  background: linear-gradient(135deg, #34d399, #10b981);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   border-radius: 24rpx;
   margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 24rpx rgba(249, 115, 22, 0.25);
 }
 
 .header-icon {
@@ -35,12 +47,13 @@
 
 .add-btn {
   background: white;
-  color: #10b981;
+  color: #f97316;
   border: none;
   border-radius: 12rpx;
   padding: 20rpx 30rpx;
   font-size: 28rpx;
   font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
 /* 区块 */
@@ -81,7 +94,7 @@
 .user-avatar {
   width: 80rpx;
   height: 80rpx;
-  background: linear-gradient(135deg, #34d399, #10b981);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -299,13 +312,23 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #34d399, #10b981);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   color: white;
   border: none;
   border-radius: 16rpx;
   padding: 24rpx 0;
   font-size: 30rpx;
   font-weight: 600;
+  box-shadow: 0 4rpx 16rpx rgba(249, 115, 22, 0.35);
+}
+
+.btn-primary::after {
+  border: none;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(249, 115, 22, 0.25);
 }
 
 .btn-secondary {

@@ -10,19 +10,21 @@
       </view>
       <view class="header-title">
         <text class="title-main">欢迎「{{welcomeName}}」</text>
-        <text class="title-sub" wx:if="{{todayDate}}">{{todayDate}}</text>
+        <view class="weather-info" wx:if="{{weather}}">
+          <text class="weather-icon">{{weatherIcon}}</text>
+          <text class="weather-temp">{{weather.temperature}}°C · {{todayDate}}</text>
+        </view>
+        <text class="title-sub" wx:else>{{todayDate}}</text>
       </view>
     </view>
     <view class="header-right">
-      <view class="weather-info" wx:if="{{weather}}">
-        <text class="weather-icon">{{weatherIcon}}</text>
-        <text class="weather-temp">{{weather.temperature}}°C</text>
+      <view class="settings-btn" bindtap="toggleSettings">
+        <text class="settings-icon">⚙️</text>
       </view>
       <view class="message-btn" bindtap="openMessageModal">
         <text class="message-icon">🔔</text>
         <view class="message-badge" wx:if="{{unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
       </view>
-      <view class="logout-btn" bindtap="logout">🚪</view>
     </view>
   </view>
 
@@ -195,6 +197,10 @@
     
     <view class="settings-footer">
       <button class="btn-save" bindtap="saveSettings">保存设置</button>
+      <button class="btn-logout" bindtap="logout">
+        <text class="logout-icon">🚪</text>
+        <text>退出登录</text>
+      </button>
     </view>
   </view>
 </view>

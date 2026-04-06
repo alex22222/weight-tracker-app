@@ -2,10 +2,10 @@
 @import './styles/common.wxss';
 
 page {
-  --primary: #10b981;
-  --primary-light: #34d399;
-  --primary-dark: #059669;
-  --secondary: #14b8a6;
+  --primary: #f97316;
+  --primary-light: #fb923c;
+  --primary-dark: #ea580c;
+  --secondary: #fbbf24;
   --danger: #ef4444;
   --warning: #f59e0b;
   --info: #3b82f6;
@@ -128,7 +128,7 @@ page {
 .rounded-full { border-radius: 9999rpx; }
 
 .bg-white { background-color: white; }
-.bg-primary-light { background-color: #d1fae5; }
+.bg-primary-light { background-color: #fff7ed; }
 .bg-blue-light { background-color: #dbeafe; }
 .bg-yellow-light { background-color: #fef3c7; }
 .bg-red-light { background-color: #fee2e2; }

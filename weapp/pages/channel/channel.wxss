@@ -1,7 +1,13 @@
 /* pages/channel/channel.wxss */
+page {
+  background: #f8fafc;
+}
+
 .container {
   padding: 20rpx;
-  padding-bottom: 40rpx;
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* 头部 */
@@ -23,12 +29,13 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: #fff;
   padding: 16rpx 28rpx;
   border-radius: 32rpx;
   font-size: 28rpx;
-  font-weight: 500;
+  font-weight: 600;
+  box-shadow: 0 4rpx 14rpx rgba(249, 115, 22, 0.4);
 }
 
 .action-icon {
@@ -54,7 +61,7 @@
 }
 
 .task-card.active {
-  border-left: 6rpx solid #10b981;
+  border-left: 6rpx solid #f97316;
 }
 
 .task-card.completed {
@@ -164,8 +171,9 @@
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: #fff;
+  box-shadow: 0 4rpx 14rpx rgba(249, 115, 22, 0.35);
 }
 
 .action-btn.accept {
@@ -188,44 +196,64 @@
   color: #dc2626;
 }
 
-/* 空状态 */
+/* 空状态 - 优化设计 */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 120rpx 40rpx;
-  gap: 20rpx;
+  padding: 160rpx 60rpx;
+  gap: 24rpx;
 }
 
 .empty-state.small {
-  padding: 60rpx 40rpx;
+  padding: 80rpx 40rpx;
 }
 
 .empty-icon {
-  font-size: 100rpx;
+  font-size: 120rpx;
+  margin-bottom: 16rpx;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10rpx); }
 }
 
 .empty-title {
-  font-size: 32rpx;
-  font-weight: 600;
+  font-size: 36rpx;
+  font-weight: 700;
   color: #1e293b;
+  letter-spacing: -0.5rpx;
 }
 
 .empty-desc {
-  font-size: 26rpx;
-  color: #94a3b8;
+  font-size: 28rpx;
+  color: #64748b;
   text-align: center;
+  line-height: 1.6;
+  max-width: 480rpx;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: #fff;
   border: none;
   border-radius: 32rpx;
-  padding: 24rpx 48rpx;
+  padding: 28rpx 56rpx;
   font-size: 28rpx;
-  font-weight: 500;
+  font-weight: 600;
   margin-top: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(249, 115, 22, 0.35);
+}
+
+.btn-primary::after {
+  border: none;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(249, 115, 22, 0.25);
 }
 
 .btn-primary::after {
@@ -373,8 +401,8 @@
 }
 
 .type-option.active {
-  border-color: #667eea;
-  background: #f0f9ff;
+  border-color: #f97316;
+  background: #fff7ed;
 }
 
 .type-icon {
@@ -405,8 +433,8 @@
 
 .invite-count {
   font-size: 28rpx;
-  color: #667eea;
-  font-weight: 500;
+  color: #f97316;
+  font-weight: 600;
 }
 
 .invite-arrow {
@@ -432,15 +460,15 @@
 }
 
 .friend-item.selected {
-  border-color: #667eea;
-  background: #f0f9ff;
+  border-color: #f97316;
+  background: #fff7ed;
 }
 
 .friend-avatar {
   width: 72rpx;
   height: 72rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -458,7 +486,7 @@
 .friend-check {
   width: 40rpx;
   height: 40rpx;
-  background: #667eea;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -514,7 +542,7 @@
 
 .sync-btn {
   padding: 12rpx 32rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   color: #fff;
   border-radius: 8rpx;
   font-size: 26rpx;

@@ -1,13 +1,25 @@
 /* pages/messages/messages.wxss */
 
+page {
+  background: #f8fafc;
+}
+
+.container {
+  padding: 24rpx;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
 /* 头部 */
 .header-section {
   display: flex;
   align-items: center;
   padding: 30rpx;
-  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   border-radius: 24rpx;
   margin-bottom: 30rpx;
+  box-shadow: 0 8rpx 24rpx rgba(249, 115, 22, 0.25);
 }
 
 .header-icon {
@@ -89,8 +101,8 @@
 
 .message-type-tag {
   font-size: 20rpx;
-  color: #3b82f6;
-  background: #dbeafe;
+  color: #f97316;
+  background: #fff7ed;
   padding: 4rpx 12rpx;
   border-radius: 8rpx;
   margin-left: 12rpx;

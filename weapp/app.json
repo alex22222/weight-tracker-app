@@ -12,13 +12,13 @@
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#10b981",
+    "navigationBarBackgroundColor": "#f97316",
     "navigationBarTitleText": "打卡了吗",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
     "color": "#94a3b8",
-    "selectedColor": "#10b981",
+    "selectedColor": "#f97316",
     "backgroundColor": "#ffffff",
     "borderStyle": "white",
     "list": [

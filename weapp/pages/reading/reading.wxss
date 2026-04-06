@@ -2,8 +2,10 @@
 
 .container {
   padding: 20rpx;
+  padding-bottom: calc(40rpx + env(safe-area-inset-bottom));
   background: #f8fafc;
   min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* 头部 */
@@ -16,7 +18,7 @@
 .header-icon {
   width: 80rpx;
   height: 80rpx;
-  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   border-radius: 20rpx;
   display: flex;
   align-items: center;
@@ -45,13 +47,14 @@
 
 /* 连续打卡卡片 */
 .streak-card {
-  background: linear-gradient(135deg, #7c3aed, #db2777);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   border-radius: 24rpx;
   padding: 40rpx;
   margin-bottom: 20rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: 0 8rpx 24rpx rgba(249, 115, 22, 0.3);
 }
 
 .streak-content {

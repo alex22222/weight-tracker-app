@@ -40,11 +40,6 @@ Page({
     note: '',
     date: '',
     settings: { height: 170, targetWeight: 65 },
-    tempHeight: '170',
-    tempTargetWeight: '65',
-    tempGender: 'male',
-    tempNickname: '', // 昵称临时值
-    showSettings: false,
     gender: 'male',
     entries: [],
     currentWeight: 0,
@@ -128,10 +123,7 @@ Page({
         }
         gender = settingsResponse.gender || settingsResponse.user?.gender || 'male'
         
-        // 保存昵称和头像到 data
-        if (settingsResponse.user?.nickname) {
-          this.setData({ tempNickname: settingsResponse.user.nickname })
-        }
+        // 保存头像到 data
         if (settingsResponse.user?.avatar) {
           const newUserInfo = { ...app.globalData.userInfo, avatar: settingsResponse.user.avatar }
           app.updateUserInfo(newUserInfo)
@@ -198,9 +190,6 @@ Page({
       entries: sortedEntries, 
       settings, 
       gender,
-      tempHeight: String(settings.height || 170),
-      tempTargetWeight: String(settings.targetWeight || 65),
-      tempGender: gender,
       currentWeight, 
       currentWeightText,
       bmi, 
@@ -244,88 +233,6 @@ Page({
   onDateChange(e) { this.setData({ date: e.detail.value }) },
   onWeightInput(e) { this.setData({ weight: e.detail.value }) },
   onNoteInput(e) { this.setData({ note: e.detail.value }) },
-  onHeightInput(e) { this.setData({ tempHeight: e.detail.value }) },
-  onTargetWeightInput(e) { this.setData({ tempTargetWeight: e.detail.value }) },
-  onGenderChange(e) {
-    const genders = ['male', 'female']
-    this.setData({ tempGender: genders[e.detail.value] })
-  },
-
-  onNicknameInput(e) {
-    const tempNickname = e.detail.value
-    // 更新昵称和头像文字（设置面板中显示）
-    this.setData({ 
-      tempNickname,
-      avatarText: tempNickname ? tempNickname.charAt(0) : this.getAvatarText(this.data.userInfo)
-    })
-  },
-
-  // 选择头像
-  async chooseAvatar() {
-    try {
-      const res = await wx.chooseMedia({
-        count: 1,
-        mediaType: ['image'],
-        sourceType: ['album', 'camera'],
-        sizeType: ['compressed']
-      })
-      
-      const tempFilePath = res.tempFiles[0].tempFilePath
-      
-      // 上传图片到服务器
-      wx.showLoading({ title: '上传中...' })
-      
-      const uploadRes = await this.uploadFile(tempFilePath)
-      
-      // 更新用户头像
-      await app.request({
-        url: '/settings',
-        method: 'POST',
-        data: { avatar: uploadRes.url }
-      })
-      
-      // 更新本地显示
-      const newUserInfo = { ...app.globalData.userInfo, avatar: uploadRes.url }
-      app.updateUserInfo(newUserInfo)
-      this.setData({ 
-        userInfo: newUserInfo,
-        avatarText: this.getAvatarText(newUserInfo)
-      })
-      
-      wx.showToast({ title: '头像已更新', icon: 'success' })
-    } catch (err) {
-      console.error('选择头像失败:', err)
-      wx.showToast({ title: '上传失败', icon: 'none' })
-    }
-  },
-
-  // 上传文件到服务器
-  uploadFile(filePath) {
-    return new Promise((resolve, reject) => {
-      const config = require('../../config.js')
-      // 上传接口需要从 query 传递 token
-      const uploadUrl = `${config.apiBaseUrl}/upload?token=${encodeURIComponent(app.globalData.token || '')}`
-      
-      wx.uploadFile({
-        url: uploadUrl,
-        filePath: filePath,
-        name: 'file',
-        success: (res) => {
-          try {
-            const data = JSON.parse(res.data)
-            if (data.url) {
-              resolve(data)
-            } else {
-              reject(new Error(data.error || '上传失败'))
-            }
-          } catch (e) {
-            reject(e)
-          }
-        },
-        fail: reject
-      })
-    })
-  },
 
   async addEntry() {
     const weight = parseFloat(this.data.weight)
@@ -355,55 +262,6 @@ Page({
       wx.showToast({ title: err.message || '记录失败', icon: 'none' })
     } finally {
       this.setData({ isLoading: false })
-    }
-  },
-
-  toggleSettings() { this.setData({ showSettings: !this.data.showSettings }) },
-  openSettings() { this.setData({ showSettings: true }) },
-
-  async saveSettings() {
-    const height = parseFloat(this.data.tempHeight)
-    const targetWeight = parseFloat(this.data.tempTargetWeight)
-
-    if (isNaN(height) || height <= 0 || isNaN(targetWeight) || targetWeight <= 0) {
-      wx.showToast({ title: '请输入有效的数值', icon: 'none' })
-      return
-    }
-
-    try {
-      // 保存身高、体重目标和昵称
-      await app.request({
-        url: '/settings',
-        method: 'POST',
-        data: { 
-          height, 
-          targetWeight,
-          nickname: this.data.tempNickname 
-        }
-      })
-      await app.request({
-        url: '/settings',
-        method: 'PATCH',
-        data: { gender: this.data.tempGender }
-      })
-      
-      // 更新全局用户信息
-      const newUserInfo = { 
-        ...app.globalData.userInfo, 
-        nickname: this.data.tempNickname || app.globalData.userInfo?.nickname
-      }
-      app.updateUserInfo(newUserInfo)
-      this.setData({ 
-        userInfo: newUserInfo,
-        avatarText: this.getAvatarText(newUserInfo),
-        welcomeName: (newUserInfo?.nickname || newUserInfo?.username || '用户')
-      })
-
-      wx.showToast({ title: '设置已保存', icon: 'success' })
-      this.setData({ showSettings: false })
-      await this.loadData()
-    } catch (err) {
-      wx.showToast({ title: err.message || '保存失败', icon: 'none' })
     }
   },
 
