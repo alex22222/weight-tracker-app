@@ -143,7 +143,7 @@ export interface Friend {
 export interface FitnessChannel {
   id?: number | string
   name: string
-  description?: string
+  description?: string | null
   creatorId: number | string
   weeklyCheckInCount: number
   checkInMinutes: number
@@ -156,14 +156,14 @@ export interface FitnessChannel {
 export interface Goal {
   id?: number | string
   title: string
-  description?: string
+  description?: string | null
   category: 'fitness' | 'reading' | 'study' | 'work' | 'life' | 'other'
   targetCount: number
   currentCount: number
   unit: string
   frequency: 'daily' | 'weekly' | 'monthly' | 'once'
   startDate: Date
-  endDate?: Date
+  endDate?: Date | null
   status: 'active' | 'completed' | 'abandoned'
   userId?: number | string
   createdAt?: Date
@@ -224,10 +224,6 @@ export interface TaskCheckIn {
   entryId: number | string
   entryType: 'weight' | 'reading'
   checkedAt: Date
-  createdAt?: Date
-}
-  userId: number | string
-  content: string
   createdAt?: Date
 }
 
@@ -949,7 +945,7 @@ const cloudbaseAdapter = {
       if (entries.length === 0) return 0
 
       // 按日期去重并排序
-      const dates = [...new Set(entries.map(e => new Date(e.date).toISOString().split('T')[0]))].sort().reverse()
+      const dates = Array.from(new Set(entries.map(e => new Date(e.date).toISOString().split('T')[0]))).sort().reverse()
       
       let streak = 0
       const today = new Date().toISOString().split('T')[0]

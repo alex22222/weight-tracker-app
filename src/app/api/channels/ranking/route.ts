@@ -66,7 +66,13 @@ export async function GET(request: NextRequest) {
     // 这里简化处理，获取所有用户的体重记录作为示例
     // 实际应该获取频道的打卡记录
     const allUsers = await adapter.getAllUsers()
-    const ranking = []
+    const ranking: Array<{
+      userId: string
+      nickname: string
+      avatar: string
+      total: number
+      streak: number
+    }> = []
 
     for (const u of allUsers.slice(0, 10)) {
       const userId = String(u.id)
@@ -116,7 +122,7 @@ function calculateStreak(entries: any[]): number {
   if (entries.length === 0) return 0
   
   // 按日期去重并排序
-  const dates = [...new Set(entries.map(e => new Date(e.date).toISOString().split('T')[0]))].sort().reverse()
+  const dates = Array.from(new Set(entries.map(e => new Date(e.date).toISOString().split('T')[0]))).sort().reverse()
   
   let streak = 0
   const today = new Date().toISOString().split('T')[0]

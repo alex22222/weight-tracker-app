@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       unit: unit.trim(),
       frequency,
       startDate: startDate ? new Date(startDate) : new Date(),
-      endDate: endDate ? new Date(endDate) : null,
+      endDate: endDate ? new Date(endDate) : undefined,
       userId: user.userId,
     })
 

@@ -37,3 +37,6 @@ prisma/migrations/
 
 # OS
 Thumbs.db
+
+# Deploy packages
+deploy-*.zip

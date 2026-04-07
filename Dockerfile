@@ -1,53 +1,52 @@
-# CloudBase CloudRun Dockerfile - Multi-stage build
-# Stage 1: Dependencies
-FROM node:18-alpine AS deps
-RUN apk add --no-cache libc6-compat openssl
-
-WORKDIR /app
-
-# Copy package files
-COPY package.json package-lock.json* ./
-
-# Install dependencies (production only for smaller size)
-# 使用 npm install 代替 npm ci，因为 package-lock.json 可能不存在
-RUN npm install --legacy-peer-deps --ignore-scripts
-
-# Stage 2: Builder
+# 多阶段构建 Dockerfile for CloudBase
+# 构建阶段
 FROM node:18-alpine AS builder
-RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+# 复制 package.json 到根目录
+COPY package*.json ./
 
-# Build application
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+# 安装依赖
+RUN npm install
+
+# 复制源代码
+COPY src ./src
+COPY prisma ./prisma
+COPY next.config.js ./
+COPY tsconfig.json ./
+COPY postcss.config.cjs ./
+COPY tailwind.config.ts ./
+COPY .env.production ./.env.production
+
+# 创建 public 目录（如果不存在）
+RUN mkdir -p public/uploads
+
+# 复制 public 目录（如果存在）
+COPY public ./public
+
+# 构建应用
 RUN npm run build
 
-# Stage 3: Runner (Production image)
+# 生产阶段
 FROM node:18-alpine AS runner
-RUN apk add --no-cache openssl
 
 WORKDIR /app
 
+# 设置环境变量
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=80
-ENV HOSTNAME="0.0.0.0"
+ENV HOSTNAME=0.0.0.0
 
-# Use root user for port 80 binding (CloudBase requirement)
-USER root
-
-# Copy necessary files from builder
-COPY --from=builder /app/public ./public
+# 复制构建产物
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Expose port 80 for CloudBase
+# 复制 public 目录（包含上传的文件）
+COPY --from=builder /app/public ./public
+
+# 暴露端口
 EXPOSE 80
 
-# Start the application
+# 启动应用
 CMD ["node", "server.js"]
