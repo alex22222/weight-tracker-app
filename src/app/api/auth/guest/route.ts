@@ -33,7 +33,7 @@ export async function POST() {
     })
 
     // 生成 token
-    const token = generateToken(user.username, String(user.id))
+    const token = generateToken(user.username || guestUsername, String(user.id))
 
     return NextResponse.json({
       message: '游客登录成功',

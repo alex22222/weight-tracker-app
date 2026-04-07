@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     await adapter.updateUserLoginTime(user.id)
 
     // 生成 token
-    const token = generateToken(user.username, String(user.id))
+    const token = generateToken(user.username || username, String(user.id))
 
     // 登录成功，返回用户信息和 token
     return NextResponse.json({

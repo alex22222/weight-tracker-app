@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     })
 
     // 生成 token
-    const token = generateToken(user.username, String(user.id))
+    const token = generateToken(user.username || username, String(user.id))
 
     return NextResponse.json(
       { 
