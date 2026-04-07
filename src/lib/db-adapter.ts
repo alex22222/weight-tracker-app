@@ -96,8 +96,8 @@ export interface ReadingEntry {
 
 export interface User {
   id?: number | string
-  username: string
-  password: string
+  username?: string | null
+  password?: string | null
   nickname?: string | null
   gender?: string | null
   avatar?: string | null
@@ -945,7 +945,7 @@ const cloudbaseAdapter = {
       if (entries.length === 0) return 0
 
       // 按日期去重并排序
-      const dates = Array.from(new Set(entries.map(e => new Date(e.date).toISOString().split('T')[0]))).sort().reverse()
+      const dates: string[] = Array.from(new Set(entries.map(e => new Date(e.date).toISOString().split('T')[0]))).sort().reverse()
       
       let streak = 0
       const today = new Date().toISOString().split('T')[0]
@@ -1154,7 +1154,7 @@ const cloudbaseAdapter = {
       userId: data.userId,
       status: 'invited',
       totalCount: 0,
-      joinedAt: null,
+      joinedAt: undefined,
     })
     return { id, ...data, status: 'invited', totalCount: 0 } as TaskMember
   },
