@@ -56,13 +56,13 @@ export async function GET(request: NextRequest) {
       const checkInDetails = await Promise.all(
         checkIns.map(async (c: any) => {
           const userInfo = await adapter.findUserById(c.userId)
-          let entryDetail = null
+          let entryDetail: any = null
           if (c.entryType === 'weight') {
             const entries = await adapter.getWeightEntriesByUser(c.userId)
-            entryDetail = entries.find((e: any) => String(e.id) === String(c.entryId))
+            entryDetail = entries.find((e: any) => String(e.id) === String(c.entryId)) || null
           } else {
             const entries = await adapter.getReadingEntriesByUser(c.userId)
-            entryDetail = entries.find((e: any) => String(e.id) === String(c.entryId))
+            entryDetail = entries.find((e: any) => String(e.id) === String(c.entryId)) || null
           }
           return {
             id: c.id,
