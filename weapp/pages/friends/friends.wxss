@@ -133,8 +133,8 @@ page {
 }
 
 .btn-accept {
-  background: #d1fae5;
-  color: #059669;
+  background: #fff7ed;
+  color: #f97316;
   border: none;
   border-radius: 8rpx;
   padding: 16rpx 24rpx;
@@ -180,8 +180,8 @@ page {
 }
 
 .btn-add-small {
-  background: #dbeafe;
-  color: #2563eb;
+  background: #fff7ed;
+  color: #f97316;
   border: none;
   border-radius: 8rpx;
   padding: 16rpx 28rpx;

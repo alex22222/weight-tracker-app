@@ -314,7 +314,7 @@ Page({
         }
 
         if (chartData.length > 1) {
-          ctx.strokeStyle = '#10b981'
+          ctx.strokeStyle = '#f97316'
           ctx.lineWidth = 3
           ctx.lineCap = 'round'
           ctx.lineJoin = 'round'
@@ -333,8 +333,8 @@ Page({
           ctx.closePath()
           
           const gradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + chartHeight)
-          gradient.addColorStop(0, 'rgba(16, 185, 129, 0.3)')
-          gradient.addColorStop(1, 'rgba(16, 185, 129, 0)')
+          gradient.addColorStop(0, 'rgba(249, 115, 22, 0.3)')
+          gradient.addColorStop(1, 'rgba(249, 115, 22, 0)')
           ctx.fillStyle = gradient
           ctx.fill()
         }
@@ -347,13 +347,13 @@ Page({
           ctx.arc(x, y, 6, 0, Math.PI * 2)
           ctx.fillStyle = 'white'
           ctx.fill()
-          ctx.strokeStyle = '#10b981'
+          ctx.strokeStyle = '#f97316'
           ctx.lineWidth = 2
           ctx.stroke()
           
           ctx.beginPath()
           ctx.arc(x, y, 3, 0, Math.PI * 2)
-          ctx.fillStyle = '#10b981'
+          ctx.fillStyle = '#f97316'
           ctx.fill()
 
           ctx.fillStyle = '#64748b'
@@ -378,7 +378,7 @@ Page({
   onShareAppMessage() {
     const username = this.data.userInfo?.nickname || this.data.userInfo?.username || '好友'
     return {
-      title: `${username} 邀请你一起记录体重，坚持健身！`,
+      title: `${username} 邀请你来搭子，一起健身打卡！`,
       path: '/pages/login/login'
     }
   },

@@ -56,7 +56,7 @@
 .type-icon-large {
   width: 100rpx;
   height: 100rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   border-radius: 24rpx;
   display: flex;
   align-items: center;
@@ -96,8 +96,8 @@
 }
 
 .status-badge.active {
-  background: #d1fae5;
-  color: #059669;
+  background: #fff7ed;
+  color: #f97316;
 }
 
 .status-badge.completed {
@@ -187,7 +187,7 @@
 
 .section-subtitle {
   font-size: 26rpx;
-  color: #667eea;
+  color: #f97316;
   font-weight: 500;
 }
 
@@ -212,7 +212,7 @@
 }
 
 .rank-item.me {
-  border: 4rpx solid #667eea;
+  border: 4rpx solid #f97316;
 }
 
 .rank-number {
@@ -247,7 +247,7 @@
   width: 72rpx;
   height: 72rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -297,7 +297,7 @@
   width: 64rpx;
   height: 64rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
   display: flex;
   align-items: center;
   justify-content: center;

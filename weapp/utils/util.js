@@ -7,9 +7,9 @@ function calculateBMI(weight, height) {
 // BMI 分类
 function getBMICategory(bmi) {
   if (bmi <= 0) return { label: '暂无数据', color: '#94a3b8' }
-  if (bmi < 18.5) return { label: '偏瘦', color: '#3b82f6' }
-  if (bmi < 24) return { label: '正常', color: '#10b981' }
-  if (bmi < 28) return { label: '超重', color: '#f59e0b' }
+  if (bmi < 18.5) return { label: '偏瘦', color: '#f97316' }
+  if (bmi < 24) return { label: '正常', color: '#22c55e' }
+  if (bmi < 28) return { label: '超重', color: '#f97316' }
   return { label: '肥胖', color: '#ef4444' }
 }
 
@@ -25,18 +25,18 @@ function getBMIStyles(bmi) {
   }
   if (bmi < 18.5) {
     return { 
-      bg: 'bg-blue-light', 
+      bg: 'bg-orange-light', 
       text: 'text-primary', 
-      border: '2rpx solid #bfdbfe',
-      color: '#3b82f6'
+      border: '2rpx solid #fed7aa',
+      color: '#f97316'
     }
   }
   if (bmi < 24) {
     return { 
-      bg: 'bg-primary-light', 
-      text: 'text-primary', 
+      bg: 'bg-green-light', 
+      text: 'text-success', 
       border: '2rpx solid #a7f3d0',
-      color: '#10b981'
+      color: '#22c55e'
     }
   }
   if (bmi < 28) {

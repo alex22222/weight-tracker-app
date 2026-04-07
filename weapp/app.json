@@ -13,7 +13,7 @@
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#f97316",
-    "navigationBarTitleText": "打卡了吗",
+    "navigationBarTitleText": "搭子",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
@@ -24,19 +24,19 @@
     "list": [
       {
         "pagePath": "pages/home/home",
-        "text": "首页"
+        "text": "搭子"
       },
       {
         "pagePath": "pages/reading/reading",
-        "text": "读书"
+        "text": "读书打卡"
       },
       {
         "pagePath": "pages/index/index",
-        "text": "健身"
+        "text": "健身打卡"
       },
       {
         "pagePath": "pages/channel/channel",
-        "text": "一起打卡"
+        "text": "一起搭"
       },
       {
         "pagePath": "pages/friends/friends",

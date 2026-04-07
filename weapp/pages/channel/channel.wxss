@@ -138,8 +138,8 @@ page {
 }
 
 .task-status-badge.active {
-  background: #d1fae5;
-  color: #059669;
+  background: #fff7ed;
+  color: #f97316;
 }
 
 .task-status-badge.completed {
@@ -177,8 +177,8 @@ page {
 }
 
 .action-btn.accept {
-  background: #d1fae5;
-  color: #059669;
+  background: #fff7ed;
+  color: #f97316;
 }
 
 .action-btn.reject {

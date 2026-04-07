@@ -33,7 +33,7 @@ page {
   overflow: hidden;
   margin-right: 20rpx;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #34d399, #10b981);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -65,7 +65,7 @@ page {
 
 .channel-info {
   font-size: 24rpx;
-  color: #10b981;
+  color: #f97316;
   margin-top: 8rpx;
 }
 
@@ -117,7 +117,7 @@ page {
 }
 
 .bg-primary-light {
-  background: #d1fae5;
+  background: #fff7ed;
 }
 
 .stat-label {
@@ -150,7 +150,7 @@ page {
 }
 
 .text-success {
-  color: #10b981;
+  color: #f97316;
 }
 
 .text-danger {
@@ -230,7 +230,7 @@ page {
 
 /* 按钮 */
 .btn-primary {
-  background: linear-gradient(135deg, #34d399, #10b981);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   color: white;
   border: none;
   border-radius: 12rpx;
@@ -240,6 +240,16 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4rpx 14rpx rgba(249, 115, 22, 0.4);
+}
+
+.btn-primary::after {
+  border: none;
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(249, 115, 22, 0.3);
 }
 
 .btn-primary[disabled] {
@@ -291,8 +301,8 @@ page {
 
 /* 分享卡片 */
 .share-card {
-  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
-  border: 2rpx solid #bbf7d0;
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  border: 2rpx solid #fed7aa;
 }
 
 .share-content {
@@ -321,7 +331,7 @@ page {
 }
 
 .btn-share {
-  background: linear-gradient(135deg, #34d399, #10b981);
+  background: linear-gradient(135deg, #f97316, #ea580c);
   color: white;
   border: none;
   border-radius: 30rpx;
@@ -331,6 +341,16 @@ page {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4rpx 14rpx rgba(249, 115, 22, 0.35);
+}
+
+.btn-share::after {
+  border: none;
+}
+
+.btn-share:active {
+  transform: scale(0.98);
+  box-shadow: 0 2rpx 8rpx rgba(249, 115, 22, 0.25);
 }
 
 .btn-share::after {

@@ -58,7 +58,7 @@ describe('体重管理小程序 - 工具函数测试', () => {
     test('BMI < 18.5 应该返回"偏瘦"', () => {
       const result = util.getBMICategory(17.5);
       expect(result.label).toBe('偏瘦');
-      expect(result.color).toBe('#3b82f6');
+      expect(result.color).toBe('#f97316');
     });
 
     test('BMI = 18.5 应该返回"正常"', () => {
@@ -69,7 +69,7 @@ describe('体重管理小程序 - 工具函数测试', () => {
     test('18.5 <= BMI < 24 应该返回"正常"', () => {
       const result = util.getBMICategory(22);
       expect(result.label).toBe('正常');
-      expect(result.color).toBe('#10b981');
+      expect(result.color).toBe('#22c55e');
     });
 
     test('BMI = 24 应该返回"超重"', () => {
@@ -80,7 +80,7 @@ describe('体重管理小程序 - 工具函数测试', () => {
     test('24 <= BMI < 28 应该返回"超重"', () => {
       const result = util.getBMICategory(26);
       expect(result.label).toBe('超重');
-      expect(result.color).toBe('#f59e0b');
+      expect(result.color).toBe('#f97316');
     });
 
     test('BMI = 28 应该返回"肥胖"', () => {
@@ -112,16 +112,16 @@ describe('体重管理小程序 - 工具函数测试', () => {
       expect(styles.color).toBe('#94a3b8');
     });
 
-    test('偏瘦应该返回蓝色样式', () => {
+    test('偏瘦应该返回橙色样式', () => {
       const styles = util.getBMIStyles(17);
-      expect(styles.bg).toBe('bg-blue-light');
-      expect(styles.color).toBe('#3b82f6');
+      expect(styles.bg).toBe('bg-orange-light');
+      expect(styles.color).toBe('#f97316');
     });
 
     test('正常应该返回绿色样式', () => {
       const styles = util.getBMIStyles(22);
-      expect(styles.bg).toBe('bg-primary-light');
-      expect(styles.color).toBe('#10b981');
+      expect(styles.bg).toBe('bg-green-light');
+      expect(styles.color).toBe('#22c55e');
     });
 
     test('超重应该返回黄色样式', () => {

@@ -2,7 +2,7 @@
 // 本地开发时使用: http://localhost:3000/api
 // 生产环境使用: https://your-service.sh.run.tcloudbase.com/api
 
-const isDevelopment = true  // 设为 true 切换到本地开发环境
+const isDevelopment = false  // 备案通过，已切换到生产环境
 
 const config = {
   // API 基础地址

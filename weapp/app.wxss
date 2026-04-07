@@ -130,6 +130,7 @@ page {
 .bg-white { background-color: white; }
 .bg-primary-light { background-color: #fff7ed; }
 .bg-blue-light { background-color: #dbeafe; }
+.bg-orange-light { background-color: #ffedd5; }
 .bg-yellow-light { background-color: #fef3c7; }
 .bg-red-light { background-color: #fee2e2; }
 .bg-gray-light { background-color: #f1f5f9; }

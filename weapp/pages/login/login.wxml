@@ -4,8 +4,8 @@
     <!-- Logo区域 -->
     <view class="logo-section">
       <view class="logo">⚖️</view>
-      <view class="logo-title">打卡了吗</view>
-      <view class="logo-subtitle">一起记录，坚持打卡</view>
+      <view class="logo-title">搭子</view>
+      <view class="logo-subtitle">找搭子，一起打卡</view>
     </view>
 
     <!-- 功能介绍 -->
