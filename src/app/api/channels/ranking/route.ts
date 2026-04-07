@@ -122,7 +122,7 @@ function calculateStreak(entries: any[]): number {
   if (entries.length === 0) return 0
   
   // 按日期去重并排序
-  const dates: string[] = Array.from(new Set(entries.map(e => new Date(e.date).toISOString().split('T')[0]))).sort().reverse()
+  const dates = Array.from(new Set(entries.map((e: any) => new Date(e.date).toISOString().split('T')[0])) as Set<string>).sort().reverse()
   
   let streak = 0
   const today = new Date().toISOString().split('T')[0]
