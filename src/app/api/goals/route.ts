@@ -1,30 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../lib/db-adapter'
-
-// 验证 Token
-function verifyToken(token: string): { userId: string; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
+import { getUserFromRequest } from '../../../lib/auth'
 
 // GET /api/goals - 获取用户的目标列表
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
 
     // 获取查询参数

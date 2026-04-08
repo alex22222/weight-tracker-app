@@ -2,50 +2,23 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../lib/db-adapter'
 import { testCloudBaseConnection } from '../../../lib/cloudbase'
+import { getUserFromRequest, validators } from '../../../lib/auth'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 
-// 验证 Token 获取用户信息
-function verifyToken(token: string): { userId: string; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
-
-// 获取用户ID（优先从Token，其次从参数）
-async function getUserId(request: NextRequest): Promise<string | null> {
-  // 1. 尝试从 Token 获取
-  const token = request.headers.get('authorization')?.replace('Bearer ', '')
-  if (token) {
-    const user = verifyToken(token)
-    if (user) return user.userId
-  }
-  
-  // 2. 尝试从 Query 参数获取
-  const { searchParams } = new URL(request.url)
-  const userIdFromQuery = searchParams.get('userId')
-  if (userIdFromQuery) return userIdFromQuery
-  
-  return null
-}
-
-// GET /api/weight?userId={userId} - 获取用户的体重记录
+// GET /api/weight - 获取用户的体重记录
 export async function GET(request: NextRequest) {
   console.log('[API /weight] GET request received')
   
   try {
-    const userId = await getUserId(request)
-    console.log('[API /weight] User ID:', userId)
+    // 只能从 Token 获取 userId，不允许从 query 获取
+    const user = getUserFromRequest(request)
+    console.log('[API /weight] User:', user?.userId)
     
-    if (!userId) {
-      console.log('[API /weight] No user ID found')
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    if (!user) {
+      console.log('[API /weight] No valid token')
+      return NextResponse.json({ error: '请先登录' }, { status: 401 })
     }
 
     // 测试 CloudBase 连接
@@ -55,22 +28,21 @@ export async function GET(request: NextRequest) {
     if (!connTest.success) {
       console.error('[API /weight] CloudBase not connected:', connTest.error)
       return NextResponse.json({ 
-        error: 'Database connection failed', 
+        error: '数据库连接失败', 
         details: connTest.error,
         entries: [] 
       }, { status: 500 })
     }
 
-    console.log('[API /weight] Fetching entries for user:', userId)
-    const entries = await adapter.getWeightEntriesByUser(userId)
+    console.log('[API /weight] Fetching entries for user:', user.userId)
+    const entries = await adapter.getWeightEntriesByUser(user.userId)
     console.log('[API /weight] Entries fetched:', entries.length)
     
     return NextResponse.json({ entries })
   } catch (error: any) {
-    console.error('[API /weight] Error:', error.message || error)
+    console.error('[API /weight] Error:', error)
     return NextResponse.json({ 
-      error: 'Failed to fetch entries',
-      details: error.message,
+      error: '获取记录失败',
       entries: []
     }, { status: 500 })
   }
@@ -81,38 +53,37 @@ export async function POST(request: NextRequest) {
   console.log('[API /weight] POST request received')
   
   try {
+    // 验证用户身份
+    const user = getUserFromRequest(request)
+    if (!user) {
+      return NextResponse.json({ error: '请先登录' }, { status: 401 })
+    }
+
     const body = await request.json()
-    const { weight, note, date, userId: userIdFromBody } = body
+    const { weight, note, date } = body
 
-    // 获取 userId（优先从 Token，其次从 Body）
-    let userId: string | null = null
-    
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (token) {
-      const user = verifyToken(token)
-      if (user) userId = user.userId
-    }
-    
-    // 如果 Token 中没有，使用 Body 中的 userId
-    if (!userId && userIdFromBody) {
-      userId = userIdFromBody
+    // 验证体重
+    const weightValidation = validators.weight(weight)
+    if (!weightValidation.valid) {
+      return NextResponse.json({ error: weightValidation.message }, { status: 400 })
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+    // 验证日期
+    const dateValidation = validators.date(date || new Date().toISOString())
+    if (!dateValidation.valid) {
+      return NextResponse.json({ error: dateValidation.message }, { status: 400 })
     }
 
-    if (!weight || isNaN(parseFloat(weight))) {
-      return NextResponse.json({ error: 'Invalid weight value' }, { status: 400 })
-    }
-
-    const entryDate = date ? new Date(date) : new Date()
+    const entryDate = dateValidation.value!
     const dateStr = entryDate.toISOString().split('T')[0] // YYYY-MM-DD
     
-    console.log('[API /weight] Processing entry for user:', userId, 'date:', dateStr, 'weight:', weight)
+    // 清理备注（防 XSS）
+    const sanitizedNote = validators.sanitizeString(note || '', 500)
+    
+    console.log('[API /weight] Processing entry for user:', user.userId, 'date:', dateStr, 'weight:', weightValidation.value)
     
     // 检查是否已有同一天的记录
-    const existingEntries = await adapter.getWeightEntriesByUser(userId)
+    const existingEntries = await adapter.getWeightEntriesByUser(user.userId)
     const existingEntry = existingEntries.find(e => {
       const entryDateStr = new Date(e.date).toISOString().split('T')[0]
       return entryDateStr === dateStr
@@ -120,74 +91,71 @@ export async function POST(request: NextRequest) {
     
     let entry
     if (existingEntry && existingEntry.id) {
+      // 验证记录所有权
+      if (String(existingEntry.userId) !== String(user.userId)) {
+        return NextResponse.json({ error: '无权修改此记录' }, { status: 403 })
+      }
+      
       // 更新已有记录
       console.log('[API /weight] Updating existing entry:', existingEntry.id)
       entry = await adapter.updateWeightEntry(existingEntry.id, {
-        weight: parseFloat(weight),
-        note: note || null,
+        weight: weightValidation.value!,
+        note: sanitizedNote || null,
         date: entryDate,
       })
       console.log('[API /weight] Entry updated:', entry)
     } else {
       // 创建新记录
       entry = await adapter.createWeightEntry({
-        weight: parseFloat(weight),
-        note: note || null,
+        weight: weightValidation.value!,
+        note: sanitizedNote || null,
         date: entryDate,
-        userId: userId,
+        userId: user.userId,
       })
       console.log('[API /weight] Entry created:', entry)
     }
 
     return NextResponse.json(entry)
   } catch (error: any) {
-    console.error('[API /weight] POST Error:', error.message || error)
-    return NextResponse.json({ error: 'Failed to create entry', details: error.message }, { status: 500 })
+    console.error('[API /weight] POST Error:', error)
+    return NextResponse.json({ error: '保存记录失败' }, { status: 500 })
   }
 }
 
-// DELETE /api/weight?id={id}&userId={userId} - 删除体重记录
+// DELETE /api/weight?id={id} - 删除体重记录
 export async function DELETE(request: NextRequest) {
   console.log('[API /weight] DELETE request received')
   
   try {
+    // 验证用户身份
+    const user = getUserFromRequest(request)
+    if (!user) {
+      return NextResponse.json({ error: '请先登录' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    const userIdFromQuery = searchParams.get('userId')
 
     if (!id) {
-      return NextResponse.json({ error: 'Invalid ID' }, { status: 400 })
-    }
-
-    // 获取 userId（优先从 Token，其次从 Query）
-    let userId: string | null = null
-    
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (token) {
-      const user = verifyToken(token)
-      if (user) userId = user.userId
-    }
-    
-    if (!userId && userIdFromQuery) {
-      userId = userIdFromQuery
-    }
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
+      return NextResponse.json({ error: '无效的记录ID' }, { status: 400 })
     }
 
     // 验证记录是否属于该用户
     const entry = await adapter.getWeightEntryById(id)
 
-    if (!entry || entry.userId !== userId) {
-      return NextResponse.json({ error: 'Entry not found or access denied' }, { status: 404 })
+    if (!entry) {
+      return NextResponse.json({ error: '记录不存在' }, { status: 404 })
+    }
+
+    if (String(entry.userId) !== String(user.userId)) {
+      return NextResponse.json({ error: '无权删除此记录' }, { status: 403 })
     }
 
     await adapter.deleteWeightEntry(id)
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('[API /weight] DELETE Error:', error.message || error)
-    return NextResponse.json({ error: 'Failed to delete entry', details: error.message }, { status: 500 })
+    console.error('[API /weight] DELETE Error:', error)
+    return NextResponse.json({ error: '删除记录失败' }, { status: 500 })
   }
 }

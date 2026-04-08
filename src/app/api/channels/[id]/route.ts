@@ -3,16 +3,6 @@ import type { NextRequest } from 'next/server'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
 
 // 验证 Token
-function verifyToken(token: string): { userId: string; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
 
 // GET /api/channels/[id] - 获取频道详情
 export async function GET(
@@ -20,12 +10,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
+    const user = getUserFromRequest(request)
 
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
@@ -80,12 +67,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
+    const user = getUserFromRequest(request)
 
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
@@ -169,12 +153,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
+    const user = getUserFromRequest(request)
 
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }

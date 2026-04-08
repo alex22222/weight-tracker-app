@@ -1,42 +1,34 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
-import { createHash } from 'crypto'
-
-// 简单的密码哈希函数
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex')
-}
-
-// 生成 Token
-function generateToken(username: string, userId: string): string {
-  return Buffer.from(`${username}:${userId}`).toString('base64')
-}
+import { 
+  hashPassword, 
+  generateToken,
+  validators 
+} from '../../../../lib/auth'
 
 // POST /api/auth/register - 用户注册
 export async function POST(request: NextRequest) {
+  console.log('[API /auth/register] Register request received')
+  
   try {
     const body = await request.json()
     const { username, password } = body
 
-    // 验证输入
-    if (!username || !password) {
+    // 验证用户名
+    const usernameValidation = validators.username(username)
+    if (!usernameValidation.valid) {
       return NextResponse.json(
-        { error: '用户名和密码不能为空' },
+        { error: usernameValidation.message },
         { status: 400 }
       )
     }
 
-    if (username.length < 3 || username.length > 20) {
+    // 验证密码
+    const passwordValidation = validators.password(password)
+    if (!passwordValidation.valid) {
       return NextResponse.json(
-        { error: '用户名长度应在 3-20 个字符之间' },
-        { status: 400 }
-      )
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: '密码长度至少为 6 个字符' },
+        { error: passwordValidation.message },
         { status: 400 }
       )
     }
@@ -51,7 +43,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 创建新用户
+    // 创建新用户（使用安全哈希）
     const hashedPassword = hashPassword(password)
     const user = await adapter.createUser({
       username,
@@ -61,6 +53,7 @@ export async function POST(request: NextRequest) {
 
     // 检查用户ID
     if (!user.id) {
+      console.error('[API /auth/register] User ID is missing after creation')
       return NextResponse.json(
         { error: '创建用户失败，请稍后重试' },
         { status: 500 }
@@ -74,8 +67,10 @@ export async function POST(request: NextRequest) {
       targetWeight: 65,
     })
 
-    // 生成 token
-    const token = generateToken(user.username || username, String(user.id))
+    // 生成 JWT Token
+    const token = generateToken(String(user.id), user.username || username)
+
+    console.log('[API /auth/register] Register successful:', username)
 
     return NextResponse.json(
       { 
@@ -85,13 +80,13 @@ export async function POST(request: NextRequest) {
           id: user.id, 
           username: user.username, 
           createdAt: user.createdAt,
-          isNewUser: true // 标记为新用户
+          isNewUser: true
         } 
       },
       { status: 201 }
     )
   } catch (error) {
-    console.error('Error registering user:', error)
+    console.error('[API /auth/register] Error:', error)
     return NextResponse.json(
       { error: '注册失败，请稍后重试' },
       { status: 500 }

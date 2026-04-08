@@ -1,28 +1,16 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { adapter } from '../../../lib/db-adapter'
+import { adapter } from "../../../lib/db-adapter"
+import { getUserFromRequest } from "../../../lib/auth"
 
 // 验证 Token
-function verifyToken(token: string): { userId: string; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
 
 // GET /api/reading - 获取用户的读书记录
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
+    const user = getUserFromRequest(request)
 
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
@@ -53,12 +41,9 @@ export async function GET(request: NextRequest) {
 // POST /api/reading - 提交读书打卡
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
+    const user = getUserFromRequest(request)
 
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }

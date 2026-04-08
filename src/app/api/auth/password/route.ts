@@ -9,26 +9,13 @@ function hashPassword(password: string): string {
 }
 
 // 验证 Token
-function verifyToken(token: string): { userId: string; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
 
 // PUT /api/auth/password - 修改密码
 export async function PUT(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
+    const user = getUserFromRequest(request)
 
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }

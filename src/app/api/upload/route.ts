@@ -1,18 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { cloudbaseApp } from '../../../lib/cloudbase'
-
-// 验证 Token 获取用户ID
-function verifyToken(token: string): { userId: string; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
+import { verifyToken, uploadValidators } from '../../../lib/auth'
 
 // POST /api/upload - 上传文件到 CloudBase 存储
 export async function POST(request: NextRequest) {
@@ -27,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '未登录' }, { status: 401 })
     }
 
-    // 验证 token
+    // 验证 JWT Token
     const user = verifyToken(token)
     if (!user) {
       return NextResponse.json({ error: '无效token' }, { status: 401 })
@@ -41,7 +30,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '没有上传文件' }, { status: 400 })
     }
 
-    const filename = fileField.name || 'img.jpg'
+    // 验证文件
+    const fileValidation = uploadValidators.validateFile(fileField)
+    if (!fileValidation.valid) {
+      return NextResponse.json({ error: fileValidation.message }, { status: 400 })
+    }
+
     const arrayBuffer = await fileField.arrayBuffer()
     const fileData = Buffer.from(arrayBuffer)
 
@@ -50,9 +44,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '空文件' }, { status: 400 })
     }
 
-    // 生成文件名
-    const ext = filename.split('.').pop() || 'jpg'
-    const newName = `avatar_${user.userId}_${Date.now()}.${ext}`
+    // 安全生成文件名
+    const newName = uploadValidators.generateSafeFilename(user.userId, fileField.type)
     const cloudPath = `uploads/${newName}`
 
     try {
@@ -91,21 +84,14 @@ export async function POST(request: NextRequest) {
     } catch (uploadErr: any) {
       console.error('上传失败:', uploadErr)
       
-      // 如果云存储失败，返回 base64 数据（备用方案）
-      const base64Data = fileData.toString('base64')
-      const dataUrl = `data:image/${ext};base64,${base64Data}`
-      
-      console.log('使用 base64 备用方案')
       return NextResponse.json({
-        message: '成功（base64）',
-        url: dataUrl,
-        warning: '云存储上传失败，使用 base64 编码'
-      })
+        error: '文件上传失败: ' + (uploadErr.message || '未知错误')
+      }, { status: 500 })
     }
   } catch (err: any) {
     console.error('错误:', err)
     return NextResponse.json({
-      error: '失败: ' + err.message
+      error: '处理失败: ' + err.message
     }, { status: 500 })
   }
 }

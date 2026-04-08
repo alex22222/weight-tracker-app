@@ -1,48 +1,21 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../lib/db-adapter'
+import { getUserFromRequest } from '../../../lib/auth'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
 
-// 验证 Token 获取用户信息
-function verifyToken(token: string): { userId: string; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
-
-// GET /api/settings?userId={userId} - 获取用户设置
+// GET /api/settings - 获取用户设置
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userIdFromQuery = searchParams.get('userId')
-    
-    // 获取 userId（优先从 Token，其次从 Query）
-    let userId: string | null = null
-    let username: string | null = null
-    
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (token) {
-      const user = verifyToken(token)
-      if (user) {
-        userId = user.userId
-        username = user.username
-      }
+    const user = getUserFromRequest(request)
+    if (!user) {
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
     
-    if (!userId && userIdFromQuery) {
-      userId = userIdFromQuery
-    }
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
-    }
+    const userId = user.userId
+    const username = user.username
 
     let settings = await adapter.getUserSettings(userId)
     
