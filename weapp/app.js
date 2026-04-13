@@ -19,6 +19,18 @@ App({
     const token = wx.getStorageSync('token')
     const userInfo = wx.getStorageSync('userInfo')
     
+    // 检测是否是旧版 Base64 Token（JWT 包含三个点号分隔的部分）
+    if (token && !token.includes('.')) {
+      console.log('[App] 检测到旧版 Token，需要重新登录')
+      // 清除旧 Token
+      wx.removeStorageSync('token')
+      wx.removeStorageSync('userInfo')
+      this.globalData.token = null
+      this.globalData.userInfo = null
+      this.globalData.isLoggedIn = false
+      return
+    }
+    
     this.globalData.token = token || null
     this.globalData.userInfo = userInfo || null
     this.globalData.isLoggedIn = !!token

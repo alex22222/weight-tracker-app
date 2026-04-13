@@ -1,25 +1,12 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter, MessageType, FriendStatus } from '../../../lib/db-adapter'
-
-// 验证 Token
-function getUserFromToken(request: NextRequest): { userId: string; username: string } | null {
-  try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) return null
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
+import { getUserFromRequest } from '../../../lib/auth'
 
 // GET /api/friends - 获取好友列表和待处理请求
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromToken(request)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
@@ -91,7 +78,7 @@ export async function GET(request: NextRequest) {
 // POST /api/friends - 发送好友请求
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromToken(request)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
@@ -160,7 +147,7 @@ export async function POST(request: NextRequest) {
 // PATCH /api/friends - 接受或拒绝好友请求
 export async function PATCH(request: NextRequest) {
   try {
-    const user = getUserFromToken(request)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
@@ -198,8 +185,8 @@ export async function PATCH(request: NextRequest) {
       await adapter.createMessage({
         type: MessageType.FRIEND_ACCEPT,
         content: `${user.username} 已接受你的好友请求`,
-        receiverId: fromUserId,
         senderId: user.userId,
+        receiverId: fromUserId,
       })
       
       return NextResponse.json({ message: '已接受好友请求' })
@@ -211,22 +198,22 @@ export async function PATCH(request: NextRequest) {
       await adapter.createMessage({
         type: MessageType.FRIEND_REJECT,
         content: `${user.username} 拒绝了你的好友请求`,
-        receiverId: fromUserId,
         senderId: user.userId,
+        receiverId: fromUserId,
       })
       
       return NextResponse.json({ message: '已拒绝好友请求' })
     }
   } catch (error) {
     console.error('Error handling friend request:', error)
-    return NextResponse.json({ error: '操作失败' }, { status: 500 })
+    return NextResponse.json({ error: '处理好友请求失败' }, { status: 500 })
   }
 }
 
-// DELETE /api/friends - 删除好友
+// DELETE /api/friends?id={id} - 删除好友
 export async function DELETE(request: NextRequest) {
   try {
-    const user = getUserFromToken(request)
+    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '未登录或登录已过期' }, { status: 401 })
     }
@@ -235,27 +222,14 @@ export async function DELETE(request: NextRequest) {
     const friendId = searchParams.get('id')
 
     if (!friendId) {
-      return NextResponse.json({ error: '无效的好友ID' }, { status: 400 })
+      return NextResponse.json({ error: '缺少好友ID' }, { status: 400 })
     }
 
-    // 查找好友关系
-    const friendRequest = await adapter.findFriendById(friendId)
-    if (!friendRequest) {
-      return NextResponse.json({ error: '好友关系不存在' }, { status: 404 })
-    }
+    await adapter.deleteFriend(friendId, user.userId)
 
-    // 验证权限（只能删除与自己相关的好友关系）
-    const requestUserId = (friendRequest as any).userId
-    const requestFriendId = (friendRequest as any).friendId
-    
-    if (String(requestUserId) !== String(user.userId) && String(requestFriendId) !== String(user.userId)) {
-      return NextResponse.json({ error: '无权删除此好友' }, { status: 403 })
-    }
-
-    await adapter.deleteFriendById(friendId)
-    return NextResponse.json({ message: '好友已删除' })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting friend:', error)
-    return NextResponse.json({ error: '删除失败' }, { status: 500 })
+    return NextResponse.json({ error: '删除好友失败' }, { status: 500 })
   }
 }

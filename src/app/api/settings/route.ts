@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../lib/db-adapter'
-import { getUserFromRequest } from '../../../lib/auth'
+import { getUserFromRequest, validators } from '../../../lib/auth'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -27,17 +27,17 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    // 获取用户信息
-    const user = await adapter.getUserById(userId)
+    // 获取用户信息（使用不同变量名避免冲突）
+    const userInfo = await adapter.getUserById(userId)
     
     return NextResponse.json({ 
       settings,
-      user: user ? { 
-        id: user.id, 
-        username: user.username, 
-        nickname: user.nickname,
-        avatar: user.avatar,
-        gender: user.gender 
+      user: userInfo ? { 
+        id: userInfo.id, 
+        username: userInfo.username, 
+        nickname: userInfo.nickname,
+        avatar: userInfo.avatar,
+        gender: userInfo.gender 
       } : { 
         id: userId, 
         username: username || '用户', 
@@ -55,29 +55,28 @@ export async function GET(request: NextRequest) {
 // POST /api/settings - 更新用户设置
 export async function POST(request: NextRequest) {
   try {
+    // 从 Token 获取用户
+    const user = getUserFromRequest(request)
+    if (!user) {
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
+    }
+    
+    const userId = user.userId
     const body = await request.json()
-    const { userId: userIdFromBody, height, targetWeight, gender, age, avatar, nickname } = body
+    const { height, targetWeight, gender, age, avatar, nickname } = body
 
-    // 获取 userId（优先从 Token，其次从 Body）
-    let userId: string | null = null
-    
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (token) {
-      const user = verifyToken(token)
-      if (user) userId = user.userId
+    // 验证数值
+    if (height !== undefined) {
+      const h = parseFloat(height)
+      if (isNaN(h) || h < 50 || h > 300) {
+        return NextResponse.json({ error: '身高必须在 50-300 cm 之间' }, { status: 400 })
+      }
     }
     
-    if (!userId && userIdFromBody) {
-      userId = userIdFromBody
-    }
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
-    }
-
-    if (height !== undefined && targetWeight !== undefined) {
-      if (isNaN(parseFloat(height)) || isNaN(parseFloat(targetWeight))) {
-        return NextResponse.json({ error: 'Invalid values' }, { status: 400 })
+    if (targetWeight !== undefined) {
+      const w = parseFloat(targetWeight)
+      if (isNaN(w) || w < 10 || w > 500) {
+        return NextResponse.json({ error: '目标体重必须在 10-500 kg 之间' }, { status: 400 })
       }
     }
 
@@ -92,7 +91,9 @@ export async function POST(request: NextRequest) {
     
     // 更新用户昵称（存储在 users 表中）
     if (nickname !== undefined && userId) {
-      await adapter.updateUser(userId, { nickname })
+      await adapter.updateUser(userId, { 
+        nickname: validators.sanitizeString(nickname, 50) 
+      })
     }
 
     if (settings) {

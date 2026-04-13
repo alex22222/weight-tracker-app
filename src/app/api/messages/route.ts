@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { adapter } from '../../../lib/db-adapter'
+import { adapter } from "../../../lib/db-adapter"
+import { getUserFromRequest } from "../../../lib/auth"
+import { getUserFromRequest, generateToken } from '../../../lib/auth'
 
 // 验证 Token
 function getUserFromToken(request: NextRequest): { userId: string; username: string } | null {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) return null
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
+    
+    
   } catch {
     return null
   }

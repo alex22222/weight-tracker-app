@@ -1,51 +1,22 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { adapter } from '../../../../../lib/db-adapter'
+import { adapter } from "../../../lib/db-adapter"
+import { getUserFromRequest } from "../../../lib/auth"
 
 export const dynamic = 'force-dynamic'
 
-function verifyToken(token: string): { userId: string; username: string } | null {
-  try {
-    const decoded = Buffer.from(token, 'base64').toString('utf-8')
-    const [username, userId] = decoded.split(':')
-    if (!username || !userId) return null
-    return { userId, username }
-  } catch {
-    return null
-  }
-}
+
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
-
-    const user = verifyToken(token)
-    if (!user) return NextResponse.json({ error: '无效token' }, { status: 401 })
-
-    const channelId = params.id
-    const checkIns = await adapter.getCheckInsByChannel(channelId)
-    return NextResponse.json({ checkIns })
-  } catch (error) {
-    return NextResponse.json({ error: '获取失败' }, { status: 500 })
-  }
+    
+    
 }
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) return NextResponse.json({ error: '未登录' }, { status: 401 })
-
-    const user = verifyToken(token)
-    if (!user) return NextResponse.json({ error: '无效token' }, { status: 401 })
-
-    const channelId = params.id
-    const body = await request.json()
-    const { checkDate, duration, note, imageUrl } = body
-
-    if (!checkDate) {
-      return NextResponse.json({ error: '请选择日期' }, { status: 400 })
-    }
+    
+    
 
     // 验证日期格式 YYYY-MM-DD
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/
