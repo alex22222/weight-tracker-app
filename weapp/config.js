@@ -4,12 +4,16 @@
 
 const isDevelopment = false  // 生产环境
 
+// 域名配置（备案通过后切换）
+const useCustomDomain = false  // ← 改为 true 启用自定义域名
+
 const config = {
   // API 基础地址
-  // 域名备案通过后，替换为: https://spaceflag.site/api
   apiBaseUrl: isDevelopment 
     ? 'http://localhost:3000/api'  // 本地开发
-    : 'https://weight-tracker-api-236729-9-1328081868.sh.run.tcloudbase.com/api',  // 测试域名，备案通过后替换
+    : useCustomDomain 
+      ? 'https://spaceflag.site/api'      // 自定义域名（备案通过后启用）
+      : 'https://weight-tracker-api-236729-9-1328081868.sh.run.tcloudbase.com/api',  // 测试域名
   
   // 请求超时时间（毫秒）
   timeout: 10000,
