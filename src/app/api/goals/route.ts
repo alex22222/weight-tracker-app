@@ -47,14 +47,9 @@ export async function GET(request: NextRequest) {
 // POST /api/goals - 创建新目标
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -119,14 +114,9 @@ export async function POST(request: NextRequest) {
 // PATCH /api/goals - 更新目标进度或状态
 export async function PATCH(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -178,14 +168,9 @@ export async function PATCH(request: NextRequest) {
 // DELETE /api/goals - 删除目标
 export async function DELETE(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '')
-    if (!token) {
-      return NextResponse.json({ error: '未登录' }, { status: 401 })
-    }
-
-    const user = verifyToken(token)
+    const user = getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
