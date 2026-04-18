@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { adapter, MessageType } from '../../../../lib/db-adapter'
+import { adapter, MessageType } from '../../../../../lib/db-adapter'
 
 // 验证 Token
 

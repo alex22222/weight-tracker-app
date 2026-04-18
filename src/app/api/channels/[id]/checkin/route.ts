@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { adapter } from '../../../../lib/db-adapter'
-import { getUserFromRequest } from '../../../../lib/auth'
+import { adapter } from '../../../../../lib/db-adapter'
+import { getUserFromRequest } from '../../../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
 
