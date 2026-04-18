@@ -43,27 +43,20 @@ export async function PATCH(request: NextRequest) {
 
     const updateData: any = {}
 
-    // 验证并更新昵称
     if (nickname !== undefined) {
       const sanitized = validators.sanitizeString(nickname, 50)
-      if (sanitized) {
-        updateData.nickname = sanitized
-      }
+      if (sanitized) updateData.nickname = sanitized
     }
 
-    // 验证并更新头像
     if (avatar !== undefined) {
       if (typeof avatar === 'string' && avatar.length < 2000) {
         updateData.avatar = avatar
       }
     }
 
-    // 验证并更新性别
     if (gender !== undefined) {
       const validGenders = ['male', 'female', 'other']
-      if (validGenders.includes(gender)) {
-        updateData.gender = gender
-      }
+      if (validGenders.includes(gender)) updateData.gender = gender
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -74,11 +67,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       message: '更新成功',
-      user: {
-        ...updateData,
-        id: user.userId,
-        username: user.username,
-      }
+      user: { ...updateData, id: user.userId, username: user.username }
     })
   } catch (error) {
     console.error('Error updating user:', error)
