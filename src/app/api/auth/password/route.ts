@@ -1,23 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
-import { createHash } from 'crypto'
-
-// 简单的密码哈希函数
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex')
-}
-
-// 验证 Token
+import { getUserFromRequest, verifyPassword, hashPassword } from '../../../../lib/auth'
 
 // PUT /api/auth/password - 修改密码
 export async function PUT(request: NextRequest) {
   try {
     const user = getUserFromRequest(request)
-
-    const user = getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -45,8 +36,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 验证旧密码
-    const hashedOldPassword = hashPassword(oldPassword)
-    if (existingUser.password !== hashedOldPassword) {
+    if (!verifyPassword(oldPassword, existingUser.password || '')) {
       return NextResponse.json({ error: '旧密码错误' }, { status: 401 })
     }
 
