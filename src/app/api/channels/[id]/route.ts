@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter, MessageType } from '../../../../../lib/db-adapter'
-
-// 验证 Token
+import { getUserFromRequest } from '../../../../../lib/auth'
 
 // GET /api/channels/[id] - 获取频道详情
 export async function GET(
@@ -11,10 +10,8 @@ export async function GET(
 ) {
   try {
     const user = getUserFromRequest(request)
-
-    const user = getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
 
     const channelId = params.id
@@ -24,140 +21,80 @@ export async function GET(
       return NextResponse.json({ error: '频道不存在' }, { status: 404 })
     }
 
-    // 根据日期自动判断实时状态
-    const now = new Date()
-    const startDate = channel.startDate ? new Date(channel.startDate) : new Date()
-    const endDate = channel.endDate ? new Date(channel.endDate) : new Date()
-    let realTimeStatus = channel.status
-    
-    if (now < startDate) {
-      realTimeStatus = 'pending'
-    } else if (now >= startDate && now <= endDate) {
-      realTimeStatus = 'active'
-    } else {
-      realTimeStatus = 'completed'
-    }
-    
-    // 返回带实时状态的频道数据，状态值转换为大写
-    const channelWithRealTimeStatus = {
-      ...channel,
-      status: realTimeStatus?.toUpperCase?.() || realTimeStatus
-    }
+    // 检查是否是成员
+    const isMember = channel.members?.some((m: any) => String(m.userId) === String(user.userId))
+    const isOwner = String(channel.creatorId) === String(user.userId)
 
-    // 检查是否是成员或创建者（使用字符串比较避免类型不匹配）
-    const isMember = await adapter.isChannelMember(channelId, user.userId)
-    const isCreator = String(channel.creatorId) === String(user.userId)
-    
-    console.log('[Channel Detail] User:', user.userId, 'Creator:', channel.creatorId, 'isMember:', isMember, 'isCreator:', isCreator)
-    
-    if (!isCreator && !isMember) {
-      return NextResponse.json({ error: '无权访问该频道' }, { status: 403 })
-    }
-
-    return NextResponse.json({ channel: channelWithRealTimeStatus })
+    return NextResponse.json({
+      channel: {
+        ...channel,
+        isMember: isMember || isOwner,
+        isOwner
+      }
+    })
   } catch (error) {
-    console.error('Error getting channel:', error)
+    console.error('获取频道详情错误:', error)
     return NextResponse.json({ error: '获取频道详情失败' }, { status: 500 })
   }
 }
 
-// POST /api/channels/[id] - 邀请好友加入频道
+// POST /api/channels/[id] - 邀请成员加入频道
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const user = getUserFromRequest(request)
-
-    const user = getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
 
     const channelId = params.id
-    const channel = await adapter.getFitnessChannelById(channelId)
+    const body = await request.json()
+    const { userId } = body
 
+    if (!userId) {
+      return NextResponse.json({ error: '缺少用户ID' }, { status: 400 })
+    }
+
+    const channel = await adapter.getFitnessChannelById(channelId)
     if (!channel) {
       return NextResponse.json({ error: '频道不存在' }, { status: 404 })
     }
 
     // 只有创建者可以邀请
-    if (channel.creatorId !== user.userId) {
-      return NextResponse.json({ error: '无权邀请好友' }, { status: 403 })
-    }
-
-    const body = await request.json()
-    const { username } = body
-
-    if (!username) {
-      return NextResponse.json({ error: '请输入用户名' }, { status: 400 })
-    }
-
-    // 查找好友
-    const targetUser = await adapter.findUserByUsername(username)
-    if (!targetUser) {
-      return NextResponse.json({ error: '用户不存在' }, { status: 404 })
-    }
-
-    const targetUserId = targetUser.id
-    if (!targetUserId) {
-      return NextResponse.json({ error: '用户ID无效' }, { status: 404 })
-    }
-
-    // 不能邀请自己
-    if (targetUserId === user.userId) {
-      return NextResponse.json({ error: '不能邀请自己' }, { status: 400 })
-    }
-
-    // 检查是否已经是成员
-    const isAlreadyMember = await adapter.isChannelMember(channelId, targetUserId)
-    if (isAlreadyMember) {
-      return NextResponse.json({ error: '该用户已在频道中' }, { status: 409 })
-    }
-
-    // 检查好友是否已有进行中的频道
-    const friendActiveChannel = await adapter.getActiveChannelForUser(targetUserId)
-    if (friendActiveChannel) {
-      return NextResponse.json({ 
-        error: '该用户已有进行中的健身频道',
-        message: `${username} 当前正在参与「${friendActiveChannel.name}」频道，该频道将于 ${new Date(friendActiveChannel.endDate || '').toLocaleDateString('zh-CN')} 结束。请等待该用户完成当前健身计划后再邀请。`,
-        activeChannel: {
-          id: friendActiveChannel.id,
-          name: friendActiveChannel.name,
-          endDate: friendActiveChannel.endDate,
-        }
-      }, { status: 409 })
+    if (String(channel.creatorId) !== String(user.userId)) {
+      return NextResponse.json({ error: '无权邀请成员' }, { status: 403 })
     }
 
     // 添加成员
-    await adapter.joinFitnessChannel(channelId, targetUserId, targetUser.username || username)
+    await adapter.addChannelMember(channelId, userId, user.username)
 
-    // 发送邀请通知
+    // 发送邀请消息
     await adapter.createMessage({
       type: MessageType.CHANNEL_INVITE,
       content: `${user.username} 邀请你加入健身频道「${channel.name}」`,
       senderId: user.userId,
-      receiverId: targetUserId,
+      receiverId: userId,
+      channelId: channelId,
     })
 
-    return NextResponse.json({ message: '邀请成功' })
+    return NextResponse.json({ message: '邀请已发送' })
   } catch (error) {
-    console.error('Error inviting member:', error)
-    return NextResponse.json({ error: '邀请失败' }, { status: 500 })
+    console.error('邀请成员错误:', error)
+    return NextResponse.json({ error: '邀请成员失败' }, { status: 500 })
   }
 }
 
-// DELETE /api/channels/[id] - 移除成员
+// DELETE /api/channels/[id] - 删除频道
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const user = getUserFromRequest(request)
-
-    const user = getUserFromRequest(request)
     if (!user) {
-      return NextResponse.json({ error: '无效的 token' }, { status: 401 })
+      return NextResponse.json({ error: '未登录或token已过期' }, { status: 401 })
     }
 
     const channelId = params.id
@@ -167,22 +104,16 @@ export async function DELETE(
       return NextResponse.json({ error: '频道不存在' }, { status: 404 })
     }
 
-    // 只有创建者可以移除成员
-    if (channel.creatorId !== user.userId) {
-      return NextResponse.json({ error: '无权操作' }, { status: 403 })
+    // 只有创建者可以删除
+    if (String(channel.creatorId) !== String(user.userId)) {
+      return NextResponse.json({ error: '无权删除频道' }, { status: 403 })
     }
 
-    const { searchParams } = new URL(request.url)
-    const memberId = searchParams.get('memberId')
+    await adapter.deleteFitnessChannel(channelId)
 
-    if (!memberId) {
-      return NextResponse.json({ error: '缺少成员ID' }, { status: 400 })
-    }
-
-    await adapter.leaveFitnessChannel(channelId, memberId)
-    return NextResponse.json({ message: '成员已移除' })
+    return NextResponse.json({ message: '频道已删除' })
   } catch (error) {
-    console.error('Error removing member:', error)
-    return NextResponse.json({ error: '移除失败' }, { status: 500 })
+    console.error('删除频道错误:', error)
+    return NextResponse.json({ error: '删除频道失败' }, { status: 500 })
   }
 }
