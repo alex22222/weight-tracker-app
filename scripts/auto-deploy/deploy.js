@@ -76,18 +76,11 @@ function loginCloudbase() {
 async function uploadPackage(packagePath) {
   log('INFO', `上传部署包: ${packagePath}`);
   
-  const uploadCommand = `tcb cloudrun:deploy \
-    --envId ${CONFIG.envId} \
-    --serviceName ${CONFIG.serviceName} \
-    --region ${CONFIG.region} \
-    --containerPort 80 \
-    --minNum 0 \
-    --maxNum 5 \
-    --cpu 0.5 \
-    --mem 1 \
-    --dockerfile Dockerfile \
-    --codeDir . \
-    --silent`;
+  const uploadCommand = `tcb cloudrun deploy \
+    -e ${CONFIG.envId} \
+    -s ${CONFIG.serviceName} \
+    --port 80 \
+    --source . \
 
   return new Promise((resolve) => {
     const child = spawn('bash', ['-c', uploadCommand], {
@@ -135,7 +128,6 @@ async function monitorDeployment() {
 
   while (Date.now() - startTime < maxWaitTime) {
     const result = execCommand(
-      `tcb cloudrun:list --envId ${CONFIG.envId} --region ${CONFIG.region} --json`,
       { silent: true }
     );
 
@@ -175,7 +167,6 @@ async function monitorDeployment() {
 function getDeployLogs(versionId) {
   log('INFO', `获取部署日志: ${versionId}`);
   const result = execCommand(
-    `tcb cloudrun:logs --envId ${CONFIG.envId} --region ${CONFIG.region} --serviceName ${CONFIG.serviceName} --versionId ${versionId} --tail 100`,
     { silent: true }
   );
   return result.output || result.error;
