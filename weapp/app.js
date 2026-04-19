@@ -19,6 +19,12 @@ App({
     const token = wx.getStorageSync('token')
     const userInfo = wx.getStorageSync('userInfo')
     
+    console.log('[App] checkLoginStatus:', { 
+      hasToken: !!token, 
+      tokenPrefix: token ? token.substring(0, 20) : 'none',
+      isJWT: token && token.includes('.')
+    })
+    
     // 检测是否是旧版 Base64 Token（JWT 包含三个点号分隔的部分）
     if (token && !token.includes('.')) {
       console.log('[App] 检测到旧版 Token，需要重新登录')
@@ -34,6 +40,11 @@ App({
     this.globalData.token = token || null
     this.globalData.userInfo = userInfo || null
     this.globalData.isLoggedIn = !!token
+    
+    console.log('[App] globalData updated:', { 
+      isLoggedIn: this.globalData.isLoggedIn,
+      hasToken: !!this.globalData.token
+    })
   },
 
   // 全局数据

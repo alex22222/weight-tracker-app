@@ -15,8 +15,8 @@ const config = {
       ? 'https://spaceflag.site/api'      // 自定义域名（备案通过后启用）
       : 'https://weight-tracker-api-236729-9-1328081868.sh.run.tcloudbase.com/api',  // 测试域名
   
-  // 请求超时时间（毫秒）
-  timeout: 10000,
+  // 请求超时时间（毫秒）- 增加到30秒避免网络慢导致超时
+  timeout: 30000,
   
   // 版本号
   version: '1.0.0'

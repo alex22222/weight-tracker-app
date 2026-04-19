@@ -75,6 +75,11 @@ Page({
   },
 
   onShow() {
+    console.log('[Home] onShow, globalData:', {
+      isLoggedIn: app.globalData.isLoggedIn,
+      hasToken: !!app.globalData.token,
+      tokenPrefix: app.globalData.token ? app.globalData.token.substring(0, 20) : 'none'
+    })
     this.loadData()
     this.loadWeather()
   },
@@ -94,6 +99,13 @@ Page({
   },
 
   async loadData() {
+    // 检查是否有 token
+    if (!app.globalData.token) {
+      console.log('[Home] 无 token，跳过数据加载')
+      return
+    }
+    
+    console.log('[Home] 开始加载数据...')
     try {
       // 加载体重数据（健身打卡状态）
       await this.loadFitnessStatus()
@@ -112,8 +124,10 @@ Page({
       
       // 加载好友动态
       await this.loadFriendActivities()
+      
+      console.log('[Home] 数据加载完成')
     } catch (err) {
-      console.error('加载首页数据失败:', err)
+      console.error('[Home] 加载首页数据失败:', err)
     }
   },
 

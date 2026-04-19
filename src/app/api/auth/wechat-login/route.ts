@@ -1,21 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
-import { createHash } from 'crypto'
+import { generateToken, hashPassword } from '../../../../lib/auth'
 
 // 微信登录配置
 const WECHAT_APPID = process.env.WECHAT_APPID || ''
 const WECHAT_SECRET = process.env.WECHAT_SECRET || ''
-
-// 密码哈希
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex')
-}
-
-// 生成 Token
-function generateToken(username: string, userId: string): string {
-  return Buffer.from(`${username}:${userId}`).toString('base64')
-}
 
 // POST /api/auth/wechat-login - 微信小程序登录
 export async function POST(request: NextRequest) {

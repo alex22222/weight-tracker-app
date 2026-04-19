@@ -48,8 +48,8 @@ export function generateToken(userId: string, username: string): string {
       username, 
       iat: Math.floor(Date.now() / 1000)
     },
-    JWT_SECRET,
-    { expiresIn: JWT_EXPIRES_IN }
+    JWT_SECRET as jwt.Secret,
+    { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
   )
 }
 

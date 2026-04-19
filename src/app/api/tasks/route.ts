@@ -243,7 +243,6 @@ export async function PATCH(request: NextRequest) {
         userId: user.userId,
         entryId,
         entryType: checkInData.type,
-        checkedAt: new Date(),
       })
 
       // 更新成员打卡次数

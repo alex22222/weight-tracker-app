@@ -50,6 +50,7 @@ export const FriendStatus = {
 }
 
 export const MessageType = {
+  SYSTEM_MESSAGE: 'SYSTEM_MESSAGE',
   SYSTEM_LOGIN: 'SYSTEM_LOGIN',
   SYSTEM_LOGOUT: 'SYSTEM_LOGOUT',
   SYSTEM_REGISTER: 'SYSTEM_REGISTER',
@@ -649,6 +650,12 @@ const cloudbaseAdapter = {
     })
   },
 
+  async deleteFitnessChannel(id: number | string): Promise<void> {
+    await tcbDb.collection(COLLECTIONS.FITNESS_CHANNELS)
+      .doc(String(id))
+      .remove()
+  },
+
   async joinFitnessChannel(channelId: number | string, userId: number | string, username: string): Promise<void> {
     const channel = await this.getFitnessChannelById(channelId)
     if (!channel) throw new Error('Channel not found')
@@ -1197,6 +1204,17 @@ const cloudbaseAdapter = {
     } catch (error) {
       console.error('Error getting task member:', error)
       return null
+    }
+  },
+
+  async incrementTaskMemberCount(taskId: number | string, userId: number | string): Promise<void> {
+    const member = await this.getTaskMember(taskId, userId)
+    if (member) {
+      await tcbDb.collection(COLLECTIONS.TASK_MEMBERS)
+        .doc(String(member.id))
+        .update({
+          totalCount: (member.totalCount || 0) + 1,
+        })
     }
   },
 

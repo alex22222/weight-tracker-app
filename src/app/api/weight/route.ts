@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       console.log('[API /weight] Updating existing entry:', existingEntry.id)
       entry = await adapter.updateWeightEntry(existingEntry.id, {
         weight: weightValidation.value!,
-        note: sanitizedNote || null,
+        note: sanitizedNote || undefined,
         date: entryDate,
       })
       console.log('[API /weight] Entry updated:', entry)
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
       // 创建新记录
       entry = await adapter.createWeightEntry({
         weight: weightValidation.value!,
-        note: sanitizedNote || null,
+        note: sanitizedNote || undefined,
         date: entryDate,
         userId: user.userId,
       })

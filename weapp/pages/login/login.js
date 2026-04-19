@@ -37,8 +37,7 @@ Page({
     })
   },
 
-  // ========== 微信登录 ==========
-  // 获取用户信息并登录
+  // ========== 微信登录（简化版，不使用 getUserProfile） ==========
   async handleWechatLogin() {
     this.setData({ isLoading: true, error: '' })
 
@@ -55,106 +54,57 @@ Page({
         throw new Error('获取登录凭证失败')
       }
 
-      // 2. 获取用户信息（可选，需要用户授权）
-      let userInfo = null
-      try {
-        const profileRes = await new Promise((resolve, reject) => {
-          wx.getUserProfile({
-            desc: '用于完善用户资料',
-            success: resolve,
-            fail: (err) => {
-              // 用户拒绝授权，继续用 code 登录
-              console.log('用户拒绝授权:', err)
-              resolve({ userInfo: null })
-            }
-          })
-        })
-        userInfo = profileRes.userInfo
-      } catch (e) {
-        console.log('获取用户信息失败:', e)
-      }
+      console.log('获取 code 成功:', loginRes.code)
 
-      // 3. 发送到后端验证登录
+      // 2. 发送到后端验证登录（不使用 userInfo，后端会自动处理）
+      console.log('开始调用后端登录...')
       const result = await app.request({
         url: '/auth/wechat-login',
         method: 'POST',
         data: {
           code: loginRes.code,
-          userInfo: userInfo
+          userInfo: { nickName: '微信用户' } // 提供默认昵称
         },
         needAuth: false
       })
 
-      // 4. 保存登录状态
-      app.login(result.token, result.user)
+      console.log('登录返回:', result)
+      console.log('是否有 token:', !!result.token)
+      if (result.token) {
+        console.log('Token 前30位:', result.token.substring(0, 30))
+      }
 
-      wx.showToast({
-        title: result.user.isNewUser ? '注册成功' : '登录成功',
-        icon: 'success'
-      })
+      // 3. 保存登录状态
+      if (result.token) {
+        console.log('调用 app.login 保存 token...')
+        app.login(result.token, result.user)
+        
+        // 验证保存成功
+        const savedToken = wx.getStorageSync('token')
+        console.log('验证保存的 token:', savedToken ? savedToken.substring(0, 30) : '无')
+        
+        wx.showToast({
+          title: result.user.isNewUser ? '注册成功' : '登录成功',
+          icon: 'success'
+        })
 
-      // 5. 跳转到引导页（新用户）或首页（老用户）
-      setTimeout(() => {
-        if (result.user.isNewUser) {
-          // 新用户：清除引导完成标记，跳转到引导页
-          wx.removeStorageSync('onboardingCompleted')
-          wx.redirectTo({ url: '/pages/onboarding/onboarding' })
-        } else {
-          // 老用户：直接跳转到首页
-          wx.switchTab({ url: '/pages/home/home' })
-        }
-      }, 500)
+        // 4. 跳转到引导页（新用户）或首页（老用户）
+        setTimeout(() => {
+          if (result.user.isNewUser) {
+            // 新用户：清除引导完成标记，跳转到引导页
+            wx.removeStorageSync('onboardingCompleted')
+            wx.redirectTo({ url: '/pages/onboarding/onboarding' })
+          } else {
+            // 老用户：直接跳转到首页
+            wx.switchTab({ url: '/pages/home/home' })
+          }
+        }, 500)
+      } else {
+        throw new Error(result.error || '登录失败')
+      }
 
     } catch (err) {
       console.error('微信登录失败:', err)
-      this.setData({
-        error: err.message || '微信登录失败，请重试',
-        isLoading: false
-      })
-    }
-  },
-
-  // 仅使用 code 登录（不获取用户信息）
-  async handleWechatLoginSilent() {
-    this.setData({ isLoading: true, error: '' })
-
-    try {
-      const loginRes = await new Promise((resolve, reject) => {
-        wx.login({
-          success: resolve,
-          fail: reject
-        })
-      })
-
-      if (!loginRes.code) {
-        throw new Error('获取登录凭证失败')
-      }
-
-      const result = await app.request({
-        url: '/auth/wechat-login',
-        method: 'POST',
-        data: { code: loginRes.code },
-        needAuth: false
-      })
-
-      app.login(result.token, result.user)
-
-      wx.showToast({
-        title: result.user.isNewUser ? '注册成功' : '登录成功',
-        icon: 'success'
-      })
-
-      setTimeout(() => {
-        if (result.user.isNewUser) {
-          wx.removeStorageSync('onboardingCompleted')
-          wx.redirectTo({ url: '/pages/onboarding/onboarding' })
-        } else {
-          wx.switchTab({ url: '/pages/home/home' })
-        }
-      }, 500)
-
-    } catch (err) {
-      console.error('微信静默登录失败:', err)
       this.setData({
         error: err.message || '微信登录失败，请重试',
         isLoading: false

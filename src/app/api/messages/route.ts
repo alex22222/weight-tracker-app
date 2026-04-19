@@ -2,13 +2,11 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from "../../../lib/db-adapter"
 import { getUserFromRequest } from "../../../lib/auth"
-import { getUserFromRequest, generateToken } from '../../../lib/auth'
 
 // 验证 Token
 function getUserFromToken(request: NextRequest): { userId: string; username: string } | null {
   try {
-    
-    
+    return getUserFromRequest(request)
   } catch {
     return null
   }

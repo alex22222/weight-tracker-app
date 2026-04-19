@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { adapter } from "../../../lib/db-adapter"
-import { getUserFromRequest } from "../../../lib/auth"
+import { adapter } from "../../../../lib/db-adapter"
+import { getUserFromRequest } from "../../../../lib/auth"
 
 // 验证 Token
 
 // GET /api/channels/ranking - 获取排行榜
 export async function GET(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request)
-
     const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })

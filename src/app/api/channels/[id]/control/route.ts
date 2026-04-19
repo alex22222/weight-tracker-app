@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter, ChannelStatus } from '../../../../../lib/db-adapter'
+import { getUserFromRequest } from '../../../../../lib/auth'
 
 // 验证 Token
 

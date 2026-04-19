@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { adapter, MessageType } from '../../../../../lib/db-adapter'
-import { getUserFromRequest } from '../../../../../lib/auth'
+import { adapter, MessageType } from '../../../../lib/db-adapter'
+import { getUserFromRequest } from '../../../../lib/auth'
 
 // GET /api/channels/[id] - 获取频道详情
 export async function GET(
@@ -68,7 +68,7 @@ export async function POST(
     }
 
     // 添加成员
-    await adapter.addChannelMember(channelId, userId, user.username)
+    await adapter.joinFitnessChannel(channelId, userId, user.username)
 
     // 发送邀请消息
     await adapter.createMessage({

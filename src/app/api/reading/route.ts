@@ -9,8 +9,6 @@ import { getUserFromRequest } from "../../../lib/auth"
 export async function GET(request: NextRequest) {
   try {
     const user = getUserFromRequest(request)
-
-    const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
     }
@@ -41,8 +39,6 @@ export async function GET(request: NextRequest) {
 // POST /api/reading - 提交读书打卡
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request)
-
     const user = getUserFromRequest(request)
     if (!user) {
       return NextResponse.json({ error: '无效的 token' }, { status: 401 })
