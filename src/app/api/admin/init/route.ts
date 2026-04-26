@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
-import { createHash } from 'crypto'
-
-// 简单的密码哈希函数
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex')
-}
+import { hashPassword } from '../../../../lib/auth'
 
 // POST /api/admin/init - 初始化 admin 用户
 export async function POST() {

@@ -1,0 +1,34 @@
+<view class="container">
+  <view class="header">登录测试工具</view>
+  
+  <view class="section">
+    <view class="label">API地址:</view>
+    <view class="api-url">{{apiUrl}}</view>
+  </view>
+
+  <view class="section">
+    <view class="label">测试账号:</view>
+    <input class="input" placeholder="用户名" value="{{testUsername}}" bindinput="onUsernameInput"/>
+    <input class="input" placeholder="密码" value="{{testPassword}}" bindinput="onPasswordInput" password/>
+  </view>
+
+  <view class="button-group">
+    <button class="btn" bindtap="testConnection" disabled="{{isTesting}}">测试连接</button>
+    <button class="btn btn-primary" bindtap="testLogin" disabled="{{isTesting}}">测试登录</button>
+    <button class="btn btn-danger" bindtap="clearResults">清除日志</button>
+  </view>
+
+  <view class="results">
+    <view class="section-title">测试结果</view>
+    <block wx:if="{{results.length === 0}}">
+      <view class="empty">暂无测试结果，点击上方按钮开始测试</view>
+    </block>
+    <block wx:for="{{results}}" wx:key="index">
+      <view class="result-item result-{{item.type}}">
+        <view class="result-time">{{item.time}}</view>
+        <view class="result-message">{{item.message}}</view>
+        <view class="result-detail" wx:if="{{item.detail}}">{{item.detail}}</view>
+      </view>
+    </block>
+  </view>
+</view>

@@ -1,10 +1,6 @@
 import { NextResponse } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
-
-// 生成 Token
-function generateToken(username: string, userId: string): string {
-  return Buffer.from(`${username}:${userId}`).toString('base64')
-}
+import { generateToken } from '../../../../lib/auth'
 
 // POST /api/auth/guest - 创建游客用户
 export async function POST() {

@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     
     // 使用 username 生成 token（如果没有则使用生成的默认用户名）
     const tokenUsername = user.username || user.nickname || '微信用户'
-    const token = generateToken(tokenUsername, String(user.id))
+    const token = generateToken(String(user.id), tokenUsername)
 
     // 返回用户信息
     return NextResponse.json({

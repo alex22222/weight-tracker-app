@@ -9,6 +9,9 @@ Page({
     confirmPassword: '',
     isLoading: false,
     error: '',
+    // 密码显示控制
+    showPassword: false,
+    showConfirmPassword: false,
     // 微信登录相关
     canIUseGetUserProfile: false,
     loginType: 'wechat', // 'wechat' | 'account'
@@ -123,6 +126,15 @@ Page({
 
   onConfirmPasswordInput(e) {
     this.setData({ confirmPassword: e.detail.value, error: '' })
+  },
+
+  // 切换密码显示/隐藏
+  togglePasswordVisibility() {
+    this.setData({ showPassword: !this.data.showPassword })
+  },
+
+  toggleConfirmPasswordVisibility() {
+    this.setData({ showConfirmPassword: !this.data.showConfirmPassword })
   },
 
   toggleMode() {

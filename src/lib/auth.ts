@@ -9,8 +9,18 @@ import type { NextRequest } from 'next/server'
 
 // 配置
 const SALT_ROUNDS = 10
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
+
+// JWT Secret 延迟检查（避免构建时出错）
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET
+  if (!secret && process.env.NODE_ENV === 'production') {
+    console.error('[Auth] ERROR: JWT_SECRET environment variable is required in production')
+    // 返回一个临时值让服务能启动，但会记录错误
+    return 'emergency-fallback-secret-do-not-use-in-production'
+  }
+  return secret || 'dev-secret-do-not-use-in-production'
+}
 
 // 登录失败限制配置
 const MAX_LOGIN_ATTEMPTS = 5
@@ -48,7 +58,7 @@ export function generateToken(userId: string, username: string): string {
       username, 
       iat: Math.floor(Date.now() / 1000)
     },
-    JWT_SECRET as jwt.Secret,
+    getJwtSecret() as jwt.Secret,
     { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
   )
 }
@@ -58,7 +68,7 @@ export function generateToken(userId: string, username: string): string {
  */
 export function verifyToken(token: string): { userId: string; username: string } | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any
+    const decoded = jwt.verify(token, getJwtSecret()) as any
     return { 
       userId: decoded.userId, 
       username: decoded.username 
@@ -221,12 +231,24 @@ export const validators = {
 
   /**
    * 清理字符串（防 XSS）
+   * 使用 HTML 实体编码而非简单移除
    */
   sanitizeString(str: string, maxLength: number = 500): string {
     if (!str || typeof str !== 'string') return ''
     
+    const htmlEntities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#x27;',
+      '/': '&#x2F;',
+      '`': '&#x60;',
+      '=': '&#x3D;'
+    }
+    
     return str
-      .replace(/[<>]/g, '') // 移除尖括号，防止简单的 XSS
+      .replace(/[&<>"'`=/]/g, char => htmlEntities[char] || char)
       .substring(0, maxLength)
       .trim()
   }
