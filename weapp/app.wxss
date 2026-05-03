@@ -30,6 +30,32 @@ page {
   padding: 20rpx;
 }
 
+/* 全局输入框样式 */
+input, textarea {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus, textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3rpx rgba(249, 115, 22, 0.15);
+}
+
+/* 按钮点击态 */
+button, .btn, [bindtap] {
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+button:active, .btn:active, [bindtap]:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+/* 禁用按钮提示 */
+button[disabled] {
+  opacity: 0.5 !important;
+  transform: none !important;
+}
+
 .card {
   background: var(--bg-card);
   border-radius: 24rpx;

@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
 import { generateToken, hashPassword } from '../../../../lib/auth'
+import { pointsService } from '../../../../lib/points-service'
 
-// 微信登录配置
-const WECHAT_APPID = process.env.WECHAT_APPID || ''
-const WECHAT_SECRET = process.env.WECHAT_SECRET || ''
+export const dynamic = 'force-dynamic'
+
+// 微信登录配置 - 硬编码避免 CloudRun 环境变量注入问题
+const WECHAT_APPID = 'wxa3591edcdc8d4551'
+const WECHAT_SECRET = 'ba3a06ee13ac030da702d31cb3799280'
 
 // POST /api/auth/wechat-login - 微信小程序登录
 export async function POST(request: NextRequest) {
@@ -137,6 +140,17 @@ export async function POST(request: NextRequest) {
           receiverId: user.id,
         })
       }
+    }
+
+    // 发放登录积分（异步，不阻塞登录）
+    if (user?.id) {
+      pointsService.handleLoginPoints(user.id).then((pointsLog) => {
+        if (pointsLog) {
+          console.log(`[Points] User ${user.id} earned ${pointsLog.points} points for login`)
+        }
+      }).catch(err => {
+        console.error('[Points] Error awarding login points:', err)
+      })
     }
 
     // 生成 token

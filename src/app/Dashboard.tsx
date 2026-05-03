@@ -8,7 +8,7 @@ import { calculateBMI, getBMICategory, getBMIColors, formatShortDate } from '../
 interface DashboardProps {
   onLogout: () => void
   username?: string
-  userId: number | null
+  userId: string | null
 }
 
 interface WeightEntry {

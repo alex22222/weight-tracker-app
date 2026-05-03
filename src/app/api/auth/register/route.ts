@@ -4,6 +4,8 @@ import { adapter } from '../../../../lib/db-adapter'
 import { hashPassword, generateToken, validators } from '../../../../lib/auth'
 import { strictRateLimit, getClientIP } from '../../../../lib/rate-limit'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // 速率限制检查
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, password } = body
+    const { username, password, email, verifyCode } = body
 
     // 输入长度限制
     if (!username || typeof username !== 'string' || username.length > 50) {
@@ -43,10 +45,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '用户名已被注册' }, { status: 409 })
     }
 
+    // 如果提供了邮箱，验证验证码
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(email)) {
+        return NextResponse.json({ error: '邮箱格式不正确' }, { status: 400 })
+      }
+
+      const emailExists = await adapter.findUserByEmail(email)
+      if (emailExists) {
+        return NextResponse.json({ error: '该邮箱已被注册' }, { status: 409 })
+      }
+
+      if (!verifyCode) {
+        return NextResponse.json({ error: '请输入邮箱验证码' }, { status: 400 })
+      }
+
+      const valid = await adapter.verifyCode(email, verifyCode, 'register')
+      if (!valid) {
+        return NextResponse.json({ error: '验证码错误或已过期' }, { status: 400 })
+      }
+    }
+
     const hashedPassword = hashPassword(password)
     const user = await adapter.createUser({
       username,
       password: hashedPassword,
+      email: email || undefined,
       gender: 'male',
     })
 

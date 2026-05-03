@@ -1,0 +1,213 @@
+/* pages/feedback/feedback.wxss */
+
+page {
+  background: #f8fafc;
+}
+
+.container {
+  padding: 24rpx;
+  padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* 表单卡片 */
+.form-card {
+  background: white;
+  border-radius: 24rpx;
+  padding: 40rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.05);
+}
+
+.form-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8rpx;
+}
+
+.form-subtitle {
+  font-size: 26rpx;
+  color: #94a3b8;
+  margin-bottom: 40rpx;
+}
+
+.form-item {
+  margin-bottom: 32rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 16rpx;
+}
+
+.required {
+  color: #ef4444;
+}
+
+/* 类型选择器 */
+.type-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.type-tag {
+  padding: 16rpx 28rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 2rpx solid transparent;
+  transition: all 0.2s;
+}
+
+.type-tag.active {
+  color: #f97316;
+  background: #fff7ed;
+  border-color: #f97316;
+}
+
+/* 文本框 */
+.feedback-textarea {
+  width: 100%;
+  min-height: 240rpx;
+  padding: 20rpx;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+
+.feedback-textarea:focus {
+  border-color: #f97316;
+}
+
+.char-count {
+  display: block;
+  text-align: right;
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-top: 8rpx;
+}
+
+/* 输入框 */
+.form-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 20rpx;
+  border: 2rpx solid #e2e8f0;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #f97316;
+}
+
+/* 提交按钮 */
+.submit-btn {
+  width: 100%;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 16rpx;
+  border: none;
+  margin-top: 20rpx;
+}
+
+.submit-btn.disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+}
+
+.submit-btn::after {
+  border: none;
+}
+
+/* 历史记录 */
+.history-section {
+  margin-top: 20rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 20rpx;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.history-item {
+  background: white;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.history-type {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #f97316;
+}
+
+.history-status {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.history-status.pending {
+  color: #f59e0b;
+  background: #fef3c7;
+}
+
+.history-status.processing {
+  color: #3b82f6;
+  background: #dbeafe;
+}
+
+.history-status.resolved {
+  color: #10b981;
+  background: #d1fae5;
+}
+
+.history-status.rejected {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.history-content {
+  display: block;
+  font-size: 28rpx;
+  color: #334155;
+  line-height: 1.6;
+  margin-bottom: 12rpx;
+}
+
+.history-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+}

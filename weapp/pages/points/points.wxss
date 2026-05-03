@@ -1,0 +1,385 @@
+page {
+  background: #f8fafc;
+}
+
+.container {
+  padding: 32rpx;
+  padding-bottom: 64rpx;
+}
+
+/* 积分卡片 */
+.points-card {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border-radius: 24rpx;
+  padding: 40rpx;
+  color: white;
+  margin-bottom: 32rpx;
+  box-shadow: 0 8rpx 32rpx rgba(249, 115, 22, 0.3);
+}
+
+.points-header {
+  margin-bottom: 32rpx;
+}
+
+.points-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16rpx;
+}
+
+.points-label {
+  font-size: 28rpx;
+  opacity: 0.9;
+}
+
+.points-help {
+  width: 48rpx;
+  height: 48rpx;
+  background: rgba(255,255,255,0.25);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-icon {
+  font-size: 28rpx;
+}
+
+.points-value {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+}
+
+.points-number {
+  font-size: 72rpx;
+  font-weight: 800;
+}
+
+.points-unit {
+  font-size: 28rpx;
+  opacity: 0.8;
+}
+
+.points-stats {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 24rpx;
+  border-top: 1rpx solid rgba(255,255,255,0.2);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  display: block;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  opacity: 0.8;
+  margin-top: 4rpx;
+  display: block;
+}
+
+/* 排行 */
+.ranking-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.toggle-btn {
+  font-size: 24rpx;
+  color: #f97316;
+}
+
+.ranking-list {
+  margin-top: 16rpx;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.ranking-rank {
+  width: 60rpx;
+  font-size: 32rpx;
+  text-align: center;
+}
+
+.ranking-user {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ranking-name {
+  font-size: 28rpx;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.ranking-streak {
+  font-size: 22rpx;
+  color: #f97316;
+  margin-top: 4rpx;
+}
+
+.ranking-points {
+  text-align: right;
+}
+
+.ranking-score {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.ranking-unit {
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-left: 4rpx;
+}
+
+.ranking-empty {
+  text-align: center;
+  padding: 40rpx 0;
+  font-size: 26rpx;
+  color: #94a3b8;
+}
+
+/* 连续打卡 */
+.streak-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.streak-cards {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 20rpx;
+}
+
+.streak-card {
+  flex: 1;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.streak-icon {
+  font-size: 48rpx;
+}
+
+.streak-info {
+  flex: 1;
+}
+
+.streak-name {
+  font-size: 26rpx;
+  color: #64748b;
+  display: block;
+}
+
+.streak-days {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 4rpx;
+  display: block;
+}
+
+/* 积分记录 */
+.logs-section {
+  background: white;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.logs-list {
+  margin-top: 16rpx;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.log-icon {
+  font-size: 40rpx;
+  margin-right: 16rpx;
+}
+
+.log-info {
+  flex: 1;
+}
+
+.log-title {
+  font-size: 28rpx;
+  color: #1e293b;
+  display: block;
+}
+
+.log-time {
+  font-size: 22rpx;
+  color: #94a3b8;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.log-points {
+  text-align: right;
+}
+
+.points-change {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #22c55e;
+}
+
+.loading-more, .no-more, .empty-logs {
+  text-align: center;
+  padding: 40rpx 0;
+  font-size: 26rpx;
+  color: #94a3b8;
+}
+
+/* 规则浮窗 */
+.rules-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  visibility: hidden;
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.rules-modal.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+.rules-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+}
+
+.rules-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx;
+  padding-bottom: 64rpx;
+  transform: translateY(100%);
+  transition: transform 0.3s;
+}
+
+.rules-modal.show .rules-panel {
+  transform: translateY(0);
+}
+
+.rules-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32rpx;
+}
+
+.rules-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.rules-close {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+  color: #94a3b8;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.rule-icon {
+  font-size: 40rpx;
+  margin-right: 20rpx;
+}
+
+.rule-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rule-name {
+  font-size: 30rpx;
+  color: #1e293b;
+}
+
+.rule-points {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #f97316;
+}
+
+.rule-tip {
+  margin-top: 24rpx;
+  padding: 20rpx;
+  background: #fff7ed;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #c2410c;
+  line-height: 1.5;
+}

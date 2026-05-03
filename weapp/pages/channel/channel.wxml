@@ -128,7 +128,11 @@
             <text class="invite-placeholder">点击选择要邀请的好友</text>
           </block>
           <block wx:else>
-            <text class="invite-count">已选择 {{createForm.invitees.length}} 位好友</text>
+            <view class="invite-list">
+              <view class="invite-tag" wx:for="{{createForm.invitees}}" wx:key="*this">
+                <text>{{getFriendName(item)}}</text>
+              </view>
+            </view>
           </block>
           <text class="invite-arrow">›</text>
         </view>

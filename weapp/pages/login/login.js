@@ -5,6 +5,8 @@ Page({
   data: {
     isRegister: false,
     username: '',
+    email: '',
+    verifyCode: '',
     password: '',
     confirmPassword: '',
     isLoading: false,
@@ -12,9 +14,14 @@ Page({
     // 密码显示控制
     showPassword: false,
     showConfirmPassword: false,
+    // 验证码
+    sendingCode: false,
+    countdown: 0,
     // 微信登录相关
     canIUseGetUserProfile: false,
     loginType: 'wechat', // 'wechat' | 'account'
+    // 隐私政策同意状态
+    agreePrivacy: false,
   },
 
   onLoad() {
@@ -40,8 +47,33 @@ Page({
     })
   },
 
+  // 切换隐私政策同意状态
+  togglePrivacy() {
+    this.setData({ agreePrivacy: !this.data.agreePrivacy })
+  },
+
+  // 跳转到用户协议
+  goToAgreement() {
+    wx.navigateTo({ url: '/pages/agreement/agreement' })
+  },
+
+  // 跳转到隐私政策
+  goToPrivacy() {
+    wx.navigateTo({ url: '/pages/privacy/privacy' })
+  },
+
+  // 检查是否同意隐私政策
+  checkPrivacyAgreement() {
+    if (!this.data.agreePrivacy) {
+      this.setData({ error: '请先阅读并同意《用户协议》和《隐私政策》' })
+      return false
+    }
+    return true
+  },
+
   // ========== 微信登录（简化版，不使用 getUserProfile） ==========
   async handleWechatLogin() {
+    if (!this.checkPrivacyAgreement()) return
     this.setData({ isLoading: true, error: '' })
 
     try {
@@ -137,17 +169,84 @@ Page({
     this.setData({ showConfirmPassword: !this.data.showConfirmPassword })
   },
 
+  onEmailInput(e) {
+    this.setData({ email: e.detail.value, error: '' })
+  },
+
+  onVerifyCodeInput(e) {
+    this.setData({ verifyCode: e.detail.value, error: '' })
+  },
+
+  // 发送验证码
+  async sendVerifyCode() {
+    const { email } = this.data
+    if (!email) {
+      this.setData({ error: '请输入邮箱地址' })
+      return
+    }
+
+    this.setData({ sendingCode: true, error: '' })
+
+    try {
+      const result = await app.request({
+        url: '/auth/verify-code',
+        method: 'POST',
+        data: { email, purpose: 'register' },
+        needAuth: false,
+      })
+
+      wx.showToast({ title: '验证码已发送', icon: 'success' })
+
+      // 开发/测试环境：如果返回了验证码，显示给用户
+      if (result.code) {
+        wx.showModal({
+          title: '开发模式',
+          content: `验证码: ${result.code}`,
+          showCancel: false,
+        })
+      }
+
+      // 开始倒计时
+      this.setData({ countdown: 60 })
+      this.startCountdown()
+    } catch (err) {
+      this.setData({ error: err.message || '发送失败' })
+    } finally {
+      this.setData({ sendingCode: false })
+    }
+  },
+
+  startCountdown() {
+    const timer = setInterval(() => {
+      const { countdown } = this.data
+      if (countdown <= 1) {
+        clearInterval(timer)
+        this.setData({ countdown: 0 })
+      } else {
+        this.setData({ countdown: countdown - 1 })
+      }
+    }, 1000)
+  },
+
+  goToForgotPassword() {
+    wx.navigateTo({ url: '/pages/forgot-password/forgot-password' })
+  },
+
   toggleMode() {
     this.setData({
       isRegister: !this.data.isRegister,
       error: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      email: '',
+      verifyCode: '',
     })
   },
 
   async handleSubmit() {
-    const { isRegister, username, password, confirmPassword } = this.data
+    if (!this.checkPrivacyAgreement()) return
+
+    const { isRegister, username, email, verifyCode, password, confirmPassword } = this.data
 
     // 基础验证
     if (!username || !password) {
@@ -178,7 +277,7 @@ Page({
         const result = await app.request({
           url: '/auth/register',
           method: 'POST',
-          data: { username, password },
+          data: { username, password, email, verifyCode },
           needAuth: false
         })
 
@@ -214,6 +313,7 @@ Page({
 
   // ========== 游客登录 ==========
   async guestLogin() {
+    if (!this.checkPrivacyAgreement()) return
     this.setData({ isLoading: true, error: '' })
 
     try {

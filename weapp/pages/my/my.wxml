@@ -1,0 +1,23 @@
+<!--pages/my/my.wxml-->
+<view class="container">
+  <!-- 功能入口 -->
+  <view class="menu-section">
+    <view class="menu-item" bindtap="goToSettings">
+      <text class="menu-icon">⚙️</text>
+      <text class="menu-text">设置</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="goToFeedback">
+      <text class="menu-icon">💬</text>
+      <text class="menu-text">问题反馈</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state">
+    <text class="empty-icon">📋</text>
+    <text class="empty-text">个人习惯记录工具</text>
+    <text class="empty-subtext">记录读书与健身，养成好习惯</text>
+  </view>
+</view>

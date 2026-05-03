@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { weight, note, date } = body
+    const { weight, note, date, imageUrl } = body
 
     // 验证体重
     const weightValidation = validators.weight(weight)
@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
       entry = await adapter.updateWeightEntry(existingEntry.id, {
         weight: weightValidation.value!,
         note: sanitizedNote || undefined,
+        imageUrl: imageUrl || undefined,
         date: entryDate,
       })
       console.log('[API /weight] Entry updated:', entry)
@@ -109,6 +110,7 @@ export async function POST(request: NextRequest) {
       entry = await adapter.createWeightEntry({
         weight: weightValidation.value!,
         note: sanitizedNote || undefined,
+        imageUrl: imageUrl || undefined,
         date: entryDate,
         userId: user.userId,
       })

@@ -4,7 +4,7 @@ const util = require('../../utils/util.js')
 
 Page({
   data: {
-    // 连续打卡天数
+    // 连续记录天数
     streakDays: 0,
     
     // 表单数据
@@ -18,8 +18,11 @@ Page({
     // 阅读记录
     records: [],
     
-    // 今天是否已打卡
-    hasCheckedInToday: false
+    // 今天是否已记录
+    hasCheckedInToday: false,
+
+    // 推荐书籍
+    recommendBooks: []
   },
 
   onLoad() {
@@ -32,12 +35,34 @@ Page({
 
   async loadData() {
     try {
-      const result = await app.request({ url: '/reading' })
+      const [readingResult, lastResult, recommendResult] = await Promise.all([
+        app.request({ url: '/reading' }),
+        app.request({ url: '/last-record?type=reading' }),
+        app.request({ url: '/reading/recommendations' }).catch(() => ({ books: [] }))
+      ])
+      
+      let lastRecord = null
+      if (lastResult.entry) {
+        const entry = lastResult.entry
+        const date = new Date(entry.date)
+        const now = new Date()
+        const diffTime = now.getTime() - date.getTime()
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        
+        lastRecord = {
+          bookName: entry.bookName,
+          pages: entry.pages,
+          formattedDate: `${date.getMonth() + 1}月${date.getDate()}日`,
+          daysAgo: diffDays
+        }
+      }
       
       this.setData({
-        streakDays: result.streak || 0,
-        records: result.entries || [],
-        hasCheckedInToday: this.checkIfCheckedInToday(result.entries || [])
+        streakDays: readingResult.streak || 0,
+        records: readingResult.entries || [],
+        hasCheckedInToday: this.checkIfCheckedInToday(readingResult.entries || []),
+        lastRecord,
+        recommendBooks: recommendResult.books || []
       })
     } catch (err) {
       console.error('加载读书数据失败:', err)
@@ -48,7 +73,7 @@ Page({
     }
   },
 
-  // 检查今天是否已打卡
+  // 检查今天是否已记录
   checkIfCheckedInToday(entries) {
     const today = util.getTodayString()
     return entries.some(e => e.date === today)
@@ -69,7 +94,7 @@ Page({
     this.setData({ note: e.detail.value })
   },
 
-  // 提交打卡
+  // 提交记录
   async submitCheckIn() {
     const { bookName, pages, note, hasCheckedInToday } = this.data
     
@@ -85,7 +110,7 @@ Page({
     }
 
     if (hasCheckedInToday) {
-      wx.showToast({ title: '今天已经打卡了', icon: 'none' })
+      wx.showToast({ title: '今天已经记录过了', icon: 'none' })
       return
     }
 
@@ -104,7 +129,7 @@ Page({
       })
 
       wx.showToast({
-        title: '打卡成功',
+        title: '记录成功',
         icon: 'success'
       })
 
@@ -120,9 +145,9 @@ Page({
       // 刷新记录列表
       await this.loadData()
     } catch (err) {
-      console.error('打卡失败:', err)
+      console.error('记录失败:', err)
       wx.showToast({
-        title: err.message || '打卡失败',
+        title: err.message || '记录失败',
         icon: 'none'
       })
     } finally {

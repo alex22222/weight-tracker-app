@@ -9,16 +9,44 @@
     </view>
   </view>
 
+  <!-- 操作栏 -->
+  <view class="action-bar" wx:if="{{messages.length > 0}}">
+    <view class="action-btn batch-mode" bindtap="toggleBatchMode">
+      <text class="action-icon">{{batchMode ? '✓' : '☑️'}}</text>
+      <text>{{batchMode ? '完成' : '批量管理'}}</text>
+    </view>
+    <view class="action-btn clear-all" bindtap="clearAllMessages" wx:if="{{!batchMode}}">
+      <text class="action-icon">🗑️</text>
+      <text>清空全部</text>
+    </view>
+    <view class="action-btn select-all" bindtap="selectAll" wx:if="{{batchMode}}">
+      <text class="action-icon">🔲</text>
+      <text>全选</text>
+    </view>
+    <view class="action-btn batch-delete" bindtap="batchDelete" wx:if="{{batchMode && selectedIds.length > 0}}">
+      <text class="action-icon">🗑️</text>
+      <text>删除({{selectedIds.length}})</text>
+    </view>
+  </view>
+
   <!-- 消息列表 -->
   <view class="message-list" wx:if="{{messages.length > 0}}">
     <view 
-      class="message-item {{!item.isRead ? 'unread' : ''}}"
+      class="message-item {{!item.isRead ? 'unread' : ''}} {{batchMode ? 'batch-mode' : ''}}"
       wx:for="{{messages}}"
       wx:key="id"
-      bindtap="handleMessageTap"
+      bindtap="{{batchMode ? 'toggleSelect' : 'handleMessageTap'}}"
+      data-id="{{item.id}}"
       data-message="{{item}}"
     >
-      <view class="message-icon">{{getMessageIcon(item.type)}}</view>
+      <!-- 批量选择复选框 -->
+      <view class="message-checkbox" wx:if="{{batchMode}}">
+        <view class="checkbox {{selectedIds.includes(item.id) ? 'checked' : ''}}">
+          <text wx:if="{{selectedIds.includes(item.id)}}">✓</text>
+        </view>
+      </view>
+
+      <view class="message-icon" wx:if="{{!batchMode}}">{{getMessageIcon(item.type)}}</view>
       <view class="message-content">
         <view class="message-header">
           <text class="message-title">{{item.title}}</text>
@@ -27,7 +55,7 @@
         <text class="message-text">{{item.content}}</text>
         <text class="message-time">{{item.createdAt}}</text>
       </view>
-      <view class="message-actions">
+      <view class="message-actions" wx:if="{{!batchMode}}">
         <view class="unread-dot" wx:if="{{!item.isRead}}"></view>
         <view class="delete-btn" catchtap="deleteMessage" data-id="{{item.id}}">🗑️</view>
       </view>

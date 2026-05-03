@@ -5,13 +5,6 @@ App({
   onLaunch() {
     // 检查登录状态
     this.checkLoginStatus()
-    
-    // 如果未登录，跳转到登录页
-    if (!this.globalData.isLoggedIn) {
-      wx.reLaunch({
-        url: '/pages/login/login'
-      })
-    }
   },
 
   // 检查登录状态
@@ -51,7 +44,8 @@ App({
   globalData: {
     isLoggedIn: false,
     token: null,
-    userInfo: null
+    userInfo: null,
+    apiBaseUrl: config.apiBaseUrl
   },
 
   // 封装请求方法

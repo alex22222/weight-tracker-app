@@ -1,0 +1,72 @@
+<!--pages/feedback/feedback.wxml-->
+<view class="container">
+  <!-- 反馈表单 -->
+  <view class="form-card">
+    <view class="form-title">💬 问题反馈</view>
+    <view class="form-subtitle">遇到问题了？告诉我们，我们会尽快处理</view>
+
+    <!-- 反馈类型 -->
+    <view class="form-item">
+      <text class="form-label">反馈类型 <text class="required">*</text></text>
+      <view class="type-selector">
+        <view 
+          class="type-tag {{type === item.value ? 'active' : ''}}"
+          wx:for="{{types}}"
+          wx:key="value"
+          bindtap="selectType"
+          data-value="{{item.value}}"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 反馈内容 -->
+    <view class="form-item">
+      <text class="form-label">问题描述 <text class="required">*</text></text>
+      <textarea 
+        class="feedback-textarea"
+        placeholder="请详细描述你遇到的问题..."
+        maxlength="1000"
+        bindinput="onContentInput"
+        value="{{content}}"
+      />
+      <text class="char-count">{{content.length}}/1000</text>
+    </view>
+
+    <!-- 联系方式 -->
+    <view class="form-item">
+      <text class="form-label">联系方式（选填）</text>
+      <input 
+        class="form-input"
+        placeholder="微信 / 邮箱 / 手机号"
+        bindinput="onContactInput"
+        value="{{contact}}"
+      />
+    </view>
+
+    <!-- 提交按钮 -->
+    <button 
+      class="submit-btn"
+      bindtap="submitFeedback"
+      disabled="{{isSubmitting}}"
+    >
+      {{isSubmitting ? '提交中...' : '提交反馈'}}
+    </button>
+  </view>
+
+  <!-- 历史反馈 -->
+  <view class="history-section" wx:if="{{history.length > 0}}">
+    <view class="section-title">📋 我的反馈记录</view>
+    <view class="history-list">
+      <view class="history-item" wx:for="{{history}}" wx:key="id">
+        <view class="history-header">
+          <text class="history-type">{{getTypeLabel(item.type)}}</text>
+          <view class="history-status {{item.status}}">{{getStatusLabel(item.status)}}</view>
+        </view>
+        <text class="history-content">{{item.content}}</text>
+        <text class="history-time">{{item.createdAt}}</text>
+      </view>
+    </view>
+  </view>
+</view>

@@ -13,6 +13,8 @@ import {
 } from '../../../../lib/auth'
 import { strictRateLimit, getClientIP } from '../../../../lib/rate-limit'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // 速率限制检查

@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
 import { hashPassword } from '../../../../lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/admin/reset-admin - 重置 admin 密码
 export async function POST(request: NextRequest) {
   try {

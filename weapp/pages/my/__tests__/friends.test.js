@@ -1,4 +1,4 @@
-// pages/friends/friends.test.js - 好友页测试
+// pages/my/my.test.js - 我的页面测试
 const path = require('path');
 
 // 加载页面：直接 require 页面 JS 并捕获 Page() 传入的配置对象
@@ -20,7 +20,7 @@ const getPage = () => {
   return capturedOptions;
 };
 
-describe('好友页 (pages/friends/friends)', () => {
+describe('我的页面 (pages/my/my)', () => {
   let page;
   let pageInstance;
 

@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { adapter, MessageType, FriendStatus } from '../../../lib/db-adapter'
 import { getUserFromRequest } from '../../../lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/friends - 获取好友列表和待处理请求
 export async function GET(request: NextRequest) {
   try {
@@ -54,7 +56,8 @@ export async function GET(request: NextRequest) {
           id: u.id,
           username: u.username,
           nickname: u.nickname || null,                                       // 保留原始nickname
-          displayName: u.nickname ? `${u.nickname} (${u.username})` : u.username  // 展示用名称
+          avatar: u.avatar || null,                                           // 头像URL
+          displayName: u.nickname || u.username                               // 展示用名称（昵称优先）
         }))
       
       console.log('[Friends Suggestions] Filtered suggestions:', suggestions.length)

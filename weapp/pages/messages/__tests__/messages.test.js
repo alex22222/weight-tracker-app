@@ -185,7 +185,7 @@ describe('消息页 (pages/messages/messages)', () => {
         }
       });
       expect(wx.navigateTo).toHaveBeenCalledWith({
-        url: '/pages/friends/friends'
+        url: '/pages/my/my'
       });
     });
 

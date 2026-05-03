@@ -1,20 +1,75 @@
 'use client'
 
-import { useState } from 'react'
-import { Scale, Activity, TrendingUp, User, Lock, ChevronRight, UserPlus, ArrowLeft } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Shield, User, Lock, ChevronRight, Sparkles } from 'lucide-react'
 
 interface LoginPageProps {
-  onLogin: (username?: string, userId?: number, rememberMe?: boolean) => Promise<void> | void
+  onLogin: (username?: string, userId?: string, rememberMe?: boolean) => Promise<void> | void
+  onError?: (msg: string) => void
 }
 
-export default function LoginPage({ onLogin }: LoginPageProps) {
-  const [isRegister, setIsRegister] = useState(false)
+// 浮动粒子背景组件
+function FloatingParticles() {
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    size: Math.random() * 6 + 2,
+    left: Math.random() * 100,
+    delay: Math.random() * 8,
+    duration: Math.random() * 6 + 8,
+    opacity: Math.random() * 0.4 + 0.1,
+  }))
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute rounded-full animate-float"
+          style={{
+            width: p.size,
+            height: p.size,
+            left: `${p.left}%`,
+            bottom: '-20px',
+            background: 'linear-gradient(135deg, rgba(249,115,22,0.6), rgba(239,68,68,0.4))',
+            opacity: p.opacity,
+            animationDelay: `${p.delay}s`,
+            animationDuration: `${p.duration}s`,
+            boxShadow: `0 0 ${p.size * 3}px rgba(249,115,22,0.3)`,
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+// 网格背景
+function GridBackground() {
+  return (
+    <div 
+      className="absolute inset-0 opacity-[0.03]"
+      style={{
+        backgroundImage: `
+          linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)
+        `,
+        backgroundSize: '60px 60px',
+      }}
+    />
+  )
+}
+
+export default function LoginPage({ onLogin, onError }: LoginPageProps) {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [mounted, setMounted] = useState(false)
+  const [focusField, setFocusField] = useState<string | null>(null)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,54 +77,28 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setIsLoading(true)
 
     try {
-      if (isRegister) {
-        // 注册验证
-        if (password !== confirmPassword) {
-          setError('两次输入的密码不一致')
-          setIsLoading(false)
-          return
-        }
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
 
-        // 调用注册 API
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        })
+      const data = await res.json()
 
-        const data = await res.json()
-
-        if (!res.ok) {
-          setError(data.error || '注册失败')
-          setIsLoading(false)
-          return
-        }
-
-        // 注册成功，自动切换到登录
-        setIsRegister(false)
-        setPassword('')
-        setConfirmPassword('')
-        setError('')
-        alert('注册成功，请登录')
-      } else {
-        // 调用登录 API
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        })
-
-        const data = await res.json()
-
-        if (!res.ok) {
-          setError(data.error || '登录失败')
-          setIsLoading(false)
-          return
-        }
-
-        // 登录成功
-        onLogin(username, data.user.id, rememberMe)
+      if (!res.ok) {
+        setError(data.error || '登录失败')
+        setIsLoading(false)
+        return
       }
+
+      if (username !== 'admin') {
+        setError('请使用管理员账户登录')
+        if (onError) onError('请使用管理员账户登录')
+        setIsLoading(false)
+        return
+      }
+
+      onLogin(username, data.user.id, rememberMe)
     } catch (err) {
       setError('网络错误，请稍后重试')
     } finally {
@@ -77,208 +106,155 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     }
   }
 
-  const toggleMode = () => {
-    setIsRegister(!isRegister)
-    setError('')
-    setPassword('')
-    setConfirmPassword('')
-    setRememberMe(false)
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-5xl grid lg:grid-cols-2 gap-8 items-center">
-        {/* 左侧欢迎信息 */}
-        <div className="text-center lg:text-left space-y-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl shadow-lg shadow-emerald-200 mb-4">
-            <Scale className="w-10 h-10 text-white" />
+    <div className="min-h-screen relative overflow-hidden bg-[#0a0e1a] flex items-center justify-center p-4">
+      {/* 背景层 */}
+      <GridBackground />
+      <FloatingParticles />
+      
+      {/* 渐变光晕 */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-[128px] animate-pulse-slow" />
+      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-[128px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
+      
+      {/* 主内容 */}
+      <div className={`w-full max-w-md relative z-10 transition-all duration-700 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        {/* Logo区域 */}
+        <div className="text-center mb-8">
+          <div className="relative inline-block mb-6">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl blur-xl opacity-50 animate-pulse-slow" />
+            <div className="relative inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-orange-400 via-orange-500 to-red-500 rounded-2xl shadow-2xl">
+              <Shield className="w-10 h-10 text-white" strokeWidth={2.5} />
+            </div>
+            <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg flex items-center justify-center shadow-lg">
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+            </div>
           </div>
-          
-          <h1 className="text-4xl lg:text-5xl font-bold text-slate-800 leading-tight">
-            体重管理器
-            <span className="block text-emerald-600 mt-2">Weight Tracker</span>
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">
+            管理后台
           </h1>
-          
-          <p className="text-lg text-slate-600 max-w-md mx-auto lg:mx-0">
-            记录、追踪、分析您的体重变化，开启健康生活之旅
+          <p className="text-slate-400 text-sm font-medium tracking-wide">
+            ADMIN CONSOLE
           </p>
-          
-          <div className="grid grid-cols-3 gap-4 pt-6">
-            <div className="text-center p-4 bg-white/60 backdrop-blur-sm rounded-xl">
-              <Activity className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
-              <p className="text-sm font-medium text-slate-700">记录体重</p>
-            </div>
-            <div className="text-center p-4 bg-white/60 backdrop-blur-sm rounded-xl">
-              <TrendingUp className="w-6 h-6 text-teal-500 mx-auto mb-2" />
-              <p className="text-sm font-medium text-slate-700">趋势分析</p>
-            </div>
-            <div className="text-center p-4 bg-white/60 backdrop-blur-sm rounded-xl">
-              <Scale className="w-6 h-6 text-cyan-500 mx-auto mb-2" />
-              <p className="text-sm font-medium text-slate-700">BMI计算</p>
-            </div>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <div className="h-px w-8 bg-gradient-to-r from-transparent to-orange-500/50" />
+            <span className="text-xs text-orange-400/70 uppercase tracking-widest">习惯追踪</span>
+            <div className="h-px w-8 bg-gradient-to-l from-transparent to-orange-500/50" />
           </div>
         </div>
 
-        {/* 右侧表单 */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-200/50 p-8 lg:p-10">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">
-              {isRegister ? '创建账户' : '欢迎回来'}
-            </h2>
-            <p className="text-slate-500">
-              {isRegister ? '注册新账户开始管理体重' : '登录您的账户开始管理体重'}
-            </p>
-          </div>
-
-          {/* 错误提示 */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-              {error}
+        {/* 登录卡片 */}
+        <div className="relative">
+          {/* 卡片光晕 */}
+          <div className="absolute -inset-px bg-gradient-to-b from-white/10 via-white/5 to-transparent rounded-3xl blur-sm" />
+          
+          <div className="relative bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] rounded-3xl shadow-2xl shadow-black/20 p-8 overflow-hidden">
+            {/* 顶部装饰线 */}
+            <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-orange-500/30 to-transparent" />
+            
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-1 h-6 bg-gradient-to-b from-orange-400 to-red-500 rounded-full" />
+              <h2 className="text-lg font-semibold text-white">管理员登录</h2>
             </div>
-          )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-slate-400" />
+            {/* 错误提示 */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/5 border border-red-500/20 rounded-xl relative overflow-hidden group">
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-400 to-red-600" />
+                <p className="text-red-400 text-sm font-medium pl-2">{error}</p>
               </div>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                placeholder="用户名"
-                required
-                minLength={3}
-                maxLength={20}
-              />
-            </div>
+            )}
 
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-slate-400" />
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* 用户名输入 */}
+              <div className="relative group">
+                <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${focusField === 'username' ? 'bg-orange-500/5 ring-1 ring-orange-500/20' : ''}`} />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                  <User className={`h-5 w-5 transition-colors duration-300 ${focusField === 'username' ? 'text-orange-400' : 'text-slate-500'}`} />
+                </div>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  onFocus={() => setFocusField('username')}
+                  onBlur={() => setFocusField(null)}
+                  className="relative w-full pl-12 pr-4 py-3.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/40 focus:bg-white/[0.06] transition-all duration-300"
+                  placeholder="管理员用户名"
+                  required
+                  minLength={3}
+                  maxLength={20}
+                />
               </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                placeholder="密码"
-                required
-                minLength={6}
-              />
-            </div>
 
-            {/* 注册模式显示确认密码 */}
-            {isRegister && (
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-slate-400" />
+              {/* 密码输入 */}
+              <div className="relative group">
+                <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${focusField === 'password' ? 'bg-orange-500/5 ring-1 ring-orange-500/20' : ''}`} />
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                  <Lock className={`h-5 w-5 transition-colors duration-300 ${focusField === 'password' ? 'text-orange-400' : 'text-slate-500'}`} />
                 </div>
                 <input
                   type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                  placeholder="确认密码"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setFocusField('password')}
+                  onBlur={() => setFocusField(null)}
+                  className="relative w-full pl-12 pr-4 py-3.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/40 focus:bg-white/[0.06] transition-all duration-300"
+                  placeholder="密码"
                   required
                   minLength={6}
                 />
               </div>
-            )}
 
-            {/* 登录模式显示记住我和忘记密码 */}
-            {!isRegister && (
+              {/* 记住我 */}
               <div className="flex items-center justify-between text-sm">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500" 
-                  />
-                  <span className="text-slate-600">记住我（7天）</span>
+                <label className="flex items-center gap-2.5 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="peer sr-only"
+                    />
+                    <div className="w-[18px] h-[18px] rounded border border-slate-600 bg-slate-800/50 peer-checked:bg-gradient-to-br peer-checked:from-orange-400 peer-checked:to-red-500 peer-checked:border-orange-400 transition-all duration-200 flex items-center justify-center">
+                      {rememberMe && (
+                        <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
+                          <path d="M2.5 6.5L4.5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-slate-400 group-hover:text-slate-300 transition-colors">记住我（7天）</span>
                 </label>
-                <button type="button" className="text-emerald-600 hover:text-emerald-700 font-medium">
-                  忘记密码？
-                </button>
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70"
-            >
-              {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : isRegister ? (
-                <>
-                  <UserPlus className="w-5 h-5" />
-                  注册
-                </>
-              ) : (
-                <>
-                  登录
-                  <ChevronRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* 切换登录/注册模式 */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-slate-400">
-                {isRegister ? '已有账户？' : '还没有账户？'}
-              </span>
-            </div>
+              {/* 登录按钮 */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="relative w-full py-3.5 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 text-white font-semibold rounded-xl overflow-hidden group disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-lg hover:shadow-orange-500/20 hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+                <span className="relative flex items-center justify-center gap-2">
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      登录
+                      <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+                    </>
+                  )}
+                </span>
+              </button>
+            </form>
           </div>
-
-          <button
-            onClick={toggleMode}
-            className="w-full py-3.5 border-2 border-slate-200 text-slate-700 font-medium rounded-xl hover:border-emerald-500 hover:text-emerald-600 transition-all duration-200 flex items-center justify-center gap-2"
-          >
-            {isRegister ? (
-              <>
-                <ArrowLeft className="w-4 h-4" />
-                返回登录
-              </>
-            ) : (
-              <>
-                <UserPlus className="w-4 h-4" />
-                注册新账户
-              </>
-            )}
-          </button>
-
-          {/* 游客访问 */}
-          {!isRegister && (
-            <button
-              onClick={async () => {
-                // 创建临时游客用户
-                try {
-                  const res = await fetch('/api/auth/guest', { method: 'POST' })
-                  if (res.ok) {
-                    const data = await res.json()
-                    onLogin(data.user.username, data.user.id)
-                  } else {
-                    alert('游客登录失败')
-                  }
-                } catch (err) {
-                  alert('网络错误')
-                }
-              }}
-              className="w-full mt-4 py-3.5 text-slate-500 font-medium rounded-xl hover:text-slate-700 transition-all duration-200"
-            >
-              游客访问
-            </button>
-          )}
         </div>
+
+        {/* 底部 */}
+        <p className="text-center text-slate-600 text-xs mt-8 tracking-wide">
+          © 2026 习惯追踪 · 管理员专用入口
+        </p>
       </div>
+
+
     </div>
   )
 }

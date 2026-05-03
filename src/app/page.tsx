@@ -12,7 +12,7 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [username, setUsername] = useState('用户')
-  const [userId, setUserId] = useState<number | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
 
   // 初始化 admin 用户
@@ -44,8 +44,11 @@ export default function Home() {
       if (storedUsername) {
         setUsername(storedUsername)
       }
-      if (storedUserId) {
-        setUserId(parseInt(storedUserId))
+      if (storedUserId && storedUserId !== 'NaN' && storedUserId !== 'null' && storedUserId !== '') {
+        setUserId(storedUserId)
+      } else {
+        // 清理无效的用户ID
+        localStorage.removeItem('userId')
       }
       if (storedIsAdmin === 'true') {
         setIsAdmin(true)
@@ -62,7 +65,7 @@ export default function Home() {
     localStorage.removeItem('loginExpireTime')
   }
 
-  const handleLogin = (name?: string, id?: number, rememberMe?: boolean) => {
+  const handleLogin = (name?: string, id?: string, rememberMe?: boolean) => {
     setIsLoggedIn(true)
     localStorage.setItem('isLoggedIn', 'true')
     

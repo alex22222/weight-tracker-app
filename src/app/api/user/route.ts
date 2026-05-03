@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { adapter } from '../../../lib/db-adapter'
 import { getUserFromRequest, validators } from '../../../lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/user - 获取当前用户信息
 export async function GET(request: NextRequest) {
   try {

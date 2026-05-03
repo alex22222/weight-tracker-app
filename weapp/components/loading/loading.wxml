@@ -1,0 +1,6 @@
+<view class="loading-container {{type === 'page' ? 'loading-page' : ''}}" wx:if="{{visible}}">
+  <view class="loading-content">
+    <view class="loading-spinner"></view>
+    <text class="loading-text" wx:if="{{text}}">{{text}}</text>
+  </view>
+</view>

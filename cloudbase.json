@@ -18,11 +18,20 @@
         "DB_TYPE": "cloudbase",
         "CLOUDBASE_ENV_ID": "weight-tracker-1ghr085dd7d6cff2",
         "PORT": "80",
-        "HOSTNAME": "0.0.0.0"
+        "HOSTNAME": "0.0.0.0",
+        "JWT_SECRET": "weight-tracker-v2-secret-key-2026-03-21",
+        "WECHAT_APPID": "wxa3591edcdc8d4551",
+        "ALLOWED_ORIGINS": "https://www.spaceflag.site,https://spaceflag.site",
+        "TENCENT_SECRET_ID": "AKIDcW6lfYF21mGJPuxJz7ds7o4LjQ6YIb3cJhyZCUJ_J9Zcb7vluvh6fywSnJKLBtJt",
+        "TENCENT_SECRET_KEY": "bRXBhJHZO/sBTdPYmoxayECynBCLmlgipb3E4hJqL4E=",
+        "WECHAT_SECRET": "ba3a06ee13ac030da702d31cb3799280"
       },
       "buildParams": {
         "dockerfilePath": "Dockerfile",
-        "buildDir": "."
+        "buildDir": ".",
+        "buildArgs": {
+          "BUILD_ID": "20260503-215300"
+        }
       }
     }
   ]

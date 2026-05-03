@@ -9,7 +9,7 @@ Page({
     welcomeName: '用户',
     todayDate: '',
     
-    // 今日打卡状态
+    // 今日记录状态
     fitnessChecked: false,
     readingChecked: false,
     
@@ -61,13 +61,7 @@ Page({
       { id: 'pig', emoji: '🐷', name: '小猪' },
     ],
     
-    // 消息
-    showMessageModal: false,
-    messages: [],
-    unreadCount: 0,
-    
-    // 好友动态
-    friendActivities: []
+
   },
 
   onLoad() {
@@ -91,6 +85,7 @@ Page({
     const todayDate = `${today.getMonth() + 1}月${today.getDate()}日 ${weekDays[today.getDay()]}`
     
     this.setData({
+      isLoggedIn: app.globalData.isLoggedIn,
       userInfo: userInfo,
       avatarText: this.getAvatarText(userInfo),
       welcomeName: (userInfo?.nickname || userInfo?.username || '用户'),
@@ -98,16 +93,24 @@ Page({
     })
   },
 
+  // 跳转到登录页
+  goToLogin() {
+    wx.navigateTo({ url: '/pages/login/login' })
+  },
+
   async loadData() {
-    // 检查是否有 token
+    // 更新登录状态
+    this.setData({ isLoggedIn: app.globalData.isLoggedIn })
+
+    // 未登录时只加载公开数据
     if (!app.globalData.token) {
-      console.log('[Home] 无 token，跳过数据加载')
+      console.log('[Home] 未登录，跳过个人数据加载')
       return
     }
     
     console.log('[Home] 开始加载数据...')
     try {
-      // 加载体重数据（健身打卡状态）
+      // 加载体重数据（健身记录状态）
       await this.loadFitnessStatus()
       
       // 加载统计数据
@@ -119,44 +122,9 @@ Page({
       // 加载设置
       await this.loadSettings()
       
-      // 加载未读消息数
-      await this.loadUnreadCount()
-      
-      // 加载好友动态
-      await this.loadFriendActivities()
-      
       console.log('[Home] 数据加载完成')
     } catch (err) {
       console.error('[Home] 加载首页数据失败:', err)
-    }
-  },
-
-  // 加载未读消息数
-  async loadUnreadCount() {
-    try {
-      const result = await app.request({ url: '/messages' })
-      const messages = result.messages || []
-      const unreadCount = messages.filter(m => !m.isRead).length
-      this.setData({ unreadCount })
-    } catch (err) {
-      console.error('加载未读消息数失败:', err)
-    }
-  },
-
-  // 加载好友动态
-  async loadFriendActivities() {
-    try {
-      const result = await app.request({
-        url: '/friends?type=activity'
-      })
-      const activities = (result.activities || []).map(a => ({
-        ...a,
-        timeAgo: this.formatTimeAgo(a.createdAt || a.date)
-      }))
-      this.setData({ friendActivities: activities })
-    } catch (err) {
-      console.error('加载好友动态失败:', err)
-      this.setData({ friendActivities: [] })
     }
   },
 
@@ -187,7 +155,7 @@ Page({
     return name.charAt(0)
   },
 
-  // 加载健身打卡状态
+  // 加载健身记录状态
   async loadFitnessStatus() {
     try {
       const result = await app.request({ url: '/weight' })
@@ -212,17 +180,17 @@ Page({
   // 加载统计数据
   async loadStats() {
     try {
-      // 获取健身连续打卡天数
+      // 获取健身连续记录天数
       const weightResult = await app.request({ url: '/weight' })
       const weightEntries = weightResult.entries || []
       const fitnessStreak = this.calculateStreak(weightEntries)
       
-      // 获取读书连续打卡天数和状态
+      // 获取读书连续记录天数和状态
       const readingResult = await app.request({ url: '/reading' })
       const readingEntries = readingResult.entries || []
       const readingStreak = readingResult.streak || 0
       
-      // 检查今天是否已读书打卡
+      // 检查今天是否已读书记录
       const today = util.getTodayString()
       const todayReadingEntry = readingEntries.find(e => e.date === today)
       
@@ -236,7 +204,7 @@ Page({
     }
   },
 
-  // 计算连续打卡天数
+  // 计算连续记录天数
   calculateStreak(entries) {
     if (entries.length === 0) return 0
     
@@ -247,7 +215,7 @@ Page({
     const today = new Date().toISOString().split('T')[0]
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
     
-    // 检查今天或昨天是否有打卡
+    // 检查今天或昨天是否有记录
     if (dates[0] === today || dates[0] === yesterday) {
       streak = 1
       for (let i = 1; i < dates.length; i++) {
@@ -508,13 +476,6 @@ Page({
     this.toggleGoalModal()
   },
 
-  // 跳转到好友页面
-  goToFriends() {
-    wx.switchTab({
-      url: '/pages/friends/friends'
-    })
-  },
-
   // 切换目标创建弹窗
   toggleGoalModal() {
     this.setData({
@@ -598,21 +559,21 @@ Page({
     }
   },
 
-  // 目标打卡
+  // 目标记录
   async checkInGoal(e) {
     const { id } = e.currentTarget.dataset
-    wx.showLoading({ title: '打卡中...' })
+    wx.showLoading({ title: '记录中...' })
     try {
       await app.request({
         url: '/goals',
         method: 'PATCH',
         data: { id, action: 'increment', increment: 1 }
       })
-      wx.showToast({ title: '打卡成功', icon: 'success' })
+      wx.showToast({ title: '记录成功', icon: 'success' })
       await this.loadGoals()
     } catch (err) {
-      console.error('打卡失败:', err)
-      wx.showToast({ title: '打卡失败', icon: 'none' })
+      console.error('记录失败:', err)
+      wx.showToast({ title: '记录失败', icon: 'none' })
     } finally {
       wx.hideLoading()
     }
@@ -662,40 +623,6 @@ Page({
   // 阻止触摸穿透
   preventTouchMove() {},
 
-  // ========== 消息模块 ==========
-  
-  // 打开消息弹窗
-  openMessageModal() {
-    this.setData({ showMessageModal: true })
-    this.loadMessages()
-  },
-  
-  // 关闭消息弹窗
-  closeMessageModal() {
-    this.setData({ showMessageModal: false })
-  },
-  
-  // 加载消息列表
-  async loadMessages() {
-    try {
-      const result = await app.request({ url: '/messages' })
-      console.log('[Messages] Loaded:', result.messages)
-      const messages = (result.messages || []).map(m => ({
-        id: m.id || m._id,
-        content: m.content,
-        type: m.type,
-        isRead: m.isRead,
-        friendRequestId: m.friendRequestId || m.friend_request_id || null,
-        timeAgo: this.formatTimeAgo(m.createdAt)
-      }))
-      console.log('[Messages] Processed:', messages)
-      const unreadCount = messages.filter(m => !m.isRead).length
-      this.setData({ messages, unreadCount })
-    } catch (err) {
-      console.error('加载消息失败:', err)
-    }
-  },
-  
   // 格式化时间为相对时间
   formatTimeAgo(timestamp) {
     if (!timestamp) return ''
@@ -712,106 +639,5 @@ Page({
     if (diff < day) return Math.floor(diff / hour) + '小时前'
     if (diff < 7 * day) return Math.floor(diff / day) + '天前'
     return date.toISOString().split('T')[0]
-  },
-  
-  // 点击消息
-  async onMessageTap(e) {
-    const { id } = e.currentTarget.dataset
-    const message = this.data.messages.find(m => m.id === id)
-    if (!message || message.isRead) return
-    
-    try {
-      await app.request({
-        url: '/messages',
-        method: 'PATCH',
-        data: { messageId: id }
-      })
-      // 更新本地状态
-      const messages = this.data.messages.map(m => 
-        m.id === id ? { ...m, isRead: true } : m
-      )
-      const unreadCount = messages.filter(m => !m.isRead).length
-      this.setData({ messages, unreadCount })
-    } catch (err) {
-      console.error('标记已读失败:', err)
-    }
-  },
-  
-  // 标记全部已读
-  async markAllAsRead() {
-    if (this.data.unreadCount === 0) return
-    
-    try {
-      await app.request({
-        url: '/messages',
-        method: 'PATCH',
-        data: { markAll: true }
-      })
-      const messages = this.data.messages.map(m => ({ ...m, isRead: true }))
-      this.setData({ messages, unreadCount: 0 })
-      wx.showToast({ title: '已全部标记为已读', icon: 'success' })
-    } catch (err) {
-      console.error('标记全部已读失败:', err)
-      wx.showToast({ title: '操作失败', icon: 'none' })
-    }
-  },
-  
-  // 删除消息
-  async deleteMessage(e) {
-    const { id } = e.currentTarget.dataset
-    
-    const res = await wx.showModal({
-      title: '确认删除',
-      content: '确定要删除这条消息吗？'
-    })
-    
-    if (!res.confirm) return
-    
-    try {
-      await app.request({
-        url: `/messages?id=${id}`,
-        method: 'DELETE'
-      })
-      await this.loadMessages()
-      wx.showToast({ title: '已删除', icon: 'success' })
-    } catch (err) {
-      console.error('删除消息失败:', err)
-      wx.showToast({ title: '删除失败', icon: 'none' })
-    }
-  },
-
-  // 处理好友请求（接受/拒绝）
-  async handleFriendRequest(e) {
-    const { id, action } = e.currentTarget.dataset
-    
-    console.log('[FriendRequest] ID:', id, 'Action:', action)
-    
-    if (!id || id === 'null' || id === 'undefined') {
-      wx.showToast({ title: '请求ID无效，请刷新重试', icon: 'none' })
-      return
-    }
-    
-    wx.showLoading({ title: '处理中...' })
-    try {
-      const result = await app.request({
-        url: '/friends',
-        method: 'PATCH',
-        data: { friendId: id, action }
-      })
-      
-      wx.showToast({ 
-        title: action === 'accept' ? '已接受好友请求' : '已拒绝好友请求', 
-        icon: 'success' 
-      })
-      
-      // 刷新消息列表和好友动态
-      await this.loadMessages()
-      await this.loadFriendActivities()
-    } catch (err) {
-      console.error('处理好友请求失败:', err)
-      wx.showToast({ title: err.message || '操作失败', icon: 'none' })
-    } finally {
-      wx.hideLoading()
-    }
   }
 })

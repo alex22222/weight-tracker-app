@@ -33,6 +33,9 @@ export const COLLECTIONS = {
   TASKS: 'tasks',
   TASK_MEMBERS: 'task_members',
   TASK_CHECK_INS: 'task_check_ins',
+  FEEDBACK: 'feedback',
+  VERIFICATION_CODES: 'verification_codes',
+  BOOK_RECOMMENDATIONS: 'book_recommendations',
 }
 
 // ==================== 常量定义 ====================
@@ -80,6 +83,7 @@ export interface WeightEntry {
   id?: number | string
   weight: number
   note?: string | null
+  imageUrl?: string | null
   date: Date
   createdAt?: Date
   userId?: number | string
@@ -99,6 +103,7 @@ export interface User {
   id?: number | string
   username?: string | null
   password?: string | null
+  email?: string | null
   nickname?: string | null
   gender?: string | null
   avatar?: string | null
@@ -243,15 +248,19 @@ export interface LeaveRequest {
 // ==================== CloudBase 适配器 ====================
 
 const cloudbaseAdapter = {
+  db: tcbDb,
+
   // ========== 用户相关 ==========
-  async createUser(data: { username: string; password: string; gender?: string }): Promise<User> {
-    const { id } = await tcbDb.collection(COLLECTIONS.USERS).add({
+  async createUser(data: { username: string; password: string; email?: string; gender?: string }): Promise<User> {
+    const userData: any = {
       username: data.username,
       password: data.password,
       gender: data.gender || 'other',
       createdAt: new Date(),
       updatedAt: new Date(),
-    })
+    }
+    if (data.email) userData.email = data.email
+    const { id } = await tcbDb.collection(COLLECTIONS.USERS).add(userData)
     return { id, ...data } as User
   },
 
@@ -265,6 +274,14 @@ const cloudbaseAdapter = {
 
   async findUserByUsername(username: string): Promise<User | null> {
     return this.getUserByUsername(username)
+  },
+
+  async findUserByEmail(email: string): Promise<User | null> {
+    const { data } = await tcbDb.collection(COLLECTIONS.USERS)
+      .where({ email })
+      .limit(1)
+      .get()
+    return data[0] ? { ...data[0], id: data[0]._id } : null
   },
 
   async getUserById(id: number | string): Promise<User | null> {
@@ -330,15 +347,6 @@ const cloudbaseAdapter = {
     })
   },
 
-  async updateUserLastLogin(id: number | string): Promise<void> {
-    const doc = await tcbDb.collection(COLLECTIONS.USERS)
-      .doc(String(id))
-    await doc.update({
-      lastLoginAt: new Date(),
-      updatedAt: new Date(),
-    })
-  },
-
   async updateUserGender(id: number | string, gender: string): Promise<void> {
     const doc = await tcbDb.collection(COLLECTIONS.USERS)
       .doc(String(id))
@@ -349,14 +357,16 @@ const cloudbaseAdapter = {
   },
 
   // ========== 体重记录相关 ==========
-  async createWeightEntry(data: { weight: number; note?: string; date: Date; userId: number | string }): Promise<WeightEntry> {
-    const { id } = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES).add({
+  async createWeightEntry(data: { weight: number; note?: string; imageUrl?: string; date: Date; userId: number | string }): Promise<WeightEntry> {
+    const entryData: any = {
       weight: data.weight,
       note: data.note,
       date: data.date,
       userId: data.userId,
       createdAt: new Date(),
-    })
+    }
+    if (data.imageUrl) entryData.imageUrl = data.imageUrl
+    const { id } = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES).add(entryData)
     return { id, ...data } as WeightEntry
   },
 
@@ -401,10 +411,29 @@ const cloudbaseAdapter = {
     return data[0] ? { ...data[0], id: data[0]._id } : null
   },
 
-  async updateWeightEntry(id: number | string, data: { weight?: number; note?: string; date?: Date }): Promise<WeightEntry> {
+  async getLastWeightEntryByUser(userId: number | string): Promise<WeightEntry | null> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
+        .where({ userId })
+        .orderBy('date', 'desc')
+        .limit(1)
+        .get()
+      const data = result.data || []
+      return data[0] ? { ...data[0], id: data[0]._id } : null
+    } catch (error) {
+      console.error('Error getting last weight entry:', error)
+      return null
+    }
+  },
+
+  async updateWeightEntry(id: number | string, data: { weight?: number; note?: string; imageUrl?: string; date?: Date }): Promise<WeightEntry> {
     const doc = await tcbDb.collection(COLLECTIONS.WEIGHT_ENTRIES)
       .doc(String(id))
-    await doc.update(data)
+    const updateData: any = { ...data }
+    if (updateData.imageUrl === null || updateData.imageUrl === undefined) {
+      delete updateData.imageUrl
+    }
+    await doc.update(updateData)
     return { id, ...data } as WeightEntry
   },
 
@@ -529,6 +558,20 @@ const cloudbaseAdapter = {
     }
   },
 
+  async deleteAllMessages(userId: number | string): Promise<number> {
+    const { data } = await tcbDb.collection(COLLECTIONS.MESSAGES)
+      .where({
+        receiverId: userId
+      })
+      .get()
+    for (const msg of data) {
+      const doc = await tcbDb.collection(COLLECTIONS.MESSAGES)
+        .doc(String(msg._id))
+      await doc.remove()
+    }
+    return data.length
+  },
+
   // ========== 好友相关 ==========
   async createFriendRequest(data: { userId: number | string; friendId: number | string }): Promise<Friend> {
     const { id } = await tcbDb.collection(COLLECTIONS.FRIENDS).add({
@@ -571,23 +614,84 @@ const cloudbaseAdapter = {
   },
 
   async getFriendsByUser(userId: number | string): Promise<Friend[]> {
-    const { data } = await tcbDb.collection(COLLECTIONS.FRIENDS)
+    // 查询双向好友关系：我添加的 或 添加我的
+    const { data: data1 } = await tcbDb.collection(COLLECTIONS.FRIENDS)
       .where({
         userId,
         status: 'accepted'
       })
       .get()
-    return data.map((d: any) => ({ ...d, id: d._id }))
+    
+    const { data: data2 } = await tcbDb.collection(COLLECTIONS.FRIENDS)
+      .where({
+        friendId: userId,
+        status: 'accepted'
+      })
+      .get()
+    
+    // 合并并去重
+    const allFriends = [...data1, ...data2]
+    const seen = new Set()
+    const uniqueFriends = allFriends.filter((d: any) => {
+      const id = d._id
+      if (seen.has(id)) return false
+      seen.add(id)
+      return true
+    })
+    
+    // 获取好友详细信息
+    const friendsWithDetails = await Promise.all(
+      uniqueFriends.map(async (friend: any) => {
+        // 确定好友ID（如果对方添加我，friendId是我的ID，userId是对方ID）
+        const friendUserId = String(friend.userId) === String(userId) 
+          ? friend.friendId 
+          : friend.userId
+        
+        // 获取好友用户信息
+        const friendInfo = await this.getUserById(friendUserId)
+        
+        return {
+          ...friend,
+          id: friend._id,
+          friendUserId,
+          friendInfo: friendInfo ? {
+            username: friendInfo.username,
+            nickname: friendInfo.nickname,
+            avatar: friendInfo.avatar
+          } : null
+        }
+      })
+    )
+    
+    return friendsWithDetails
   },
 
   async getPendingFriendRequests(userId: number | string): Promise<Friend[]> {
+    // 查询发给我的好友请求
     const { data } = await tcbDb.collection(COLLECTIONS.FRIENDS)
       .where({
         friendId: userId,
         status: 'pending'
       })
       .get()
-    return data.map((d: any) => ({ ...d, id: d._id }))
+    
+    // 获取发送者信息
+    const requestsWithInfo = await Promise.all(
+      data.map(async (friend: any) => {
+        const senderInfo = await this.getUserById(friend.userId)
+        return {
+          ...friend,
+          id: friend._id,
+          friendInfo: senderInfo ? {
+            username: senderInfo.username,
+            nickname: senderInfo.nickname,
+            avatar: senderInfo.avatar
+          } : null
+        }
+      })
+    )
+    
+    return requestsWithInfo
   },
 
   async deleteFriend(userId: number | string, friendId: number | string): Promise<void> {
@@ -815,7 +919,8 @@ const cloudbaseAdapter = {
   },
 
   async findFriendRequest(fromUserId: number | string, toUserId: number | string): Promise<Friend | null> {
-    const { data } = await tcbDb.collection(COLLECTIONS.FRIENDS)
+    // 检查双向请求：A->B 或 B->A 都算已存在
+    const { data: data1 } = await tcbDb.collection(COLLECTIONS.FRIENDS)
       .where({
         userId: fromUserId,
         friendId: toUserId,
@@ -823,7 +928,21 @@ const cloudbaseAdapter = {
       })
       .limit(1)
       .get()
-    return data[0] ? { ...data[0], id: data[0]._id } : null
+    
+    if (data1[0]) {
+      return { ...data1[0], id: data1[0]._id }
+    }
+    
+    const { data: data2 } = await tcbDb.collection(COLLECTIONS.FRIENDS)
+      .where({
+        userId: toUserId,
+        friendId: fromUserId,
+        status: 'pending'
+      })
+      .limit(1)
+      .get()
+    
+    return data2[0] ? { ...data2[0], id: data2[0]._id, isReverse: true } : null
   },
 
   async findFriendById(friendId: number | string): Promise<Friend | null> {
@@ -926,6 +1045,21 @@ const cloudbaseAdapter = {
     } catch (error) {
       console.error('Error getting reading entries:', error)
       return []
+    }
+  },
+
+  async getLastReadingEntryByUser(userId: number | string): Promise<ReadingEntry | null> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.READING_ENTRIES)
+        .where({ userId })
+        .orderBy('date', 'desc')
+        .limit(1)
+        .get()
+      const data = result.data || []
+      return data[0] ? { ...data[0], id: data[0]._id } : null
+    } catch (error) {
+      console.error('Error getting last reading entry:', error)
+      return null
     }
   },
 
@@ -1387,6 +1521,96 @@ const cloudbaseAdapter = {
       return []
     }
   },
+
+  // ========== 反馈相关 ==========
+  async createFeedback(data: { userId: number | string; type: string; content: string; contact?: string }): Promise<{ id: string }> {
+    const feedbackData = {
+      userId: data.userId,
+      type: data.type,
+      content: data.content,
+      contact: data.contact || '',
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    const { id } = await tcbDb.collection(COLLECTIONS.FEEDBACK).add(feedbackData)
+    return { id }
+  },
+
+  async getFeedbackByUser(userId: number | string): Promise<any[]> {
+    const { data } = await tcbDb.collection(COLLECTIONS.FEEDBACK)
+      .where({ userId })
+      .orderBy('createdAt', 'desc')
+      .get()
+    return data.map((item: any) => ({ ...item, id: item._id }))
+  },
+
+  async getAllFeedback(): Promise<any[]> {
+    const { data } = await tcbDb.collection(COLLECTIONS.FEEDBACK)
+      .orderBy('createdAt', 'desc')
+      .get()
+    return data.map((item: any) => ({ ...item, id: item._id }))
+  },
+
+  async updateFeedbackStatus(feedbackId: number | string, status: string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.FEEDBACK)
+      .doc(String(feedbackId))
+    await doc.update({ status, updatedAt: new Date().toISOString() })
+  },
+
+  // ========== 书籍推荐相关 ==========
+  async getBookRecommendations(): Promise<any[]> {
+    const { data } = await tcbDb.collection(COLLECTIONS.BOOK_RECOMMENDATIONS)
+      .where({ isActive: true })
+      .orderBy('order', 'asc')
+      .get()
+    return data.map((item: any) => ({ ...item, id: item._id }))
+  },
+
+  // ========== 验证码相关 ==========
+  async saveVerificationCode(data: { email: string; code: string; purpose: string; expiresAt: string }): Promise<void> {
+    // 先删除该邮箱同目的的旧验证码
+    const { data: oldCodes } = await tcbDb.collection(COLLECTIONS.VERIFICATION_CODES)
+      .where({ email: data.email, purpose: data.purpose })
+      .get()
+    for (const old of oldCodes) {
+      await tcbDb.collection(COLLECTIONS.VERIFICATION_CODES).doc(String(old._id)).remove()
+    }
+
+    await tcbDb.collection(COLLECTIONS.VERIFICATION_CODES).add({
+      email: data.email,
+      code: data.code,
+      purpose: data.purpose,
+      expiresAt: data.expiresAt,
+      createdAt: new Date().toISOString(),
+      used: false,
+    })
+  },
+
+  async verifyCode(email: string, code: string, purpose: string): Promise<boolean> {
+    const { data } = await tcbDb.collection(COLLECTIONS.VERIFICATION_CODES)
+      .where({ email, purpose, used: false })
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get()
+
+    if (!data || data.length === 0) return false
+
+    const record = data[0]
+    const now = new Date().toISOString()
+    if (record.expiresAt < now) return false
+    if (record.code !== code) return false
+
+    // 标记为已使用
+    await tcbDb.collection(COLLECTIONS.VERIFICATION_CODES).doc(String(record._id)).update({ used: true })
+    return true
+  },
+
+  async updateUserEmail(userId: number | string, email: string): Promise<void> {
+    const doc = await tcbDb.collection(COLLECTIONS.USERS).doc(String(userId))
+    await doc.update({ email, updatedAt: new Date().toISOString() })
+  },
+
 }
 
 // ==================== 导出适配器 ====================

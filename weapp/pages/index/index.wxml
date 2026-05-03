@@ -9,9 +9,6 @@
       </view>
       <view class="header-title">
         <text class="title-main">欢迎「{{welcomeName}}」</text>
-        <view class="channel-info" bindtap="goToChannel" wx:if="{{activeChannel}}">
-          <text>参与活动：{{activeChannel.name}} ({{activeChannelStatusText}})</text>
-        </view>
       </view>
     </view>
   </view>
@@ -65,6 +62,20 @@
     </view>
   </view>
 
+  <!-- 上次记录 -->
+  <view class="last-record-card" wx:if="{{lastRecord}}">
+    <view class="last-record-header">
+      <text class="last-record-icon">🕐</text>
+      <text class="last-record-title">上次记录</text>
+    </view>
+    <view class="last-record-content">
+      <text class="last-record-weight">{{lastRecord.weight}} kg</text>
+      <text class="last-record-date">{{lastRecord.formattedDate}}</text>
+      <text class="last-record-days" wx:if="{{lastRecord.daysAgo > 0}}">{{lastRecord.daysAgo}} 天前</text>
+      <text class="last-record-days today" wx:else>今天</text>
+    </view>
+  </view>
+
   <!-- 添加记录表单 -->
   <view class="card">
     <view class="section-title">
@@ -101,6 +112,21 @@
           bindinput="onNoteInput"
         />
       </view>
+
+      <!-- 食物照片 -->
+      <view class="form-item form-item-full">
+        <text class="form-label">今日饮食 📸 (可选)</text>
+        <view class="photo-uploader">
+          <view class="photo-preview" wx:if="{{foodImage}}">
+            <image class="photo-img" src="{{foodImage}}" mode="aspectFill" bindtap="previewImage" />
+            <view class="photo-remove" bindtap="removeImage">✕</view>
+          </view>
+          <view class="photo-add" bindtap="chooseFoodImage" wx:if="{{!foodImage}}">
+            <text class="photo-add-icon">📷</text>
+            <text class="photo-add-text">添加照片</text>
+          </view>
+        </view>
+      </view>
     </view>
     
     <button class="btn-primary mt-3" bindtap="addEntry" disabled="{{!weight || isLoading}}">
@@ -120,16 +146,26 @@
     </view>
   </view>
 
-  <!-- 分享按钮 -->
-  <view class="card share-card" wx:if="{{!showSettings}}">
-    <view class="share-content">
-      <view class="share-text">
-        <text class="share-title">邀请好友一起健身</text>
-        <text class="share-desc">分享给你的微信好友，一起记录体重变化</text>
+  <!-- 历史记录列表 -->
+  <view class="card" wx:if="{{entries.length > 0}}">
+    <view class="section-title">
+      <text class="title-icon">📋</text>
+      <text>历史记录</text>
+    </view>
+    <view class="history-list">
+      <view class="history-item" wx:for="{{entries}}" wx:key="id">
+        <view class="history-main">
+          <view class="history-info">
+            <text class="history-weight">{{item.weight}} kg</text>
+            <text class="history-date">{{item.date}}</text>
+          </view>
+          <text class="history-note" wx:if="{{item.note}}">{{item.note}}</text>
+        </view>
+        <view class="history-image" wx:if="{{item.imageUrl}}" bindtap="previewHistoryImage" data-url="{{item.imageUrl}}">
+          <image class="history-img" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
+        </view>
       </view>
-      <button class="btn-share" open-type="share">
-        <text>📤 分享给好友</text>
-      </button>
     </view>
   </view>
+
 </view>

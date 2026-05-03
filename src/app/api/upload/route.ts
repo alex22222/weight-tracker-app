@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { cloudbaseApp } from '../../../lib/cloudbase'
 import { verifyToken, uploadValidators } from '../../../lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 // POST /api/upload - 上传文件到 CloudBase 存储
 export async function POST(request: NextRequest) {
   console.log('=== 上传请求 ===')

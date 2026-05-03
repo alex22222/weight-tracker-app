@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
 import { getUserFromRequest, verifyPassword, hashPassword } from '../../../../lib/auth'
 
+export const dynamic = 'force-dynamic'
+
 export async function PUT(request: NextRequest) {
   try {
     const user = getUserFromRequest(request)

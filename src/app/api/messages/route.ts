@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { adapter } from "../../../lib/db-adapter"
 import { getUserFromRequest } from "../../../lib/auth"
 
+export const dynamic = 'force-dynamic'
+
 // 验证 Token
 function getUserFromToken(request: NextRequest): { userId: string; username: string } | null {
   try {
@@ -67,7 +69,7 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// DELETE /api/messages - 删除消息
+// DELETE /api/messages - 删除消息（单条或全部）
 export async function DELETE(request: NextRequest) {
   try {
     const user = getUserFromToken(request)
@@ -77,6 +79,13 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const messageId = searchParams.get('id')
+    const clearAll = searchParams.get('all') === 'true'
+
+    if (clearAll) {
+      // 清空当前用户所有消息
+      const count = await adapter.deleteAllMessages(user.userId)
+      return NextResponse.json({ message: `已清空 ${count} 条消息`, count })
+    }
 
     if (!messageId) {
       return NextResponse.json({ error: '无效的消息ID' }, { status: 400 })

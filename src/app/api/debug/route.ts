@@ -13,11 +13,20 @@ export async function GET(request: NextRequest) {
       CLOUDBASE_ENV_ID: process.env.CLOUDBASE_ENV_ID,
       HAS_TCB_SECRET: !!process.env.TCB_SECRET_ID,
       HAS_TENCENT_SECRET: !!process.env.TENCENT_SECRET_ID,
+      HAS_TENCENTCLOUD_SECRET: !!process.env.TENCENTCLOUD_SECRETID,
+      TENCENT_SECRET_ID_PREFIX: process.env.TENCENT_SECRET_ID ? process.env.TENCENT_SECRET_ID.substring(0, 10) + '...' : null,
     },
     cloudbase: {
       initialized: !!cloudbaseApp,
       hasDatabase: !!db,
       initError: cloudbaseInitError?.message || null,
+      appConfig: cloudbaseApp?.config ? {
+        envName: cloudbaseApp.config.envName,
+        hasSecretId: !!cloudbaseApp.config.secretId,
+        hasSecretKey: !!cloudbaseApp.config.secretKey,
+        hasSessionToken: !!cloudbaseApp.config.sessionToken,
+        secretIdPrefix: cloudbaseApp.config.secretId ? cloudbaseApp.config.secretId.substring(0, 10) + '...' : null,
+      } : null,
     },
     collections: {} as any,
     tests: {} as any

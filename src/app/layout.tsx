@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '体重管理器 - Weight Tracker',
-  description: '记录、追踪、分析您的体重变化',
+  title: '习惯追踪 · 管理后台',
+  description: '习惯追踪后台管理系统',
 }
 
 export default function RootLayout({

@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { adapter } from "../../../../lib/db-adapter"
 import { getUserFromRequest } from "../../../../lib/auth"
 
+export const dynamic = 'force-dynamic'
+
 // 验证 Token
 
 // GET /api/channels/ranking - 获取排行榜

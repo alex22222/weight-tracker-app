@@ -1,15 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
-import { createHash } from 'crypto'
+import { hashPassword } from '../../../../lib/auth'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
-
-// 简单的密码哈希函数
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex')
-}
 
 // POST /api/admin/reset-password - 重置用户密码为默认密码 111111
 export async function POST(request: NextRequest) {

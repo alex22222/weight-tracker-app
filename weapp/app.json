@@ -1,20 +1,22 @@
 {
   "pages": [
-    "pages/login/login",
-    "pages/test-login/test-login",
     "pages/home/home",
+    "pages/login/login",
+    "pages/privacy/privacy",
+    "pages/agreement/agreement",
+    "pages/test-login/test-login",
     "pages/reading/reading",
     "pages/index/index",
-    "pages/channel/channel",
-    "pages/channel/detail",
-    "pages/friends/friends",
-    "pages/messages/messages",
+    "pages/my/my",
+    "pages/feedback/feedback",
+    "pages/settings/settings",
+    "pages/forgot-password/forgot-password",
     "pages/logs/logs"
   ],
   "window": {
     "backgroundTextStyle": "light",
     "navigationBarBackgroundColor": "#f97316",
-    "navigationBarTitleText": "搭子",
+    "navigationBarTitleText": "习惯追踪",
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
@@ -25,23 +27,19 @@
     "list": [
       {
         "pagePath": "pages/home/home",
-        "text": "搭子"
+        "text": "首页"
       },
       {
         "pagePath": "pages/reading/reading",
-        "text": "读书打卡"
+        "text": "读书记录"
       },
       {
         "pagePath": "pages/index/index",
-        "text": "健身打卡"
+        "text": "健身记录"
       },
       {
-        "pagePath": "pages/channel/channel",
-        "text": "一起搭"
-      },
-      {
-        "pagePath": "pages/friends/friends",
-        "text": "好友"
+        "pagePath": "pages/my/my",
+        "text": "我的"
       }
     ]
   },

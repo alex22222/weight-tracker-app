@@ -1,0 +1,105 @@
+<view class="container">
+  <view class="header">
+    <view class="title">隐私政策</view>
+    <view class="subtitle">最后更新日期：2026年3月21日</view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">一、引言</view>
+    <view class="section-content">
+      习惯追踪（以下简称"我们"或"本小程序"）非常重视用户的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。请您在使用本小程序前仔细阅读本隐私政策，确保您充分理解并同意其中的内容。
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">二、信息收集</view>
+    <view class="section-content">
+      我们可能收集以下类型的信息：
+    </view>
+    <view class="section-list">
+      <view class="list-item">1. 账号信息：用户名、密码、邮箱地址（用于账号注册和登录）</view>
+      <view class="list-item">2. 微信信息：昵称、头像（仅在使用微信登录时获取）</view>
+      <view class="list-item">3. 健康数据：体重记录、记录（您主动填写的数据）</view>
+      <view class="list-item">4. 设备信息：设备型号、操作系统版本（用于优化服务体验）</view>
+      <view class="list-item">5. 使用数据：访问时间、功能使用记录（用于改进产品）</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">三、信息使用</view>
+    <view class="section-content">
+      我们使用您的信息用于以下目的：
+    </view>
+    <view class="section-list">
+      <view class="list-item">1. 提供、维护和改进本小程序的服务</view>
+      <view class="list-item">2. 处理您的账号注册、登录和身份验证</view>
+      <view class="list-item">3. 向您发送服务通知和重要更新</view>
+      <view class="list-item">4. 分析用户使用情况，优化产品功能和体验</view>
+      <view class="list-item">5. 防止欺诈和滥用行为，保障账号安全</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">四、信息存储与保护</view>
+    <view class="section-content">
+      我们采用行业标准的加密技术和安全措施来保护您的个人信息。您的数据存储在腾讯云服务器上，我们严格遵守相关法律法规，不会将您的个人信息出售或出租给任何第三方。
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">五、信息共享</view>
+    <view class="section-content">
+      除以下情形外，我们不会与第三方共享您的个人信息：
+    </view>
+    <view class="section-list">
+      <view class="list-item">1. 获得您的明确同意</view>
+      <view class="list-item">2. 根据法律法规要求或政府机关的合法要求</view>
+      <view class="list-item">3. 为保护我们的合法权益或用户的人身财产安全</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">六、您的权利</view>
+    <view class="section-content">
+      您拥有以下权利：
+    </view>
+    <view class="section-list">
+      <view class="list-item">1. 访问和查看您的个人信息</view>
+      <view class="list-item">2. 更正或更新不准确的个人信息</view>
+      <view class="list-item">3. 删除您的账号及相关数据</view>
+      <view class="list-item">4. 撤回之前授予的同意（可能影响部分功能使用）</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">七、Cookie 和类似技术</view>
+    <view class="section-content">
+      我们可能使用 Cookie 和类似技术来改善您的使用体验、分析服务使用情况。您可以在设备设置中管理这些技术的使用。
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">八、未成年人保护</view>
+    <view class="section-content">
+      我们非常重视未成年人的个人信息保护。如果您未满18周岁，请在监护人指导下使用本小程序，并在获得监护人同意后提供个人信息。
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">九、政策更新</view>
+    <view class="section-content">
+      我们可能会不时更新本隐私政策。更新后的政策将在本页面公布，重大变更我们会通过适当方式通知您。继续使用本小程序即表示您同意更新后的政策。
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-title">十、联系我们</view>
+    <view class="section-content">
+      如您对本隐私政策有任何疑问或建议，请通过小程序内的"反馈"功能与我们联系。
+    </view>
+  </view>
+
+  <view class="footer">
+    <text>© 2026 习惯追踪 All Rights Reserved</text>
+  </view>
+</view>

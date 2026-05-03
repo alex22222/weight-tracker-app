@@ -178,6 +178,26 @@ page {
   font-size: 40rpx;
 }
 
+/* 未登录时的登录按钮 */
+.login-btn-small {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  padding: 16rpx 32rpx;
+  border-radius: 28rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  box-shadow: 0 4rpx 12rpx rgba(249, 115, 22, 0.3);
+}
+
+.login-btn-small:active {
+  transform: scale(0.95);
+  opacity: 0.9;
+}
+
+.guest-avatar {
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+}
+
 /* ========== 主要卡片 - 统一圆角和阴影 ========== */
 .section-card {
   background: white;
@@ -878,9 +898,18 @@ page {
   color: #64748b;
 }
 
+.message-delete-wrap {
+  padding: 20rpx;
+  margin: -10rpx;
+  min-width: 88rpx;
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .message-delete {
   font-size: 32rpx;
-  padding: 12rpx;
   opacity: 0.6;
 }
 

@@ -182,19 +182,55 @@ page {
   border: none;
 }
 
-/* 隐私提示 */
-.privacy-tip {
-  margin-top: 32rpx;
-  font-size: 24rpx;
-  color: #94a3b8;
+/* 隐私政策勾选 */
+.privacy-agreement {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12rpx;
+  margin: 32rpx 0;
+  padding: 0 20rpx;
+}
+
+.privacy-checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #cbd5e1;
+  border-radius: 8rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8rpx;
+  flex-shrink: 0;
+  margin-top: 4rpx;
+  background: white;
+  transition: all 0.2s;
 }
 
-.privacy-icon {
-  font-size: 28rpx;
+.privacy-checkbox.checked {
+  background: #f97316;
+  border-color: #f97316;
+  color: white;
+}
+
+.privacy-checkbox text {
+  font-size: 22rpx;
+  font-weight: bold;
+}
+
+.privacy-text {
+  font-size: 24rpx;
+  color: #64748b;
+  line-height: 1.5;
+  flex-wrap: wrap;
+}
+
+.privacy-link {
+  color: #f97316;
+  font-weight: 600;
+}
+
+.privacy-link:active {
+  opacity: 0.7;
 }
 
 /* ========== 账号登录表单 - 优化样式 ========== */
@@ -265,6 +301,36 @@ page {
 
 .mode-link:active {
   opacity: 0.7;
+}
+
+.mode-row {
+  display: block;
+  margin-top: 12rpx;
+}
+
+.code-input {
+  min-width: 0;
+}
+
+.code-btn {
+  padding: 12rpx 20rpx;
+  font-size: 24rpx;
+  color: #f97316;
+  background: #fff7ed;
+  border-radius: 12rpx;
+  border: none;
+  margin-left: 12rpx;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.code-btn::after {
+  border: none;
+}
+
+.code-btn.disabled {
+  color: #94a3b8;
+  background: #f1f5f9;
 }
 
 .input-group {
@@ -384,15 +450,39 @@ page {
 }
 
 /* 错误提示 */
-.error-message {
-  background: #fef2f2;
+.error-box {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 2rpx solid #fecaca;
   color: #dc2626;
-  padding: 16rpx 24rpx;
-  border-radius: 10rpx;
-  font-size: 26rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
   margin-bottom: 24rpx;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(220, 38, 38, 0.1);
+}
+
+.error-icon {
+  font-size: 32rpx;
+}
+
+.error-text {
+  flex: 1;
   font-weight: 500;
+}
+
+/* 密码显示/隐藏切换 */
+.password-toggle {
+  padding: 16rpx;
+  font-size: 32rpx;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.password-toggle:active {
+  opacity: 1;
 }
 
 /* ========== 底部链接 - 优化样式 ========== */

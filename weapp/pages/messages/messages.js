@@ -5,7 +5,9 @@ Page({
   data: {
     messages: [],
     unreadCount: 0,
-    isLoading: false
+    isLoading: false,
+    batchMode: false,
+    selectedIds: []
   },
 
   onLoad() {
@@ -47,11 +49,124 @@ Page({
       await app.request({
         url: '/messages',
         method: 'PATCH',
-        data: { action: 'markAllRead' }
+        data: { markAll: true }
       })
     } catch (err) {
       console.error('标记已读失败:', err)
     }
+  },
+
+  // 切换批量模式
+  toggleBatchMode() {
+    this.setData({
+      batchMode: !this.data.batchMode,
+      selectedIds: []
+    })
+  },
+
+  // 选择/取消选择消息
+  toggleSelect(e) {
+    const { id } = e.currentTarget.dataset
+    const selectedIds = this.data.selectedIds
+    const index = selectedIds.indexOf(id)
+
+    if (index > -1) {
+      selectedIds.splice(index, 1)
+    } else {
+      selectedIds.push(id)
+    }
+
+    this.setData({ selectedIds: [...selectedIds] })
+  },
+
+  // 全选
+  selectAll() {
+    const allIds = this.data.messages.map(m => m.id)
+    this.setData({ selectedIds: allIds })
+  },
+
+  // 批量删除
+  async batchDelete() {
+    const { selectedIds } = this.data
+    if (selectedIds.length === 0) {
+      wx.showToast({ title: '请先选择消息', icon: 'none' })
+      return
+    }
+
+    wx.showModal({
+      title: '确认删除',
+      content: `确定要删除选中的 ${selectedIds.length} 条消息吗？`,
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            this.setData({ isLoading: true })
+            // 逐个删除
+            for (const id of selectedIds) {
+              await app.request({
+                url: `/messages?id=${id}`,
+                method: 'DELETE'
+              })
+            }
+
+            wx.showToast({
+              title: `已删除 ${selectedIds.length} 条`,
+              icon: 'success'
+            })
+
+            this.setData({
+              batchMode: false,
+              selectedIds: [],
+              isLoading: false
+            })
+            this.loadMessages()
+          } catch (err) {
+            this.setData({ isLoading: false })
+            wx.showToast({
+              title: err.message || '删除失败',
+              icon: 'none'
+            })
+          }
+        }
+      }
+    })
+  },
+
+  // 清空所有消息
+  async clearAllMessages() {
+    wx.showModal({
+      title: '确认清空',
+      content: '确定要清空所有消息吗？此操作不可恢复',
+      confirmColor: '#ef4444',
+      success: async (res) => {
+        if (res.confirm) {
+          try {
+            this.setData({ isLoading: true })
+            await app.request({
+              url: '/messages?all=true',
+              method: 'DELETE'
+            })
+
+            wx.showToast({
+              title: '已清空',
+              icon: 'success'
+            })
+
+            this.setData({
+              messages: [],
+              unreadCount: 0,
+              isLoading: false
+            })
+          } catch (err) {
+            this.setData({ isLoading: false })
+            wx.showToast({
+              title: err.message || '清空失败',
+              icon: 'none'
+            })
+          }
+        }
+      }
+    })
   },
 
   // 删除消息
@@ -106,7 +221,7 @@ Page({
     } else if (message.type === 'FRIEND_REQUEST') {
       // 跳转到好友页面
       wx.navigateTo({
-        url: '/pages/friends/friends'
+        url: '/pages/my/my'
       })
     }
   },

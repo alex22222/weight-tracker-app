@@ -157,6 +157,12 @@ Page({
     this.setData({ 'createForm.invitees': invitees })
   },
 
+  // 获取好友名称
+  getFriendName(friendId) {
+    const friend = this.data.friends.find(f => f.friendId === friendId || f.id === friendId)
+    return friend ? (friend.nickname || friend.username || '好友') : '好友'
+  },
+
   // 确认邀请
   confirmInvitees() {
     this.setData({ showFriendSelector: false })

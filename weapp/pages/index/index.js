@@ -38,6 +38,7 @@ Page({
     isLoading: false,
     weight: '',
     note: '',
+    foodImage: '',
     date: '',
     settings: { height: 170, targetWeight: 65 },
     gender: 'male',
@@ -51,8 +52,7 @@ Page({
     userInfo: null,
     avatarText: '用',
     welcomeName: '用户',
-    activeChannel: null,
-    activeChannelStatusText: '',
+
     currentWeightText: '--',
     weightDiffText: '',
     weightDiffValue: '',
@@ -69,6 +69,37 @@ Page({
       avatarText: this.getAvatarText(userInfo),
       welcomeName: (userInfo?.nickname || userInfo?.username || '用户')
     })
+    this.loadLastRecord()
+  },
+
+  onShow() {
+    this.loadLastRecord()
+  },
+
+  // 加载上次记录
+  async loadLastRecord() {
+    try {
+      const result = await app.request({
+        url: '/last-record?type=weight'
+      })
+      if (result.entry) {
+        const entry = result.entry
+        const date = new Date(entry.date)
+        const now = new Date()
+        const diffTime = now.getTime() - date.getTime()
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+        this.setData({
+          lastRecord: {
+            weight: entry.weight,
+            formattedDate: `${date.getMonth() + 1}月${date.getDate()}日`,
+            daysAgo: diffDays
+          }
+        })
+      }
+    } catch (err) {
+      console.error('加载上次记录失败:', err)
+    }
   },
 
   // 获取头像文字
@@ -210,29 +241,64 @@ Page({
     console.log('【INDEX】=== 加载数据完成 ===')
   },
   
-  async loadActiveChannel() {
-    try {
-      const result = await app.request({ url: '/channels' })
-      const channels = forceArray(result.channels || result)
-      const activeChannel = channels.find(
-        c => c.status === 'PENDING' || c.status === 'ACTIVE'
-      )
-      // 计算状态文本
-      const activeChannelStatusText = activeChannel 
-        ? (activeChannel.status === 'PENDING' ? '未开始' : '进行中')
-        : ''
-      this.setData({ 
-        activeChannel: activeChannel || null,
-        activeChannelStatusText
-      })
-    } catch (err) {
-      console.error('加载频道失败:', err)
-    }
-  },
-  
   onDateChange(e) { this.setData({ date: e.detail.value }) },
   onWeightInput(e) { this.setData({ weight: e.detail.value }) },
   onNoteInput(e) { this.setData({ note: e.detail.value }) },
+
+  // 选择食物照片
+  chooseFoodImage() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempFilePath = res.tempFiles[0].tempFilePath
+        this.uploadFoodImage(tempFilePath)
+      }
+    })
+  },
+
+  // 上传食物照片
+  async uploadFoodImage(filePath) {
+    this.setData({ isLoading: true })
+
+    try {
+      const token = wx.getStorageSync('token')
+      const uploadRes = await new Promise((resolve, reject) => {
+        wx.uploadFile({
+          url: `${app.globalData.apiBaseUrl}/upload?token=${token}`,
+          filePath: filePath,
+          name: 'file',
+          success: resolve,
+          fail: reject
+        })
+      })
+
+      const data = JSON.parse(uploadRes.data)
+      if (data.url) {
+        this.setData({ foodImage: data.url })
+        wx.showToast({ title: '上传成功', icon: 'success' })
+      } else {
+        throw new Error(data.error || '上传失败')
+      }
+    } catch (err) {
+      wx.showToast({ title: err.message || '上传失败', icon: 'none' })
+    } finally {
+      this.setData({ isLoading: false })
+    }
+  },
+
+  // 预览图片
+  previewImage() {
+    wx.previewImage({
+      urls: [this.data.foodImage]
+    })
+  },
+
+  // 移除图片
+  removeImage() {
+    this.setData({ foodImage: '' })
+  },
 
   async addEntry() {
     const weight = parseFloat(this.data.weight)
@@ -251,12 +317,13 @@ Page({
         data: {
           weight,
           note: this.data.note || undefined,
+          imageUrl: this.data.foodImage || undefined,
           date: this.data.date
         }
       })
 
       wx.showToast({ title: '记录成功', icon: 'success' })
-      this.setData({ weight: '', note: '', date: util.getTodayString() })
+      this.setData({ weight: '', note: '', foodImage: '', date: util.getTodayString() })
       await this.loadData()
     } catch (err) {
       wx.showToast({ title: err.message || '记录失败', icon: 'none' })
@@ -364,30 +431,16 @@ Page({
       })
   },
 
-  goToChannel() {
-    const { activeChannel } = this.data
-    if (activeChannel) {
-      wx.navigateTo({ url: `/pages/channel/detail?id=${activeChannel.id}` })
-    } else {
-      wx.navigateTo({ url: '/pages/channel/channel' })
-    }
-  },
-
   onChartTouch() {},
 
-  onShareAppMessage() {
-    const username = this.data.userInfo?.nickname || this.data.userInfo?.username || '好友'
-    return {
-      title: `${username} 邀请你来搭子，一起健身打卡！`,
-      path: '/pages/login/login'
-    }
-  },
-
-  onShareTimeline() {
-    const username = this.data.userInfo?.nickname || this.data.userInfo?.username || '好友'
-    return {
-      title: `${username} 正在打卡记录，邀请你一起加入！`,
-      query: 'from=timeline'
+  // 预览历史记录图片
+  previewHistoryImage(e) {
+    const url = e.currentTarget.dataset.url
+    if (url) {
+      wx.previewImage({
+        urls: [url],
+        current: url
+      })
     }
   }
 })

@@ -1,0 +1,109 @@
+page {
+  background: #f8fafc;
+}
+
+.container {
+  padding: 32rpx;
+}
+
+.user-card {
+  background: white;
+  border-radius: 20rpx;
+  padding: 40rpx;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-bottom: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.user-avatar {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  font-weight: 700;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #1e293b;
+  display: block;
+}
+
+.user-id {
+  font-size: 24rpx;
+  color: #94a3b8;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.menu-list {
+  background: white;
+  border-radius: 20rpx;
+  overflow: hidden;
+  margin-bottom: 32rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #f1f5f9;
+}
+
+.menu-item:last-child {
+  border-bottom: none;
+}
+
+.menu-icon {
+  font-size: 36rpx;
+  margin-right: 20rpx;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 30rpx;
+  color: #1e293b;
+}
+
+.menu-arrow {
+  font-size: 32rpx;
+  color: #94a3b8;
+}
+
+.logout-section {
+  margin-top: 48rpx;
+}
+
+.logout-btn {
+  background: white;
+  color: #ef4444;
+  border: 1rpx solid #fecaca;
+  border-radius: 14rpx;
+  padding: 28rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.logout-btn::after {
+  border: none;
+}
+
+.version-info {
+  text-align: center;
+  margin-top: 48rpx;
+  font-size: 24rpx;
+  color: #94a3b8;
+}

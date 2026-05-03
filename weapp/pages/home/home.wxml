@@ -1,84 +1,71 @@
 <!--pages/home/home.wxml-->
 <view class="container">
-  <!-- 头部用户信息 -->
+  <!-- 头部：已登录显示用户信息，未登录显示登录入口 -->
   <view class="header">
-    <view class="header-left">
-      <view class="header-avatar" bindtap="goToSettings">
-        <image wx:if="{{userInfo.avatar && userInfo.avatar.startsWith('http')}}" class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" />
-        <view wx:elif="{{userInfo.avatar}}" class="avatar-img avatar-emoji">{{userInfo.avatar}}</view>
-        <text wx:else class="avatar-text">{{avatarText}}</text>
-      </view>
-      <view class="header-title">
-        <text class="title-main">欢迎「{{welcomeName}}」</text>
-        <view class="weather-info" wx:if="{{weather}}">
-          <text class="weather-icon">{{weatherIcon}}</text>
-          <text class="weather-temp">{{weather.temperature}}°C · {{todayDate}}</text>
+    <block wx:if="{{isLoggedIn}}">
+      <view class="header-left">
+        <view class="header-avatar" bindtap="goToSettings">
+          <image wx:if="{{userInfo.avatar && userInfo.avatar.startsWith('http')}}" class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" />
+          <view wx:elif="{{userInfo.avatar}}" class="avatar-img avatar-emoji">{{userInfo.avatar}}</view>
+          <text wx:else class="avatar-text">{{avatarText}}</text>
         </view>
-        <text class="title-sub" wx:else>{{todayDate}}</text>
+        <view class="header-title">
+          <text class="title-main">欢迎「{{welcomeName}}」</text>
+          <view class="weather-info" wx:if="{{weather}}">
+            <text class="weather-icon">{{weatherIcon}}</text>
+            <text class="weather-temp">{{weather.temperature}}°C · {{todayDate}}</text>
+          </view>
+          <text class="title-sub" wx:else>{{todayDate}}</text>
+        </view>
       </view>
-    </view>
-    <view class="header-right">
-      <view class="settings-btn" bindtap="toggleSettings">
-        <text class="settings-icon">⚙️</text>
+      <view class="header-right">
+        <view class="settings-btn" bindtap="toggleSettings">
+          <text class="settings-icon">⚙️</text>
+        </view>
       </view>
-      <view class="message-btn" bindtap="openMessageModal">
-        <text class="message-icon">🔔</text>
-        <view class="message-badge" wx:if="{{unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
+    </block>
+    <block wx:else>
+      <view class="header-left">
+        <view class="header-avatar guest-avatar">
+          <text class="avatar-text">👋</text>
+        </view>
+        <view class="header-title">
+          <text class="title-main">欢迎来到习惯追踪</text>
+          <view class="weather-info" wx:if="{{weather}}">
+            <text class="weather-icon">{{weatherIcon}}</text>
+            <text class="weather-temp">{{weather.temperature}}°C · {{todayDate}}</text>
+          </view>
+          <text class="title-sub" wx:else>{{todayDate}}</text>
+        </view>
       </view>
-    </view>
+      <view class="header-right">
+        <view class="login-btn-small" bindtap="goToLogin">
+          <text>登录 / 注册</text>
+        </view>
+      </view>
+    </block>
   </view>
 
-  <!-- 我要打卡 -->
+  <!-- 我要记录 -->
   <view class="section-card">
     <view class="card-header">
       <view class="card-title">
         <view class="card-icon">📅</view>
-        <text>我要打卡</text>
+        <text>我要记录</text>
       </view>
     </view>
     <view class="checkin-grid">
       <view class="checkin-item {{fitnessChecked ? 'checked' : ''}}" bindtap="goToFitness">
         <view class="checkin-icon">🏋️</view>
         <view class="checkin-name">健身</view>
-        <view class="checkin-status">{{fitnessChecked ? '已打卡' : '未打卡'}}</view>
+        <view class="checkin-status">{{fitnessChecked ? '已记录' : '未记录'}}</view>
         <view class="checkin-check" wx:if="{{fitnessChecked}}">✓</view>
       </view>
       <view class="checkin-item {{readingChecked ? 'checked' : ''}}" bindtap="goToReading">
         <view class="checkin-icon">📖</view>
         <view class="checkin-name">读书</view>
-        <view class="checkin-status">{{readingChecked ? '已打卡' : '未打卡'}}</view>
+        <view class="checkin-status">{{readingChecked ? '已记录' : '未记录'}}</view>
         <view class="checkin-check" wx:if="{{readingChecked}}">✓</view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 好友动态 -->
-  <view class="section-card" wx:if="{{friendActivities.length > 0}}">
-    <view class="card-header">
-      <view class="card-title">
-        <view class="card-icon">👥</view>
-        <text>好友动态</text>
-      </view>
-      <text class="card-more" bindtap="goToFriends">查看全部</text>
-    </view>
-    
-    <view class="activity-list">
-      <view class="activity-item" wx:for="{{friendActivities}}" wx:key="index">
-        <view class="activity-avatar">
-          <image wx:if="{{item.avatar}}" class="avatar-img" src="{{item.avatar}}" mode="aspectFill" />
-          <text wx:else class="avatar-text">{{item.username[0]}}</text>
-        </view>
-        <view class="activity-content">
-          <view class="activity-row">
-            <text class="activity-username">{{item.username}}</text>
-            <text class="activity-time">{{item.timeAgo}}</text>
-          </view>
-          <view class="activity-action">
-            <text class="activity-icon">{{item.type === 'weight' ? '⚖️' : item.type === 'reading' ? '📖' : '🚩'}}</text>
-            <text class="activity-text">{{item.content}}</text>
-          </view>
-          <text class="activity-note" wx:if="{{item.note}}">{{item.note}}</text>
-        </view>
       </view>
     </view>
   </view>
@@ -88,7 +75,7 @@
     <view class="stat-card">
       <view class="stat-icon blue">📈</view>
       <view class="stat-value">{{totalCheckIns}}</view>
-      <view class="stat-label">总打卡</view>
+      <view class="stat-label">总记录</view>
     </view>
     <view class="stat-card">
       <view class="stat-icon orange">🔥</view>
@@ -126,7 +113,7 @@
           </view>
         </view>
         <view class="goal-action {{!item.canCheckIn ? 'disabled' : ''}}" bindtap="{{item.canCheckIn ? 'checkInGoal' : ''}}" data-id="{{item.id}}">
-          <text>{{item.canCheckIn ? '打卡' : (item.status === 'completed' ? '已完成' : '已放弃')}}</text>
+          <text>{{item.canCheckIn ? '记录' : (item.status === 'completed' ? '已完成' : '已放弃')}}</text>
         </view>
       </view>
     </view>
@@ -283,7 +270,7 @@
       
       <!-- 频率 -->
       <view class="goal-form-item">
-        <text class="goal-label">打卡频率</text>
+        <text class="goal-label">记录频率</text>
         <picker mode="selector" range="{{['每天', '每周', '每月', '一次性']}}" value="{{['daily', 'weekly', 'monthly', 'once'].indexOf(goalForm.frequency)}}" bindchange="onGoalFreqChange">
           <view class="goal-picker">
             <text>{{goalForm.frequency === 'daily' ? '每天' : goalForm.frequency === 'weekly' ? '每周' : goalForm.frequency === 'monthly' ? '每月' : '一次性'}}</text>
@@ -300,48 +287,4 @@
 </view>
 
 
-<!-- 消息中心弹窗 -->
-<view class="message-modal {{showMessageModal ? 'show' : ''}}" catchtouchmove="preventTouchMove">
-  <view class="message-overlay" bindtap="closeMessageModal"></view>
-  <view class="message-panel">
-    <view class="message-header">
-      <text class="message-title">🔔 消息中心</text>
-      <view class="message-close" bindtap="closeMessageModal">✕</view>
-    </view>
-    
-    <view class="message-content">
-      <!-- 有消息时显示 -->
-      <view class="message-list" wx:if="{{messages.length > 0}}">
-        <view class="message-item {{!item.isRead ? 'unread' : ''}}" wx:for="{{messages}}" wx:key="id">
-          <view class="message-icon">{{item.type === 'FRIEND_REQUEST' || item.type === 'SYSTEM_FRIEND_REQUEST' ? '👋' : item.type === 'FRIEND_ACCEPT' || item.type === 'SYSTEM_FRIEND_ACCEPT' ? '✅' : item.type === 'FRIEND_REJECT' || item.type === 'SYSTEM_FRIEND_REJECT' ? '❌' : item.type === 'CHANNEL_INVITE' ? '📢' : item.type === 'CHANNEL_CHECKIN' ? '✓' : '📢'}}</view>
-          <view class="message-body">
-            <view class="message-row">
-              <text class="message-text">{{item.content}}</text>
-              <view class="message-unread-dot" wx:if="{{!item.isRead}}"></view>
-            </view>
-            <text class="message-time">{{item.timeAgo}}</text>
-            <!-- 好友请求操作按钮 -->
-            <view class="message-actions" wx:if="{{item.type === 'FRIEND_REQUEST' || item.type === 'SYSTEM_FRIEND_REQUEST'}}">
-              <view class="action-btn accept" catchtap="handleFriendRequest" data-id="{{item.friendRequestId}}" data-action="accept">接受</view>
-              <view class="action-btn reject" catchtap="handleFriendRequest" data-id="{{item.friendRequestId}}" data-action="reject">拒绝</view>
-            </view>
-          </view>
-          <view class="message-delete" catchtap="deleteMessage" data-id="{{item.id}}">🗑️</view>
-        </view>
-      </view>
-      
-      <!-- 空状态 -->
-      <view class="message-empty" wx:else>
-        <view class="empty-icon">📭</view>
-        <text class="empty-text">暂无消息</text>
-      </view>
-    </view>
-    
-    <!-- 底部操作栏 -->
-    <view class="message-footer" wx:if="{{messages.length > 0}}">
-      <button class="btn-mark-all" bindtap="markAllAsRead" disabled="{{unreadCount === 0}}">
-        全部标为已读
-      </button>
-    </view>
-  </view>
-</view>
+

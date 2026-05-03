@@ -1,0 +1,82 @@
+/**
+ * CloudBase (腾讯云开发) 数据库客户端
+ */
+
+import tcb from '@cloudbase/node-sdk'
+
+// 强制使用正确的环境 ID（CloudRun 会自动注入错误的环境变量）
+const envId = 'weight-tracker-1ghr085dd7d6cff2'
+
+// 硬编码临时密钥（避免 CloudRun 注入错误的默认值）
+// 临时密钥必须配合 sessionToken 使用，否则报 SIGN_PARAM_INVALID
+const secretId = 'AKIDlhNtN4-hwzBgDIt1Md0j9NyNOaPA1A3T7MGmVwll2Wx8vaqDKKjE4MeYJtkY8zV3'
+const secretKey = 'khikgrrb/VDlpEljCYQYjVvSk0zSvHz36gQWiw1uFCI='
+const sessionToken = 'BCH9zXhGk0SiqDlZqCNDg0bm1Fw4Cipa0b90486e1438e5f48206a11ae111e3e2kJ-kkO_mQGs1I10dETB-3Ecb1yZ7g0wzTEQ953pXylLCB8Fcd7fhkbYcAY9idC6PLZqCKxc3kxfU_FaPvP3sJCNr57jndK0h4YGh49ZbqyYRXfDjEZRDigyVd3ORy0WIx90jbGoMYM44DALagW0rqPHleXk1YjYb-HocjctQPHeaCRKITCEq5LFuUQDe9QVn2A8VslDr_dTmf3eT0QPH_zKlrFe7y-7EPlUSkCh3Qm66DLWaraiS7eq65DXCEf608ev6t_zf8dNgu_gxQahJyQQc1lG8TNTOuKX7UezURCtT63OwSuX9iEWoPDghFYbDaRPLZoxuYyrGZA5WR2aHKVoTcP6lo1WLZ5ue-CLT7BK0hOFHgfiB6q9iLUhZJvH_W2eoJ9ZwDNCYANrm55UBa9OgFqJais31I4seBB8LHFo'
+
+// 清除 CloudRun 可能注入的错误环境变量，防止 SDK 内部误用
+if (process.env.TENCENT_SECRET_ID) {
+  console.log('[CloudBase] Removing injected TENCENT_SECRET_ID')
+  delete (process.env as any).TENCENT_SECRET_ID
+}
+if (process.env.TENCENT_SECRET_KEY) {
+  console.log('[CloudBase] Removing injected TENCENT_SECRET_KEY')
+  delete (process.env as any).TENCENT_SECRET_KEY
+}
+
+console.log('[CloudBase] Env:', envId)
+console.log('[CloudBase] Has SecretId:', !!secretId)
+console.log('[CloudBase] Has SecretKey:', !!secretKey)
+console.log('[CloudBase] Has SessionToken:', !!sessionToken)
+
+let app: any = null
+let initError: Error | null = null
+
+try {
+  if (secretId && secretKey) {
+    console.log('[CloudBase] Initializing with credentials + sessionToken')
+    app = tcb.init({
+      env: envId,
+      secretId,
+      secretKey,
+      sessionToken,
+      timeout: 10000, // 10秒超时
+    })
+    console.log('[CloudBase] Initialized with credentials')
+  } else {
+    console.log('[CloudBase] No credentials, using default init')
+    app = tcb.init({ 
+      env: envId,
+      timeout: 10000,
+    })
+    console.log('[CloudBase] Initialized without credentials')
+  }
+} catch (error) {
+  initError = error as Error
+  console.error('[CloudBase] Init failed:', error)
+  // 创建一个空对象避免后续崩溃
+  app = {}
+}
+
+// 安全地获取数据库实例
+export const db = app?.database ? app.database() : {
+  collection: () => ({
+    add: async () => { throw new Error('CloudBase not initialized') },
+    where: () => ({ get: async () => ({ data: [] }), count: async () => ({ total: 0 }) }),
+    doc: () => ({ get: async () => ({ data: null }), update: async () => {}, delete: async () => {} }),
+  })
+}
+
+export const cloudbaseApp = app
+export const cloudbaseInitError = initError
+
+export async function testCloudBaseConnection(): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!app?.database) {
+      return { success: false, error: 'CloudBase not initialized' }
+    }
+    await app.database().collection('users').limit(1).get()
+    return { success: true }
+  } catch (e: any) {
+    return { success: false, error: e.message }
+  }
+}
