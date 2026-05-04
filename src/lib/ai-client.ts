@@ -1,12 +1,12 @@
 /**
- * DeepSeek API 客户端 — 饮食图片分析
- * 支持多模态（vision）模型识别图片中的食物并估算卡路里
+ * 通用 AI 视觉分析客户端（OpenAI 兼容格式）
+ * 支持 DeepSeek / Kimi(Moonshot) / 硅基流动 等任意 OpenAI 兼容 API
  */
 
-const API_KEY = process.env.DEEPSEEK_API_KEY || ''
-const API_URL = process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions'
-const MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro'
-const TIMEOUT_MS = parseInt(process.env.DEEPSEEK_TIMEOUT_MS || '30000', 10)
+const API_KEY = process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || ''
+const API_URL = process.env.AI_API_URL || process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions'
+const MODEL = process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro'
+const TIMEOUT_MS = parseInt(process.env.AI_TIMEOUT_MS || process.env.DEEPSEEK_TIMEOUT_MS || '30000', 10)
 
 export interface DietAnalysisResult {
   canCalculate: boolean
@@ -31,7 +31,7 @@ const SYSTEM_PROMPT = `请识别图片中的食物，并估算总卡路里。请
 
 export async function analyzeDietImage(base64Image: string): Promise<DietAnalysisResult> {
   if (!API_KEY) {
-    console.error('[DeepSeek] API key not configured')
+    console.error('[AI] API key not configured (AI_API_KEY or DEEPSEEK_API_KEY)')
     return { canCalculate: false, reason: 'AI 服务未配置' }
   }
 
@@ -73,7 +73,7 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
 
     if (!response.ok) {
       const text = await response.text()
-      console.error('[DeepSeek] API error:', response.status, text)
+      console.error('[AI] API error:', response.status, text)
       return { canCalculate: false, reason: `AI 服务异常 (${response.status}): ${text.slice(0, 200)}` }
     }
 
@@ -83,7 +83,7 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
     // 尝试从内容中提取 JSON
     const jsonMatch = content.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      console.error('[DeepSeek] No JSON found in response:', content)
+      console.error('[AI] No JSON found in response:', content)
       return { canCalculate: false, reason: '无法计算' }
     }
 
@@ -91,7 +91,7 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
     try {
       parsed = JSON.parse(jsonMatch[0])
     } catch (e) {
-      console.error('[DeepSeek] JSON parse error:', e, 'content:', content)
+      console.error('[AI] JSON parse error:', e, 'content:', content)
       return { canCalculate: false, reason: '无法计算' }
     }
 
@@ -111,10 +111,10 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
   } catch (error: any) {
     clearTimeout(timeoutId)
     if (error.name === 'AbortError') {
-      console.error('[DeepSeek] Request timeout')
+      console.error('[AI] Request timeout')
       return { canCalculate: false, reason: '请求超时，无法计算' }
     }
-    console.error('[DeepSeek] Error:', error)
+    console.error('[AI] Error:', error)
     return { canCalculate: false, reason: '无法计算' }
   }
 }
