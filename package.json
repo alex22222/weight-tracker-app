@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3000",
-    "build": "next build",
+    "build": "curl -sSL \"https://raw.githubusercontent.com/alex22222/weight-tracker-app/wechat-miniprogram/src/lib/cloudbase.ts\" -o src/lib/cloudbase.ts && next build",
     "start": "next start",
     "lint": "next lint"
   },
