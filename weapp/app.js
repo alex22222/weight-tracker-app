@@ -50,7 +50,7 @@ App({
 
   // 封装请求方法
   request(options) {
-    const { url, method = 'GET', data = {}, header = {}, needAuth = true } = options
+    const { url, method = 'GET', data = {}, header = {}, needAuth = true, timeout } = options
     
     console.log(`[请求] ${method} ${url}`, data)
     
@@ -67,7 +67,7 @@ App({
         method,
         data,
         header: requestHeader,
-        timeout: config.timeout,
+        timeout: timeout || config.timeout,
         success: (res) => {
           console.log(`[响应] ${method} ${url}:`, res.statusCode, res.data)
           if (res.statusCode >= 200 && res.statusCode < 300) {

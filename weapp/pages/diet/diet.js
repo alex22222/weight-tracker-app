@@ -75,7 +75,7 @@ Page({
         url: '/diet/analyze',
         method: 'POST',
         data: { image: imageBase64 },
-        timeout: 60000, // AI 分析可能需要较长时间
+        timeout: 90000, // AI 分析图片可能需要较长时间
       })
 
       if (res.success) {
