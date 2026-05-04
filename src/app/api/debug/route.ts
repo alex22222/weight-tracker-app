@@ -15,6 +15,10 @@ export async function GET(request: NextRequest) {
       HAS_TENCENT_SECRET: !!process.env.TENCENT_SECRET_ID,
       HAS_TENCENTCLOUD_SECRET: !!process.env.TENCENTCLOUD_SECRETID,
       TENCENT_SECRET_ID_PREFIX: process.env.TENCENT_SECRET_ID ? process.env.TENCENT_SECRET_ID.substring(0, 10) + '...' : null,
+      DEEPSEEK_API_KEY_CONFIGURED: !!process.env.DEEPSEEK_API_KEY,
+      DEEPSEEK_API_KEY_PREFIX: process.env.DEEPSEEK_API_KEY ? process.env.DEEPSEEK_API_KEY.substring(0, 8) + '...' : null,
+      DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL || 'default(deepseek-v4-pro)',
+      DEEPSEEK_API_URL: process.env.DEEPSEEK_API_URL || 'default(https://api.deepseek.com/chat/completions)',
     },
     cloudbase: {
       initialized: !!cloudbaseApp,
