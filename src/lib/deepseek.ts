@@ -74,7 +74,7 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
     if (!response.ok) {
       const text = await response.text()
       console.error('[DeepSeek] API error:', response.status, text)
-      return { canCalculate: false, reason: 'AI 服务异常' }
+      return { canCalculate: false, reason: `AI 服务异常 (${response.status}): ${text.slice(0, 200)}` }
     }
 
     const data = await response.json()
