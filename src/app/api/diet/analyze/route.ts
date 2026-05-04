@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '../../../lib/cloudbase'
-import { getUserFromRequest } from '../../../lib/auth'
-import { analyzeDietImage } from '../../../lib/deepseek'
+import { db } from '../../../../lib/cloudbase'
+import { getUserFromRequest } from '../../../../lib/auth'
+import { analyzeDietImage } from '../../../../lib/deepseek'
 
 export const dynamic = 'force-dynamic'
 
