@@ -6,6 +6,7 @@
 const API_KEY = process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || ''
 const API_URL = process.env.AI_API_URL || process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions'
 const MODEL = process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro'
+const TEMPERATURE = parseFloat(process.env.AI_TEMPERATURE || '1')
 const TIMEOUT_MS = parseInt(process.env.AI_TIMEOUT_MS || process.env.DEEPSEEK_TIMEOUT_MS || '30000', 10)
 
 export interface DietAnalysisResult {
@@ -64,7 +65,7 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
           },
         ],
         max_tokens: 1000,
-        temperature: 0.3,
+        temperature: TEMPERATURE,
       }),
       signal: controller.signal,
     })
