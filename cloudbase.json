@@ -30,8 +30,9 @@
         "dockerfilePath": "Dockerfile",
         "buildDir": ".",
         "buildArgs": {
-          "BUILD_ID": "2026-05-04T02-34-09-674Z",
-          "CACHE_BUST": "1777862049677"
+          "BUILD_ID": "2026-05-04T04-45-53-828Z",
+          "CACHE_BUST": "1777869953829",
+          "CREDENTIALS_VERSION": "1777869953829"
         }
       }
     }
