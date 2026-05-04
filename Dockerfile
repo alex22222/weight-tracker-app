@@ -7,6 +7,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
+# 强制 bust 缓存（确保源代码最新）
+ARG CACHE_BUST=default
+RUN echo "Cache bust: ${CACHE_BUST}"
+
 # 复制源代码
 COPY . .
 
