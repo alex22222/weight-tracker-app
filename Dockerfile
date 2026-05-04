@@ -25,8 +25,10 @@ RUN echo "=== globals.css head ===" && head -5 /app/src/app/globals.css
 RUN echo "=== tailwind.config.ts exists ===" && ls -la /app/tailwind.config.ts
 
 # Patch Next.js 14.2.15 build bugs for CloudRun Linux environment
-RUN sed -i 's/async function generateBuildId(generate, fallback) {/async function generateBuildId(generate, fallback) { if (typeof generate !== \x27function\x27) { generate = fallback; }/' node_modules/next/dist/build/generate-build-id.js
-RUN sed -i 's/await handleTraceFiles(_path.default.join(distDir, "next-server.js.nft.json"));/await handleTraceFiles(_path.default.join(distDir, "next-server.js.nft.json")).catch(()=>{});/' node_modules/next/dist/build/utils.js
+# Fix 1: handle undefined generateBuildId (Next.js config loading bug)
+RUN node -e "const fs=require('fs'),p='/app/node_modules/next/dist/build/generate-build-id.js',c=fs.readFileSync(p,'utf8');fs.writeFileSync(p,c.replace('async function generateBuildId(generate, fallback) {','async function generateBuildId(generate, fallback) { if (typeof generate !== \"function\") { generate = fallback; }'))"
+# Fix 2: ignore missing next-server.js.nft.json during standalone copy
+RUN node -e "const fs=require('fs'),p='/app/node_modules/next/dist/build/utils.js',c=fs.readFileSync(p,'utf8');fs.writeFileSync(p,c.replace('await handleTraceFiles(_path.default.join(distDir, \"next-server.js.nft.json\"));','await handleTraceFiles(_path.default.join(distDir, \"next-server.js.nft.json\")).catch(()=>{});'))"
 
 # 构建
 RUN npm run build
