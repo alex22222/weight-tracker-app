@@ -40,3 +40,4 @@ Thumbs.db
 
 # Deploy packages
 deploy-*.zip
+*.log

@@ -1,43 +1,14 @@
 {
   "version": "2.0",
   "envId": "weight-tracker-1ghr085dd7d6cff2",
-  "functionRoot": "cloudfunctions",
-  "functions": [],
-  "cloudRunRoot": "cloudrun",
-  "cloudRun": [
-    {
-      "serviceName": "weight-tracker-api",
-      "servicePath": "/",
-      "containerPort": 80,
-      "minNum": 0,
-      "maxNum": 10,
-      "cpu": 0.25,
-      "mem": 0.5,
-      "environmentVariables": {
-        "NODE_ENV": "production",
-        "DB_TYPE": "cloudbase",
-        "CLOUDBASE_ENV_ID": "weight-tracker-1ghr085dd7d6cff2",
-        "PORT": "80",
-        "HOSTNAME": "0.0.0.0",
-        "JWT_SECRET": "weight-tracker-v2-secret-key-2026-03-21",
-        "WECHAT_APPID": "wxa3591edcdc8d4551",
-        "ALLOWED_ORIGINS": "https://www.spaceflag.site,https://spaceflag.site",
-        "TENCENT_SECRET_ID": "AKIDcW6lfYF21mGJPuxJz7ds7o4LjQ6YIb3cJhyZCUJ_J9Zcb7vluvh6fywSnJKLBtJt",
-        "TENCENT_SECRET_KEY": "bRXBhJHZO/sBTdPYmoxayECynBCLmlgipb3E4hJqL4E=",
-        "WECHAT_SECRET": "ba3a06ee13ac030da702d31cb3799280",
-        "CLOUDBASE_SECRET_ID": "AKIDkpKzFrfMF384Gd7CVW9AKBObUxvRsK91WeO0_5Xa5J-byNi9s3BRhg_odDuNnHwd",
-        "CLOUDBASE_SECRET_KEY": "SKbKNgejvZN8GClZtHkawc0SwzAbUyZYWzwcVQffMQc=",
-        "CLOUDBASE_SESSION_TOKEN": "I43rf85VoY1t8OclE6VfTAgMfku98fRa9d9621a44ce81d41ec2037316cb1b182BW5RGm0C5rRT5NzIg2h2iQUdv5DLltdjI3Skrtjx186W_WhL1V42Y9jhTEJwBijnh9xG4R0nwcfb30d7BZUxotLxyWGDo-NEiscl6t65WvSXY1qmXtoOiF5W0qfIK2ukORGOOWnzCvciJG_kMDsduKZVWxyKCELX9LRWWBQM_rHJ71kGInIQfkDrLC2R6TFpzTA9D8k7-ZSIH2OL8cWLPLfI0yNcCVO2Kr3OsCtW6e7hQtL51n5kRp3Seh0FJ_E6D-lRwZUiQ4djW6E1uIPoiDbNMYlmzYfWvoAdy2bxKxxIUt2mQGWR1CGR4JbQHUhyBSScOU7Tt4-yqyVs0yh-8GhfRT9XTyPytpoOyygY5rAK6RnEtVERxlwPQsUvS7ju0-OAg2QLxHe1YY3xXSZILw"
-      },
-      "buildParams": {
-        "dockerfilePath": "Dockerfile",
-        "buildDir": ".",
-        "buildArgs": {
-          "BUILD_ID": "2026-05-04T05-09-15-111Z",
-          "CACHE_BUST": "1777871355111",
-          "CREDENTIALS_VERSION": "1777871355111"
-        }
-      }
+  "cloudRun": [{
+    "serviceName": "weight-tracker-api",
+    "containerPort": 80,
+    "environmentVariables": {
+      "NODE_ENV": "production"
+    },
+    "buildParams": {
+      "dockerfilePath": "Dockerfile"
     }
-  ]
+  }]
 }
