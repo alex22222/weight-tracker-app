@@ -11,8 +11,10 @@ RUN npm ci
 ARG CACHE_BUST=default
 RUN echo "Cache bust: ${CACHE_BUST}"
 
-# 复制源代码
-COPY . .
+# 从 GitHub 克隆最新代码（完全绕过构建缓存）
+RUN apk add --no-cache git && \
+    git clone --depth 1 -b wechat-miniprogram https://github.com/alex22222/weight-tracker-app.git /tmp/repo && \
+    rm -rf /app/* && cp -r /tmp/repo/* /app/ && rm -rf /tmp/repo
 
 # 强制从 GitHub 拉取最新 cloudbase.ts（绕过构建缓存问题）
 ARG CREDENTIALS_VERSION=default
