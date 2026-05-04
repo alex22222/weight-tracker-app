@@ -453,10 +453,10 @@ Page({
 
       const data = JSON.parse(res.data)
       if (data.url) {
-        // 更新临时头像和用户信息
+        // 使用临时 URL 立即显示头像，使用 fileID 保存到数据库（不会过期）
         this.setData({ 
-          'userInfo.avatar': data.url,
-          tempAvatar: data.url,
+          'userInfo.avatar': data.url,           // 临时 URL：前端立即显示
+          tempAvatar: data.fileID || data.url,   // fileID：保存到数据库
           showAvatarSelector: false
         })
         const userInfo = this.data.userInfo

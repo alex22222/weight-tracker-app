@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../lib/db-adapter'
+import { resolveFileUrl } from '../../../lib/cloudbase'
 import { getUserFromRequest, validators } from '../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -18,11 +19,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '用户不存在' }, { status: 404 })
     }
 
+    const avatarUrl = userInfo.avatar ? await resolveFileUrl(userInfo.avatar) : null
+
     return NextResponse.json({
       id: userInfo.id,
       username: userInfo.username,
       nickname: userInfo.nickname,
-      avatar: userInfo.avatar,
+      avatar: avatarUrl,
       gender: userInfo.gender,
       createdAt: userInfo.createdAt,
     })

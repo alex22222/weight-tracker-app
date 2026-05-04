@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter, MessageType } from '../../../../lib/db-adapter'
+import { resolveFileUrl } from '../../../../lib/cloudbase'
 import { generateToken, hashPassword } from '../../../../lib/auth'
 import { pointsService } from '../../../../lib/points-service'
 
@@ -109,8 +110,17 @@ export async function POST(request: NextRequest) {
       const updateData: any = {}
       
       if (userInfo) {
-        if (userInfo.nickName && userInfo.nickName !== user.nickname) {
-          updateData.nickname = userInfo.nickName
+        // 昵称：只有用户未设置昵称，或前端传了真实的微信昵称（非默认值）时才更新
+        if (userInfo.nickName) {
+          const isDefaultNickname = userInfo.nickName === '微信用户'
+          if (!user.nickname && !isDefaultNickname) {
+            // 用户从未设置过昵称，且前端传了真实昵称 → 使用微信昵称
+            updateData.nickname = userInfo.nickName
+          } else if (user.nickname && !isDefaultNickname && userInfo.nickName !== user.nickname) {
+            // 用户已设置昵称，前端传了新的真实昵称（非默认值）→ 更新
+            updateData.nickname = userInfo.nickName
+          }
+          // 如果前端传的是默认值'微信用户'，且用户已有自定义昵称 → 不覆盖，保留用户昵称
         }
         if (userInfo.avatarUrl && userInfo.avatarUrl !== user.avatar) {
           updateData.avatar = userInfo.avatarUrl
@@ -162,6 +172,9 @@ export async function POST(request: NextRequest) {
     const tokenUsername = user.username || user.nickname || '微信用户'
     const token = generateToken(String(user.id), tokenUsername)
 
+    // 将 fileID 转换为临时 URL
+    const avatarUrl = user.avatar ? await resolveFileUrl(user.avatar) : null
+
     // 返回用户信息
     return NextResponse.json({
       message: isNewUser ? '注册成功' : '登录成功',
@@ -170,7 +183,7 @@ export async function POST(request: NextRequest) {
         id: user.id,
         nickname: user.nickname,
         username: user.username,  // 确保返回 username
-        avatar: user.avatar,
+        avatar: avatarUrl,
         gender: user.gender,
         role: user.role,
         createdAt: user.createdAt,

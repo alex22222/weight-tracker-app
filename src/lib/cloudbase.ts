@@ -9,9 +9,9 @@ const envId = 'weight-tracker-1ghr085dd7d6cff2'
 
 // 硬编码临时密钥（避免 CloudRun 注入错误的默认值）
 // 临时密钥必须配合 sessionToken 使用，否则报 SIGN_PARAM_INVALID
-const secretId = 'AKIDlhNtN4-hwzBgDIt1Md0j9NyNOaPA1A3T7MGmVwll2Wx8vaqDKKjE4MeYJtkY8zV3'
-const secretKey = 'khikgrrb/VDlpEljCYQYjVvSk0zSvHz36gQWiw1uFCI='
-const sessionToken = 'OcclGwV1Ri6zvd9gjDrueacOG1jK79Ta424f08dca35aae55abd2c8aabe88b473vwYVbz7PFfGu2IW-bFQWaEIco9an3RLzCP9TI8-P44wdrOhbxBRokNYsCZeWhdRn7DjXaPGvY6YfMm3f-zbOIAMbQ67b8cJBk7ht6t5lXj8nEwnyxjK60CdJwnFjD-Jj9Q-FkiiBpkxSJvB3d1nI4MqVdIyYHAXIWQOKVf47DOPDAqW9GbW4fH9wRArRq73BQIWVpe5Jhuw74EAfisuVulWM9jIXsondPbo-e4BEqzHRW4bZV4bTO0TEVz0T3-H-BHkdBCA5zCurEWPZf5PmJFzkHjCDFO--qEwx057ahNSfp9ny0Itugaqg36SEYhV1_V2eGTEy0Q9fnvGttmSyqCVOgx95tCr1MzqT7wKtmrtq8eLq_Mrj6gB-e8h3UeED17Z2sT79kQKi8PmML6HufEuozkympXxcV3lQIaVNDfY'
+const secretId = 'AKIDYPf2keep7A-hKVfDE0L8CCGxh3zHseUbltbW-Nbd48bxvALJW_qsIPtWToCAYE1L'
+const secretKey = 's15q4ImjdnjcJRYqMIzqLNnrzPF1oDBWTEqY4xE372I='
+const sessionToken = 'I43rf85VoY1t8OclE6VfTAgMfku98fRa54d3279b55605bf8455335d8e8c83181BW5RGm0C5rRT5NzIg2h2idRtKcCX4fZo-YjzaNQq9OE1oMe0M96wnsGpvs_NpX7U7V8tjqN-UesgXR9e7pJQEH24vpoHbgha2v4uX3-xOqt83UTpgq95THF7xwEhoZ-3E0KGoxTevKljXuB6Ij1tJAZU0V5CzrjgdI3Gde4TflOIRVJRp98OBaI2HeQvH3F0ozLanM0O5evQfTDAoA19XF1I5bYXawxL8ipY2v-8ljH6HgGJZkne9ckamHtIlKS1eYguU4TJpt7N0TG5xGAEeF196D-TTqazjxOn7n7fiAocH-V__DKMFydb9THNE3_3g5Pz4DQEH4XShyi5u8i00TlrvcUy3pEp83EhrFNUY3BxmwyITfhOJR5zUZ2Zz-LsTQkkrSsiHpzzoPvGkQGNSTAk7jwL9yddG8C0iGe9H_U'
 
 // 清除 CloudRun 可能注入的错误环境变量，防止 SDK 内部误用
 if (process.env.TENCENT_SECRET_ID) {
@@ -68,6 +68,24 @@ export const db = app?.database ? app.database() : {
 
 export const cloudbaseApp = app
 export const cloudbaseInitError = initError
+
+// 将 CloudBase fileID (cloud://...) 转换为临时访问 URL
+export async function resolveFileUrl(fileIDOrUrl?: string | null): Promise<string | null> {
+  if (!fileIDOrUrl) return null
+  // 如果不是 cloud:// 格式，直接返回（可能是 http URL 或 emoji）
+  if (!fileIDOrUrl.startsWith('cloud://')) return fileIDOrUrl
+  try {
+    if (!app?.getTempFileURL) return fileIDOrUrl
+    const result = await app.getTempFileURL({ fileList: [fileIDOrUrl] })
+    if (result.fileList?.[0]?.tempFileURL) {
+      return result.fileList[0].tempFileURL
+    }
+    return fileIDOrUrl
+  } catch (e) {
+    console.error('[resolveFileUrl] Failed to resolve:', fileIDOrUrl, e)
+    return fileIDOrUrl
+  }
+}
 
 export async function testCloudBaseConnection(): Promise<{ success: boolean; error?: string }> {
   try {

@@ -1,0 +1,11 @@
+CloudBase CLI 2.12.7
+Try the tcb ai command to start your AI full-stack development experience
+- Loading data...
+ℹ Current Environment ID: weight-tracker-1ghr085dd7d6cff2
+? Enable gray deployment? (Use arrow keys)
+❯ No (automatically switch traffic to new version after successful release) 
+  Yes (manually switch traffic to new version after successful release) [72D[72C[2K[1A[2K[1A[2K[G? Enable gray deployment? No (automatically switch traffic to new version after 
+successful release)[1A[19D[99C
+[1Bℹ Submitting Container-based cloud hosting weight-tracker-api, please wait...
+ℹ Container-based cloud hosting weight-tracker-api submission completed!
+ℹ Please open the link to view deployment status: https://tcb.cloud.tencent.com/dev?envId=weight-tracker-1ghr085dd7d6cff2#/platform-run/service/detail?serverName=weight-tracker-api&tabId=deploy&envId=weight-tracker-1ghr085dd7d6cff2

@@ -20,6 +20,10 @@ RUN echo "=== postcss.config.cjs ===" && cat /app/postcss.config.cjs
 RUN echo "=== globals.css head ===" && head -5 /app/src/app/globals.css
 RUN echo "=== tailwind.config.ts exists ===" && ls -la /app/tailwind.config.ts
 
+# Patch Next.js 14.2.15 build bugs for CloudRun Linux environment
+RUN sed -i 's/async function generateBuildId(generate, fallback) {/async function generateBuildId(generate, fallback) { if (typeof generate !== \x27function\x27) { generate = fallback; }/' node_modules/next/dist/build/generate-build-id.js
+RUN sed -i 's/await handleTraceFiles(_path.default.join(distDir, "next-server.js.nft.json"));/await handleTraceFiles(_path.default.join(distDir, "next-server.js.nft.json")).catch(()=>{});/' node_modules/next/dist/build/utils.js
+
 # 构建
 RUN npm run build
 

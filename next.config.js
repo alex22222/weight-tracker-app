@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 module.exports = {
   output: 'standalone',
+  outputFileTracing: true,
   images: {
     unoptimized: true
   },
@@ -8,5 +9,5 @@ module.exports = {
     serverComponentsExternalPackages: ['@cloudbase/node-sdk']
   },
   swcMinify: false,
-  generateBuildId: () => null,
+  generateBuildId: async () => 'build',
 }

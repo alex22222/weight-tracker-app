@@ -1,0 +1,10 @@
+#!/usr/bin/expect -f
+set timeout 600
+spawn cloudbase cloudrun deploy --serviceName weight-tracker-api --force
+expect "Enable gray deployment?"
+send "\r"
+expect {
+    "submission completed" { puts "DEPLOYMENT_SUBMITTED" }
+    "部署成功" { puts "DEPLOYMENT_SUCCESS" }
+    timeout { puts "TIMEOUT"; exit 1 }
+}

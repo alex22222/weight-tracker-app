@@ -30,7 +30,7 @@
         "dockerfilePath": "Dockerfile",
         "buildDir": ".",
         "buildArgs": {
-          "BUILD_ID": "20260503-215300"
+          "BUILD_ID": "20260504-102312"
         }
       }
     }

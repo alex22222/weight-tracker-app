@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../lib/db-adapter'
+import { resolveFileUrl } from '../../../lib/cloudbase'
 import { getUserFromRequest, validators } from '../../../lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -25,13 +26,17 @@ export async function GET(request: NextRequest) {
     
     const userInfo = await adapter.getUserById(user.userId)
     
+    // 将 fileID 转换为临时 URL
+    const avatarUrl = userInfo?.avatar ? await resolveFileUrl(userInfo.avatar) : null
+    const settingsAvatarUrl = settings?.avatar ? await resolveFileUrl(settings.avatar) : null
+    
     return NextResponse.json({ 
-      settings,
+      settings: settings ? { ...settings, avatar: settingsAvatarUrl } : null,
       user: userInfo ? { 
         id: userInfo.id, 
         username: userInfo.username, 
         nickname: userInfo.nickname,
-        avatar: userInfo.avatar,
+        avatar: avatarUrl,
         gender: userInfo.gender 
       } : { 
         id: user.userId, 
