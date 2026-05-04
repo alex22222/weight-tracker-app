@@ -10,6 +10,7 @@
     "pages/my/my",
     "pages/feedback/feedback",
     "pages/settings/settings",
+    "pages/diet/diet",
     "pages/forgot-password/forgot-password",
     "pages/logs/logs"
   ],
@@ -28,6 +29,10 @@
       {
         "pagePath": "pages/home/home",
         "text": "首页"
+      },
+      {
+        "pagePath": "pages/diet/diet",
+        "text": "饮食"
       },
       {
         "pagePath": "pages/reading/reading",

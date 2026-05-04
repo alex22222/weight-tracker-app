@@ -267,6 +267,13 @@ Page({
     })
   },
 
+  // 跳转到饮食页面
+  goToDiet() {
+    wx.switchTab({
+      url: '/pages/diet/diet'
+    })
+  },
+
   // 打开设置面板
   goToSettings() {
     this.toggleSettings()
@@ -353,9 +360,16 @@ Page({
 
     wx.showLoading({ title: '保存中...' })
     try {
+      // 未登录时阻止保存
+      if (!userInfo) {
+        wx.showToast({ title: '请先登录', icon: 'none' })
+        wx.navigateTo({ url: '/pages/login/login' })
+        return
+      }
+
       // 更新用户信息（昵称和头像）
       const userUpdateData = {}
-      if (tempNickname && tempNickname !== userInfo.nickName) {
+      if (tempNickname && tempNickname !== (userInfo.nickName || userInfo.nickname)) {
         userUpdateData.nickname = tempNickname
       }
       if (tempAvatar && tempAvatar !== userInfo.avatar) {

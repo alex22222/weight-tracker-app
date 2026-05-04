@@ -36,6 +36,7 @@ export const COLLECTIONS = {
   FEEDBACK: 'feedback',
   VERIFICATION_CODES: 'verification_codes',
   BOOK_RECOMMENDATIONS: 'book_recommendations',
+  DIET_RECORDS: 'diet_records',
 }
 
 // ==================== 常量定义 ====================

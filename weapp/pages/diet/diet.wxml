@@ -1,0 +1,87 @@
+<view class="container">
+  <!-- 上传区域 -->
+  <view class="upload-section">
+    <view class="upload-title">上传今日饮食</view>
+    <view class="upload-subtitle">AI 自动识别食物并计算卡路里</view>
+
+    <view class="upload-box" bindtap="chooseImage" wx:if="{{!previewImage}}">
+      <text class="upload-icon">📷</text>
+      <text class="upload-text">点击拍照或从相册选择</text>
+    </view>
+
+    <view class="preview-box" wx:if="{{previewImage}}">
+      <image class="preview-img" src="{{previewImage}}" mode="aspectFill" />
+      <view class="preview-actions">
+        <text class="action-btn" bindtap="chooseImage">重新选择</text>
+        <text class="action-btn primary" bindtap="analyzeImage" wx:if="{{!analyzing}}">开始分析</text>
+      </view>
+    </view>
+
+    <!-- 次数提示 -->
+    <view class="quota-tip">
+      今日剩余次数：<text class="quota-num">{{remainingToday}}</text>/3
+    </view>
+  </view>
+
+  <!-- 分析中 -->
+  <view class="analyzing-box" wx:if="{{analyzing}}">
+    <view class="spinner"></view>
+    <text class="analyzing-text">AI 正在分析食物中...</text>
+  </view>
+
+  <!-- 分析结果 -->
+  <view class="result-section" wx:if="{{lastResult}}">
+    <view class="result-title">分析结果</view>
+    <view class="calorie-badge">
+      <text class="calorie-num">{{lastResult.calories || '--'}}</text>
+      <text class="calorie-unit">千卡</text>
+    </view>
+
+    <view class="food-list" wx:if="{{lastResult.foodItems && lastResult.foodItems.length}}">
+      <view class="food-item" wx:for="{{lastResult.foodItems}}" wx:key="index">
+        <text class="food-dot">•</text>
+        <text class="food-name">{{item}}</text>
+      </view>
+    </view>
+
+    <view class="analysis-text" wx:if="{{lastResult.analysis}}">
+      {{lastResult.analysis}}
+    </view>
+  </view>
+
+  <!-- 无法计算 -->
+  <view class="fail-box" wx:if="{{lastError}}">
+    <text class="fail-icon">⚠️</text>
+    <text class="fail-text">{{lastError}}</text>
+  </view>
+
+  <!-- 历史记录 -->
+  <view class="history-section" wx:if="{{records.length > 0}}">
+    <view class="history-header">
+      <text class="history-title">今日记录</text>
+      <text class="history-count">{{records.length}} 条</text>
+    </view>
+
+    <view class="history-list">
+      <view class="history-item" wx:for="{{records}}" wx:key="_id">
+        <view class="history-main">
+          <text class="history-calories">{{item.calories}} 千卡</text>
+          <text class="history-time">{{item.createdAt}}</text>
+        </view>
+        <view class="history-foods" wx:if="{{item.foodItems && item.foodItems.length}}">
+          <text class="history-food" wx:for="{{item.foodItems}}" wx:for-item="food" wx:key="index">{{food}}</text>
+        </view>
+        <view class="history-actions">
+          <text class="delete-btn" bindtap="deleteRecord" data-id="{{item._id}}">删除</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{records.length === 0 && !lastResult && !lastError}}">
+    <text class="empty-icon">🍽️</text>
+    <text class="empty-text">今天还没有记录饮食</text>
+    <text class="empty-sub">上传一张照片，AI 帮你算卡路里</text>
+  </view>
+</view>

@@ -67,6 +67,11 @@
         <view class="checkin-status">{{readingChecked ? '已记录' : '未记录'}}</view>
         <view class="checkin-check" wx:if="{{readingChecked}}">✓</view>
       </view>
+      <view class="checkin-item" bindtap="goToDiet">
+        <view class="checkin-icon">🍱</view>
+        <view class="checkin-name">饮食</view>
+        <view class="checkin-status">AI 算卡路里</view>
+      </view>
     </view>
   </view>
 
