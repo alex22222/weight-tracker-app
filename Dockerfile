@@ -77,4 +77,4 @@ ENV TENCENT_SECRET_KEY=khikgrrb/VDlpEljCYQYjVvSk0zSvHz36gQWiw1uFCI=
 
 EXPOSE 80
 
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "node -e \"const fs=require('fs'),f='/app/src/lib/cloudbase.ts',c=fs.readFileSync(f,'utf8'),sid=process.env.CLOUDBASE_SECRET_ID||'',sk=process.env.CLOUDBASE_SECRET_KEY||'',st=process.env.CLOUDBASE_SESSION_TOKEN||'';if(sid){fs.writeFileSync(f,c.replace(/const secretId = '.*?'/,\"const secretId = '\"+sid+\"'\").replace(/const secretKey = '.*?'/,\"const secretKey = '\"+sk+\"'\").replace(/const sessionToken = '.*?'/,\"const sessionToken = '\"+st+\"'\"));console.log('Updated cloudbase.ts from env vars')}\" && node server.js"]
