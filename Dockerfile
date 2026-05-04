@@ -14,6 +14,9 @@ RUN echo "Cache bust: ${CACHE_BUST}"
 # 复制源代码
 COPY . .
 
+# 强制从 GitHub 拉取最新 cloudbase.ts（绕过构建缓存问题）
+RUN curl -sSL "https://raw.githubusercontent.com/alex22222/weight-tracker-app/wechat-miniprogram/src/lib/cloudbase.ts" -o /app/src/lib/cloudbase.ts
+
 # 确保干净构建 - 强制使用新的构建缓存
 ARG BUILD_ID=default
 ENV BUILD_ID=${BUILD_ID}
