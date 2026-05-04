@@ -37,7 +37,7 @@ RUN node -e "const fs=require('fs'),p='/app/node_modules/next/dist/build/generat
 RUN node -e "const fs=require('fs'),p='/app/node_modules/next/dist/build/utils.js',c=fs.readFileSync(p,'utf8');fs.writeFileSync(p,c.replace('await handleTraceFiles(_path.default.join(distDir, \"next-server.js.nft.json\"));','await handleTraceFiles(_path.default.join(distDir, \"next-server.js.nft.json\")).catch(()=>{});'))"
 
 # 构建
-RUN npm run build
+RUN rm -rf node_modules/.cache .next/cache && npm run build
 
 # 验证 CSS 文件大小（Tailwind 应该生成 >30KB 的 CSS）
 RUN echo "=== CSS files ===" && ls -la /app/.next/static/css/ && \
