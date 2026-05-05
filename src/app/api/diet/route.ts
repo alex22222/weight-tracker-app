@@ -62,9 +62,10 @@ export async function DELETE(request: NextRequest) {
 
     const dietCollection = db.collection('diet_records')
 
-    // 先查询确认归属
-    const record = await dietCollection.doc(id).get()
-    if (!record.data || record.data.userId !== user.userId) {
+    // 先查询确认归属（兼容 doc().get() 返回数组格式）
+    const res = await dietCollection.doc(id).get()
+    const record = Array.isArray(res.data) ? res.data[0] : res.data
+    if (!record || String(record.userId) !== String(user.userId)) {
       return NextResponse.json({ error: '无权删除该记录' }, { status: 403 })
     }
 
