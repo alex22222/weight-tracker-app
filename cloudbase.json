@@ -4,6 +4,7 @@
   "cloudRun": [{
     "serviceName": "weight-tracker-api",
     "containerPort": 80,
+    "requestTimeout": 300,
     "environmentVariables": {
       "NODE_ENV": "production"
     },
