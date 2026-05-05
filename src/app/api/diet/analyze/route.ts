@@ -133,7 +133,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: '记录不存在' }, { status: 404 })
     }
 
-    if (record.userId !== user.userId) {
+    // 兼容类型不一致（string vs number）
+    if (String(record.userId) !== String(user.userId)) {
+      console.log('[GET /diet/analyze] User mismatch:', { recordUserId: record.userId, requestUserId: user.userId })
       return NextResponse.json({ error: '无权访问' }, { status: 403 })
     }
 
