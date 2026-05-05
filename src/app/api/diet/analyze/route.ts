@@ -127,7 +127,8 @@ export async function GET(request: NextRequest) {
 
     const dietCollection = db.collection('diet_records')
     const res = await dietCollection.doc(taskId).get()
-    const record = res.data
+    // CloudBase Node SDK 的 doc().get() 返回 { data: [doc] } 或 { data: doc }
+    const record = Array.isArray(res.data) ? res.data[0] : res.data
 
     if (!record) {
       return NextResponse.json({ error: '记录不存在' }, { status: 404 })
