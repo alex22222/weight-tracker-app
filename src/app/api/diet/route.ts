@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
       .limit(50)
       .get()
 
-    const records = result.data || []
+    // 过滤掉分析中的记录，不显示在历史列表
+    const records = (result.data || []).filter((r: any) => r.status !== 'analyzing')
 
     // 统计今日次数
     const now = new Date()
