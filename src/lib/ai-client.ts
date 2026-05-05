@@ -30,12 +30,58 @@ const SYSTEM_PROMPT = `请识别图片中的食物，并估算总卡路里。请
   "reason": "无法计算：图片中未能识别出食物"
 }`
 
+export async function testAIConnection(): Promise<{ success: boolean; latencyMs: number; error?: string; model?: string }> {
+  if (!API_KEY) {
+    return { success: false, latencyMs: 0, error: 'API key not configured' }
+  }
+
+  const start = Date.now()
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 15000)
+
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [{ role: 'user', content: 'Hi' }],
+        max_tokens: 5,
+        temperature: TEMPERATURE,
+      }),
+      signal: controller.signal,
+    })
+
+    clearTimeout(timeoutId)
+    const latencyMs = Date.now() - start
+
+    if (!response.ok) {
+      const text = await response.text()
+      return { success: false, latencyMs, error: `HTTP ${response.status}: ${text.slice(0, 200)}`, model: MODEL }
+    }
+
+    return { success: true, latencyMs, model: MODEL }
+  } catch (error: any) {
+    clearTimeout(timeoutId)
+    const latencyMs = Date.now() - start
+    if (error.name === 'AbortError') {
+      return { success: false, latencyMs, error: 'Connection timeout (15s)', model: MODEL }
+    }
+    return { success: false, latencyMs, error: error.message || String(error), model: MODEL }
+  }
+}
+
 export async function analyzeDietImage(base64Image: string): Promise<DietAnalysisResult> {
   if (!API_KEY) {
     console.error('[AI] API key not configured (AI_API_KEY or DEEPSEEK_API_KEY)')
     return { canCalculate: false, reason: 'AI 服务未配置' }
   }
 
+  console.log(`[AI] Starting diet analysis, model=${MODEL}, timeout=${TIMEOUT_MS}ms, imageLength=${base64Image.length}`)
+  const startTime = Date.now()
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS)
 
@@ -71,6 +117,8 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
     })
 
     clearTimeout(timeoutId)
+    const elapsed = Date.now() - startTime
+    console.log(`[AI] Response received in ${elapsed}ms, status=${response.status}`)
 
     if (!response.ok) {
       const text = await response.text()
@@ -111,9 +159,10 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
     }
   } catch (error: any) {
     clearTimeout(timeoutId)
+    const elapsed = Date.now() - startTime
     if (error.name === 'AbortError') {
-      console.error('[AI] Request timeout')
-      return { canCalculate: false, reason: '请求超时，无法计算' }
+      console.error(`[AI] Request aborted after ${elapsed}ms (timeout=${TIMEOUT_MS}ms)`)
+      return { canCalculate: false, reason: `请求超时（${Math.round(elapsed / 1000)}秒），无法计算` }
     }
     console.error('[AI] Error:', error)
     return { canCalculate: false, reason: '无法计算' }

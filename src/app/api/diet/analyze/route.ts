@@ -42,8 +42,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 调用 DeepSeek 分析
+    // 调用 AI 分析图片
+    console.log('[API /diet/analyze] Calling AI analysis...')
     const result = await analyzeDietImage(image)
+    console.log('[API /diet/analyze] AI result:', JSON.stringify(result))
 
     if (!result.canCalculate) {
       return NextResponse.json({

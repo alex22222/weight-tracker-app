@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { db, cloudbaseApp, cloudbaseInitError } from '../../../lib/cloudbase'
 import { COLLECTIONS } from '../../../lib/db-adapter'
+import { testAIConnection } from '../../../lib/ai-client'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,14 @@ export async function GET(request: NextRequest) {
     }
   } catch (e: any) {
     debug.tests.overall = { success: false, error: e.message }
+  }
+
+  // 测试 AI API 连通性（纯文本，不发送图片）
+  try {
+    const aiTest = await testAIConnection()
+    debug.tests.aiConnection = aiTest
+  } catch (e: any) {
+    debug.tests.aiConnection = { success: false, latencyMs: 0, error: e.message }
   }
 
   return NextResponse.json(debug)
