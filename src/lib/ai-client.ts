@@ -15,16 +15,22 @@ export interface DietAnalysisResult {
   foodItems?: string[]
   analysis?: string
   reason?: string
+  rawResponse?: string // 调试：记录 AI 原始回复
 }
 
-const SYSTEM_PROMPT = `请识别图片中的食物，并估算总卡路里。请严格按以下 JSON 格式返回，不要包含任何 markdown 代码块或其他多余文字：
+const SYSTEM_PROMPT = `你是一个专业的营养师。请识别图片中的食物，并估算总卡路里。
+
+非常重要：你必须且只能返回一个 JSON 对象，不要包含任何 markdown 代码块标记（如 \`\`\`json），不要包含任何解释文字。
+
+成功识别的格式：
 {
   "canCalculate": true,
   "foodItems": ["食物1 约xxx千卡", "食物2 约xxx千卡"],
   "totalCalories": 450,
   "analysis": "这顿饭以碳水化合物为主，建议搭配更多蛋白质..."
 }
-如果图片中没有食物、无法识别、图片模糊或不是食物图片，返回：
+
+无法识别的格式：
 {
   "canCalculate": false,
   "reason": "无法计算：图片中未能识别出食物"
@@ -74,6 +80,50 @@ export async function testAIConnection(): Promise<{ success: boolean; latencyMs:
   }
 }
 
+// 从 AI 回复中提取 JSON
+function extractJSON(content: string): { json: any; raw: string } | null {
+  // 策略 1: 尝试提取 markdown 代码块中的 JSON
+  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  if (codeBlockMatch) {
+    try {
+      const parsed = JSON.parse(codeBlockMatch[1].trim())
+      return { json: parsed, raw: content }
+    } catch {
+      // 代码块内容不是有效 JSON，继续尝试其他策略
+    }
+  }
+
+  // 策略 2: 找第一个 { 和最后一个 } 之间的内容
+  const firstBrace = content.indexOf('{')
+  const lastBrace = content.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const jsonStr = content.slice(firstBrace, lastBrace + 1)
+    try {
+      const parsed = JSON.parse(jsonStr)
+      return { json: parsed, raw: content }
+    } catch {
+      // 不是有效 JSON
+    }
+  }
+
+  // 策略 3: 尝试找所有可能的 JSON 对象
+  const matches = content.match(/\{[\s\S]*?\}/g)
+  if (matches) {
+    for (const match of matches) {
+      try {
+        const parsed = JSON.parse(match)
+        if (parsed && typeof parsed === 'object') {
+          return { json: parsed, raw: content }
+        }
+      } catch {
+        // 继续尝试下一个
+      }
+    }
+  }
+
+  return null
+}
+
 export async function analyzeDietImage(base64Image: string): Promise<DietAnalysisResult> {
   if (!API_KEY) {
     console.error('[AI] API key not configured (AI_API_KEY or DEEPSEEK_API_KEY)')
@@ -95,10 +145,10 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
       body: JSON.stringify({
         model: MODEL,
         messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
           {
             role: 'user',
             content: [
-              { type: 'text', text: SYSTEM_PROMPT },
               {
                 type: 'image_url',
                 image_url: {
@@ -123,31 +173,36 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
     if (!response.ok) {
       const text = await response.text()
       console.error('[AI] API error:', response.status, text)
-      return { canCalculate: false, reason: `AI 服务异常 (${response.status}): ${text.slice(0, 200)}` }
+      return {
+        canCalculate: false,
+        reason: `AI 服务异常 (${response.status}): ${text.slice(0, 200)}`,
+        rawResponse: text.slice(0, 500),
+      }
     }
 
     const data = await response.json()
     const content: string = data.choices?.[0]?.message?.content || ''
+    console.log('[AI] Raw content:', content.slice(0, 500))
 
-    // 尝试从内容中提取 JSON
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (!jsonMatch) {
+    // 提取 JSON
+    const extracted = extractJSON(content)
+    if (!extracted) {
       console.error('[AI] No JSON found in response:', content)
-      return { canCalculate: false, reason: '无法计算' }
+      return {
+        canCalculate: false,
+        reason: 'AI 返回格式错误，无法解析',
+        rawResponse: content.slice(0, 500),
+      }
     }
 
-    let parsed: any
-    try {
-      parsed = JSON.parse(jsonMatch[0])
-    } catch (e) {
-      console.error('[AI] JSON parse error:', e, 'content:', content)
-      return { canCalculate: false, reason: '无法计算' }
-    }
+    const parsed = extracted.json
+    console.log('[AI] Parsed JSON:', JSON.stringify(parsed))
 
     if (!parsed.canCalculate) {
       return {
         canCalculate: false,
         reason: parsed.reason || '无法计算',
+        rawResponse: content.slice(0, 500),
       }
     }
 
@@ -156,6 +211,7 @@ export async function analyzeDietImage(base64Image: string): Promise<DietAnalysi
       calories: typeof parsed.totalCalories === 'number' ? parsed.totalCalories : undefined,
       foodItems: Array.isArray(parsed.foodItems) ? parsed.foodItems : [],
       analysis: typeof parsed.analysis === 'string' ? parsed.analysis : '',
+      rawResponse: content.slice(0, 500),
     }
   } catch (error: any) {
     clearTimeout(timeoutId)

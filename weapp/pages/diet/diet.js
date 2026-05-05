@@ -166,6 +166,7 @@ Page({
             lastError: res.error || '分析失败',
             analyzing: false,
           })
+          this.loadRecords()
           return
         }
 

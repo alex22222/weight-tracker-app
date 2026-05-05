@@ -26,12 +26,14 @@ async function runAnalysisInBackground(recordId: string, image: string) {
         calories: result.calories ?? 0,
         foodItems: result.foodItems || [],
         analysis: result.analysis || '',
+        aiRaw: result.rawResponse || '',
         completedAt: new Date(),
       })
     } else {
       await dietCollection.doc(recordId).update({
         status: 'failed',
         error: result.reason || '无法计算',
+        aiRaw: result.rawResponse || '',
         completedAt: new Date(),
       })
     }
