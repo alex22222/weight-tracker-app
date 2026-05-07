@@ -2,13 +2,18 @@
 const app = getApp()
 const util = require('../../utils/util.js')
 
+const recorderManager = wx.getRecorderManager()
+const audioContext = wx.createInnerAudioContext()
+
 Page({
   data: {
     userInfo: null,
     avatarText: '用',
     welcomeName: '用户',
     todayDate: '',
-    
+    isRecording: false,
+    voiceResult: '',
+
     // 今日记录状态
     fitnessChecked: false,
     readingChecked: false,
@@ -74,6 +79,140 @@ Page({
 
   onLoad() {
     this.initData()
+    this.initVoiceRecorder()
+  },
+
+  // 初始化录音管理器
+  initVoiceRecorder() {
+    recorderManager.onStart = () => {
+      console.log('[Voice] recorder started')
+      this.setData({ isRecording: true, voiceResult: '' })
+    }
+
+    recorderManager.onStop = (res) => {
+      console.log('[Voice] recorder stopped, tempFilePath:', res.tempFilePath)
+      console.log('[Voice] duration:', res.duration, 'fileSize:', res.fileSize)
+      this.setData({ isRecording: false })
+      if (res.tempFilePath) {
+        this.uploadAndTranscribe(res.tempFilePath)
+      } else {
+        console.error('[Voice] no tempFilePath')
+        wx.showToast({ title: '录音文件为空', icon: 'none' })
+      }
+    }
+
+    recorderManager.onError = (res) => {
+      console.error('[Voice] recorder error:', JSON.stringify(res))
+      this.setData({ isRecording: false })
+      wx.showToast({ title: '录音失败', icon: 'none' })
+    }
+
+    recorderManager.onFrameRecorded = () => {
+      if (!this._frameLogged) {
+        console.log('[Voice] frame received, audio active')
+        this._frameLogged = true
+      }
+    }
+  },
+
+  // 开始语音录音
+  onVoicePressStart() {
+    if (!app.globalData.isLoggedIn) {
+      wx.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    console.log('[Voice] using recorderManager mp3')
+    this.setData({ isRecording: true, voiceResult: '' })
+    recorderManager.start({
+      duration: 6000,
+      sampleRate: 16000,
+      numberOfChannels: 1,
+      encodeBitRate: 48000,
+      format: 'mp3',
+    })
+  },
+
+  // 松手停止录音
+  onVoicePressEnd() {
+    recorderManager.stop()
+  },
+
+  // 上传录音到后端进行语音识别
+  async uploadAndTranscribe(filePath) {
+    this.setData({ isRecording: true, voiceResult: '' })
+    try {
+      const token = wx.getStorageSync('token')
+      console.log('[Voice] uploading to:', `${app.globalData.apiBaseUrl}/voice`, 'file:', filePath)
+      const uploadRes = await new Promise((resolve, reject) => {
+        wx.uploadFile({
+          url: `${app.globalData.apiBaseUrl}/voice?token=${encodeURIComponent(token)}`,
+          filePath,
+          name: 'file',
+          success: (res) => {
+            console.log('[Voice] upload response status:', res.statusCode)
+            console.log('[Voice] upload response data:', res.data)
+            resolve(res)
+          },
+          fail: (err) => {
+            console.error('[Voice] upload failed:', JSON.stringify(err))
+            reject(err)
+          },
+        })
+      })
+
+      let data
+      try {
+        data = JSON.parse(uploadRes.data)
+        console.log('[Voice] parsed response:', JSON.stringify(data))
+      } catch (e) {
+        console.error('[Voice] JSON parse error:', e, 'raw:', uploadRes.data)
+        this.setData({ voiceResult: '解析失败' })
+        wx.showToast({ title: '服务器响应异常', icon: 'none' })
+        return
+      }
+
+      if (data.weight) {
+        this.setData({ voiceResult: `${data.weight} kg` })
+        wx.vibrateShort({ type: 'medium' }).catch(() => {})
+        await this.createVoiceWeightEntry(data.weight)
+      } else {
+        this.setData({ voiceResult: data.text || '未识别到体重' })
+        wx.showToast({
+          title: data.text ? `识别到: ${data.text}` : '未识别到体重数字',
+          icon: 'none'
+        })
+      }
+    } catch (err) {
+      console.error('[Voice] upload error:', err)
+      this.setData({ voiceResult: '识别失败' })
+      wx.showToast({ title: '语音识别失败', icon: 'none' })
+    } finally {
+      this.setData({ isRecording: false })
+    }
+  },
+
+  // 通过语音创建体重记录
+  async createVoiceWeightEntry(weight) {
+    try {
+      await app.request({
+        url: '/weight',
+        method: 'POST',
+        data: {
+          weight,
+          note: '语音记录',
+          date: util.getTodayString()
+        }
+      })
+      wx.showToast({
+        title: `✅ 记录成功 ${weight}kg`,
+        icon: 'none',
+        duration: 2000
+      })
+      this.setData({ voiceResult: `✅ ${weight} kg` })
+      this.loadData()
+    } catch (err) {
+      wx.showToast({ title: err.message || '记录失败', icon: 'none' })
+    }
   },
 
   onShow() {
@@ -81,6 +220,14 @@ Page({
       isLoggedIn: app.globalData.isLoggedIn,
       hasToken: !!app.globalData.token,
       tokenPrefix: app.globalData.token ? app.globalData.token.substring(0, 20) : 'none'
+    })
+    // 同步用户信息
+    const userInfo = app.globalData.userInfo
+    this.setData({
+      isLoggedIn: app.globalData.isLoggedIn,
+      userInfo: userInfo,
+      avatarText: this.getAvatarText(userInfo),
+      welcomeName: (userInfo?.nickname || userInfo?.username || '用户')
     })
     this.loadData()
     this.loadWeather()
@@ -115,6 +262,8 @@ Page({
   },
 
   async loadData() {
+    // 每次加载数据时清理语音记录状态
+    this.setData({ voiceResult: '' })
     // 更新登录状态
     this.setData({ isLoggedIn: app.globalData.isLoggedIn })
 
@@ -160,7 +309,7 @@ Page({
       const result = await app.request({ url: '/settings' })
       const settings = result.settings || { height: 170, targetWeight: 65, age: null }
       const gender = result.user?.gender || 'male'
-      
+
       this.setData({
         settings,
         tempHeight: String(settings.height || 170),
@@ -344,7 +493,7 @@ Page({
       tempHeight: String(this.data.settings.height || 170),
       tempTargetWeight: String(this.data.settings.targetWeight || 65),
       tempGender: this.data.userInfo?.gender || 'male',
-      tempNickname: this.data.userInfo?.nickName || '',
+      tempNickname: this.data.userInfo?.nickname || this.data.userInfo?.nickName || '',
       tempAge: this.data.settings.age ? String(this.data.settings.age) : '',
       tempAvatar: this.data.userInfo?.avatar || ''
     })

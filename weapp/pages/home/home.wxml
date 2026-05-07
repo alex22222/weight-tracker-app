@@ -51,12 +51,30 @@
     <text class="slogan-text">身体和思想总要有个在路上</text>
   </view>
 
-  <!-- 我要记录 -->
+  <!-- 语音打卡 -->
+  <view class="section-card voice-card {{isRecording ? 'recording' : ''}}" bindtouchstart="onVoicePressStart" bindtouchend="onVoicePressEnd">
+    <view class="voice-card-inner">
+      <view class="voice-card-icon">{{isRecording ? '⏺️' : '🎤'}}</view>
+      <view class="voice-card-text">{{isRecording ? '录音中' : '语音打卡'}}</view>
+    </view>
+    <view class="voice-card-status">
+      <text wx:if="{{!isRecording && !voiceResult}}" class="voice-card-hint">按住录音，说出"体重70公斤"</text>
+      <view wx:elif="{{isRecording}}" class="voice-recording-row">
+        <view class="voice-wave">
+          <view class="wave-bar" wx:for="{{[0,1,2,3]}}" wx:key="*this"></view>
+        </view>
+        <text class="voice-recording-tip">松手识别</text>
+      </view>
+      <text wx:elif="{{voiceResult}}" class="voice-card-result">{{voiceResult}}</text>
+    </view>
+  </view>
+
+  <!-- 打卡网格 -->
   <view class="section-card">
     <view class="card-header">
       <view class="card-title">
         <view class="card-icon">📅</view>
-        <text>我要记录</text>
+        <text>快速记录</text>
       </view>
     </view>
     <view class="checkin-grid">

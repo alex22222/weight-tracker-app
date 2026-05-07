@@ -3,6 +3,10 @@ const config = require('./config.js')
 
 App({
   onLaunch() {
+    // 自动打开 vConsole（调试用）
+    if (wx.setEnableDebug) {
+      wx.setEnableDebug({ enableDebug: true })
+    }
     // 检查登录状态
     this.checkLoginStatus()
   },

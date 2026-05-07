@@ -2,7 +2,7 @@
   <!-- 上传区域 -->
   <view class="upload-section">
     <view class="upload-title">上传今日饮食</view>
-    <view class="upload-subtitle">AI 自动识别食物并计算卡路里</view>
+    <view class="upload-subtitle">AI 自动识别食物并计算卡路里 · 功能完善中，无法识别属于正常</view>
 
     <view class="upload-box" bindtap="chooseImage" wx:if="{{!previewImage}}">
       <text class="upload-icon">📷</text>
@@ -84,4 +84,5 @@
     <text class="empty-text">今天还没有记录饮食</text>
     <text class="empty-sub">上传一张照片，AI 帮你算卡路里</text>
   </view>
+
 </view>

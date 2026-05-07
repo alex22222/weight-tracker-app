@@ -285,6 +285,117 @@ page {
   border-color: #86efac;
 }
 
+/* 语音打卡卡片 */
+.voice-card {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 2rpx solid #fed7aa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.voice-card:active {
+  transform: scale(0.98);
+}
+
+.voice-card.recording {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #fbbf24;
+  animation: voicePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes voicePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.3); }
+  50% { box-shadow: 0 0 0 16rpx rgba(251, 191, 36, 0); }
+}
+
+.voice-card-inner {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 8rpx;
+}
+
+.voice-card-icon {
+  font-size: 48rpx;
+  width: 80rpx;
+  height: 80rpx;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(249, 115, 22, 0.2);
+}
+
+.voice-card-text {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1e293b;
+  flex: 1;
+}
+
+.voice-card-hint {
+  font-size: 24rpx;
+  color: #64748b;
+}
+
+.voice-card-status {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-left: 96rpx;
+  min-height: 40rpx;
+}
+
+.voice-recording-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.voice-recording-tip {
+  font-size: 24rpx;
+  color: #ea580c;
+  font-weight: 600;
+  animation: blink 1s step-end infinite;
+}
+
+.voice-card-result {
+  font-size: 28rpx;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* 语音声波动画 */
+.voice-wave {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  height: 36rpx;
+}
+
+.wave-bar {
+  width: 6rpx;
+  height: 100%;
+  background: #f97316;
+  border-radius: 3rpx;
+  animation: waveAnim 0.6s ease-in-out infinite alternate;
+}
+
+.wave-bar:nth-child(1) { animation-delay: 0s; }
+.wave-bar:nth-child(2) { animation-delay: 0.15s; }
+.wave-bar:nth-child(3) { animation-delay: 0.3s; }
+.wave-bar:nth-child(4) { animation-delay: 0.45s; }
+
+@keyframes waveAnim {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1); }
+}
+
 .checkin-icon {
   font-size: 48rpx;
   margin-bottom: 4rpx;
