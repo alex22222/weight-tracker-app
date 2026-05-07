@@ -1,18 +1,5 @@
 <!--pages/index/index.wxml-->
 <view class="container">
-  <!-- 顶部导航 -->
-  <view class="header">
-    <view class="header-left">
-      <view class="header-avatar" bindtap="chooseAvatar">
-        <image wx:if="{{userInfo.avatar}}" class="avatar-img" src="{{userInfo.avatar}}" mode="aspectFill" />
-        <text wx:else class="avatar-text">{{avatarText}}</text>
-      </view>
-      <view class="header-title">
-        <text class="title-main">欢迎「{{welcomeName}}」</text>
-      </view>
-    </view>
-  </view>
-
   <!-- 统计卡片区域 -->
   <view class="stats-grid">
     <!-- 当前体重 -->

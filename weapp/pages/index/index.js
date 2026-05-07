@@ -49,8 +49,6 @@ Page({
     weightDiff: 0,
     chartData: [],
     userInfo: null,
-    avatarText: '用',
-    welcomeName: '用户',
 
     currentWeightText: '--',
     weightDiffText: '',
@@ -64,9 +62,6 @@ Page({
     const userInfo = app.globalData.userInfo
     this.setData({
       date: util.getTodayString(),
-      userInfo: userInfo,
-      avatarText: this.getAvatarText(userInfo),
-      welcomeName: (userInfo?.nickname || userInfo?.username || '用户')
     })
     this.loadLastRecord()
   },
@@ -97,22 +92,8 @@ Page({
     }
   },
 
-  // 获取头像文字
-  getAvatarText(userInfo) {
-    if (!userInfo) return '用'
-    const name = userInfo.nickname || userInfo.username || '用'
-    return name.charAt(0)
-  },
-
   onShow() {
     console.log('【INDEX】Page onShow')
-    // 每次显示时从 globalData 同步用户信息头像
-    const userInfo = app.globalData.userInfo
-    this.setData({
-      userInfo: userInfo,
-      avatarText: this.getAvatarText(userInfo),
-      welcomeName: (userInfo?.nickname || userInfo?.username || '用户')
-    })
     this.loadLastRecord()
     this.loadData()
   },
@@ -171,16 +152,6 @@ Page({
       console.error('【INDEX】loadData 整体错误:', overallError)
     }
 
-    // 确保头像从 globalData 同步
-    const curUserInfo = this.data.userInfo
-    const globalUserInfo = app.globalData.userInfo
-    if (globalUserInfo?.avatar && globalUserInfo.avatar !== curUserInfo?.avatar) {
-      this.setData({
-        userInfo: globalUserInfo,
-        avatarText: this.getAvatarText(globalUserInfo)
-      })
-    }
-
     // === 关键：确保 entries 一定是数组 ===
     if (!Array.isArray(entries)) {
       console.error('【INDEX】entries 不是数组，强制设为空数组')
@@ -200,8 +171,6 @@ Page({
     const weightDiff = currentWeight - (settings.targetWeight || 65)
     
     // 计算展示用的值（避免 WXML 复杂表达式）
-    const userInfo = this.data.userInfo
-    const welcomeName = (userInfo?.nickname || userInfo?.username || '用户')
     const currentWeightText = currentWeight > 0 ? currentWeight.toFixed(1) : '--'
     const weightDiffText = weightDiff > 0 ? '超出' : '距离'
     const weightDiffValue = Math.abs(weightDiff).toFixed(1)
@@ -242,7 +211,6 @@ Page({
       weightDiffText,
       weightDiffValue,
       weightDiffClass,
-      welcomeName,
       chartData
     }, () => {
       if (chartData.length > 0) {
