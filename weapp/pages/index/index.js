@@ -106,6 +106,13 @@ Page({
 
   onShow() {
     console.log('【INDEX】Page onShow')
+    // 每次显示时从 globalData 同步用户信息头像
+    const userInfo = app.globalData.userInfo
+    this.setData({
+      userInfo: userInfo,
+      avatarText: this.getAvatarText(userInfo),
+      welcomeName: (userInfo?.nickname || userInfo?.username || '用户')
+    })
     this.loadLastRecord()
     this.loadData()
   },
