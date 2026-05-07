@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: '注册成功',
       token,
-      user: { id: user.id, username: user.username, createdAt: user.createdAt, isNewUser: true }
+      user: { id: user.id, username: user.username, nickname: user.nickname, createdAt: user.createdAt, isNewUser: true }
     }, { status: 201 })
   } catch (error) {
     // 生产环境不暴露错误详情

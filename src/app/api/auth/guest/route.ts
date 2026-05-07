@@ -37,6 +37,7 @@ export async function POST() {
       user: {
         id: user.id,
         username: user.username,
+        nickname: user.nickname,
         createdAt: user.createdAt,
       },
     })
