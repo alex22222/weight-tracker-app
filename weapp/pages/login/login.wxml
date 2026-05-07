@@ -58,7 +58,7 @@
 
       <!-- 主要登录按钮：获取用户信息 -->
       <button
-        class="btn-wechat"
+        class="btn-wechat-login"
         bindtap="handleWechatLogin"
         disabled="{{isLoading}}"
         wx:if="{{canIUseGetUserProfile}}"
@@ -195,9 +195,5 @@
       </view>
     </view>
 
-    <!-- 游客访问 -->
-    <button class="btn-guest" bindtap="guestLogin" disabled="{{isLoading}}">
-      快速体验 (使用测试账号)
-    </button>
   </view>
 </view>

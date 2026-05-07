@@ -18,6 +18,14 @@ Page({
     fitnessStreak: 0,
     readingStreak: 0,
     
+    // 记录列表展开状态
+    showWeightList: true,
+    showReadingList: false,
+    weightEntries: [],
+    readingEntries: [],
+    latestWeightText: '--',
+    latestReadingText: '--',
+    
     // 目标列表
     goals: [],
     showGoalModal: false,
@@ -76,6 +84,14 @@ Page({
     })
     this.loadData()
     this.loadWeather()
+
+    // 检查是否从"我的"页面跳转过来要显示目标弹窗
+    if (app.globalData.showGoalModal) {
+      app.globalData.showGoalModal = false
+      this.loadGoals().then(() => {
+        this.toggleGoalModal()
+      })
+    }
   },
 
   initData() {
@@ -110,7 +126,7 @@ Page({
     
     console.log('[Home] 开始加载数据...')
     try {
-      // 加载体重数据（健身记录状态）
+      // 加载体重数据（体重记录状态）
       await this.loadFitnessStatus()
       
       // 加载统计数据
@@ -126,6 +142,16 @@ Page({
     } catch (err) {
       console.error('[Home] 加载首页数据失败:', err)
     }
+  },
+
+  // 切换体重记录列表显示
+  toggleWeightList() {
+    this.setData({ showWeightList: !this.data.showWeightList })
+  },
+
+  // 切换读书记录列表显示
+  toggleReadingList() {
+    this.setData({ showReadingList: !this.data.showReadingList })
   },
 
   // 加载设置
@@ -155,7 +181,7 @@ Page({
     return name.charAt(0)
   },
 
-  // 加载健身记录状态
+  // 加载体重记录状态
   async loadFitnessStatus() {
     try {
       const result = await app.request({ url: '/weight' })
@@ -173,19 +199,19 @@ Page({
         totalCheckIns: entries.length
       })
     } catch (err) {
-      console.error('加载健身状态失败:', err)
+      console.error('加载体重状态失败:', err)
     }
   },
 
   // 加载统计数据
   async loadStats() {
     try {
-      // 获取健身连续记录天数
+      // 获取体重记录
       const weightResult = await app.request({ url: '/weight' })
       const weightEntries = weightResult.entries || []
       const fitnessStreak = this.calculateStreak(weightEntries)
       
-      // 获取读书连续记录天数和状态
+      // 获取读书记录
       const readingResult = await app.request({ url: '/reading' })
       const readingEntries = readingResult.entries || []
       const readingStreak = readingResult.streak || 0
@@ -194,14 +220,46 @@ Page({
       const today = util.getTodayString()
       const todayReadingEntry = readingEntries.find(e => e.date === today)
       
+      // 格式化日期显示
+      const formattedWeightEntries = weightEntries.slice(0, 10).map(e => ({
+        ...e,
+        displayDate: this.formatDisplayDate(e.date)
+      }))
+      const formattedReadingEntries = readingEntries.slice(0, 10).map(e => ({
+        ...e,
+        displayDate: this.formatDisplayDate(e.date)
+      }))
+      
+      // 最新数据
+      const latestWeight = weightEntries.length > 0 ? weightEntries[0].weight : null
+      const latestReading = readingEntries.length > 0 ? readingEntries[0] : null
+      
       this.setData({
         fitnessStreak,
         readingStreak,
-        readingChecked: !!todayReadingEntry
+        readingChecked: !!todayReadingEntry,
+        weightEntries: formattedWeightEntries,
+        readingEntries: formattedReadingEntries,
+        latestWeightText: latestWeight ? parseFloat(latestWeight).toFixed(1) : '--',
+        latestReadingText: latestReading ? `${latestReading.pages}页` : '--'
       })
     } catch (err) {
       console.error('加载统计失败:', err)
     }
+  },
+
+  // 格式化日期显示（今天/昨天/具体日期）
+  formatDisplayDate(dateStr) {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const diffDays = Math.floor((today - target) / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return '今天'
+    if (diffDays === 1) return '昨天'
+    return `${date.getMonth() + 1}月${date.getDate()}日`
   },
 
   // 计算连续记录天数

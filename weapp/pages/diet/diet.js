@@ -8,7 +8,7 @@ Page({
     lastResult: null,
     lastError: '',
     records: [],
-    remainingToday: 3,
+    remainingToday: 20,
     todayCount: 0,
     pollTimer: null,
   },

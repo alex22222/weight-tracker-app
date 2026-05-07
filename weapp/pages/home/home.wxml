@@ -46,6 +46,11 @@
     </block>
   </view>
 
+  <!-- Slogan -->
+  <view class="slogan-bar">
+    <text class="slogan-text">身体和思想总要有个在路上</text>
+  </view>
+
   <!-- 我要记录 -->
   <view class="section-card">
     <view class="card-header">
@@ -57,14 +62,14 @@
     <view class="checkin-grid">
       <view class="checkin-item {{fitnessChecked ? 'checked' : ''}}" bindtap="goToFitness">
         <view class="checkin-icon">🏋️</view>
-        <view class="checkin-name">健身</view>
-        <view class="checkin-status">{{fitnessChecked ? '已记录' : '未记录'}}</view>
+        <view class="checkin-name">体重</view>
+        <view class="checkin-status">{{fitnessChecked ? '今日已打卡' : '今日未记录'}}</view>
         <view class="checkin-check" wx:if="{{fitnessChecked}}">✓</view>
       </view>
       <view class="checkin-item {{readingChecked ? 'checked' : ''}}" bindtap="goToReading">
         <view class="checkin-icon">📖</view>
         <view class="checkin-name">读书</view>
-        <view class="checkin-status">{{readingChecked ? '已记录' : '未记录'}}</view>
+        <view class="checkin-status">{{readingChecked ? '今日已打卡' : '今日未记录'}}</view>
         <view class="checkin-check" wx:if="{{readingChecked}}">✓</view>
       </view>
       <view class="checkin-item" bindtap="goToDiet">
@@ -77,57 +82,59 @@
 
   <!-- 统计卡片 -->
   <view class="stats-row">
-    <view class="stat-card">
-      <view class="stat-icon blue">📈</view>
-      <view class="stat-value">{{totalCheckIns}}</view>
-      <view class="stat-label">总记录</view>
+    <view class="stat-card clickable" bindtap="toggleWeightList">
+      <view class="stat-icon orange">⚖️</view>
+      <view class="stat-value">{{latestWeightText}}</view>
+      <view class="stat-label">体重记录  <text class="stat-count">已记录 {{totalCheckIns}} 条</text></view>
     </view>
-    <view class="stat-card">
-      <view class="stat-icon orange">🔥</view>
-      <view class="stat-value">{{fitnessStreak}}</view>
-      <view class="stat-label">健身连续</view>
-    </view>
-    <view class="stat-card">
-      <view class="stat-icon purple">📚</view>
-      <view class="stat-value">{{readingStreak}}</view>
-      <view class="stat-label">读书连续</view>
+    <view class="stat-card clickable" bindtap="toggleReadingList">
+      <view class="stat-icon purple">📖</view>
+      <view class="stat-value">{{latestReadingText}}</view>
+      <view class="stat-label">读书记录</view>
     </view>
   </view>
 
-  <!-- 我要立flag -->
-  <view class="section-card">
+  <!-- 体重记录列表 -->
+  <view class="section-card record-section" wx:if="{{showWeightList}}">
     <view class="card-header">
       <view class="card-title">
-        <view class="card-icon">🚩</view>
-        <text>我要立flag</text>
-      </view>
-      <text class="card-more" bindtap="goToGoals">+ 立个flag</text>
-    </view>
-    
-    <!-- 有目标时显示 -->
-    <view class="goals-list" wx:if="{{goals.length > 0}}">
-      <view class="goal-item" wx:for="{{goals}}" wx:key="id">
-        <view class="goal-icon">{{item.category === 'fitness' ? '💪' : item.category === 'reading' ? '📚' : item.category === 'study' ? '📝' : item.category === 'work' ? '💼' : item.category === 'life' ? '🌱' : '🎯'}}</view>
-        <view class="goal-info">
-          <text class="goal-name">{{item.title}}</text>
-          <view class="goal-progress-row">
-            <view class="progress-bar">
-              <view class="progress-fill" style="width: {{item.progress}}%"></view>
-            </view>
-            <text class="progress-text">{{item.currentCount}}/{{item.targetCount}}{{item.unit}}</text>
-          </view>
-        </view>
-        <view class="goal-action {{!item.canCheckIn ? 'disabled' : ''}}" bindtap="{{item.canCheckIn ? 'checkInGoal' : ''}}" data-id="{{item.id}}">
-          <text>{{item.canCheckIn ? '记录' : (item.status === 'completed' ? '已完成' : '已放弃')}}</text>
-        </view>
+        <view class="card-icon">⚖️</view>
+        <text>体重记录</text>
       </view>
     </view>
-    
-    <!-- 空状态 -->
-    <view class="empty-state" wx:else>
-      <view class="empty-icon">🚩</view>
-      <text class="empty-text">还没有立flag，快来定个小目标吧</text>
-      <button class="btn-primary" bindtap="createFirstGoal">我要立flag</button>
+    <view class="record-list" wx:if="{{weightEntries.length > 0}}">
+      <view class="record-item" wx:for="{{weightEntries}}" wx:key="id">
+        <view class="record-main">
+          <text class="record-value">{{item.weight}} kg</text>
+          <text class="record-date">{{item.displayDate}}</text>
+        </view>
+        <text class="record-note {{item.note ? '' : 'empty'}}">{{item.note || '暂无备注'}}</text>
+      </view>
+    </view>
+    <view class="empty-state-small" wx:else>
+      <text class="empty-text-small">暂无体重记录</text>
+    </view>
+  </view>
+
+  <!-- 读书记录列表 -->
+  <view class="section-card record-section" wx:if="{{showReadingList}}">
+    <view class="card-header">
+      <view class="card-title">
+        <view class="card-icon">📖</view>
+        <text>读书记录</text>
+      </view>
+    </view>
+    <view class="record-list" wx:if="{{readingEntries.length > 0}}">
+      <view class="record-item" wx:for="{{readingEntries}}" wx:key="id">
+        <view class="record-main">
+          <text class="record-book">《{{item.bookName}}》</text>
+          <text class="record-meta">{{item.displayDate}} · {{item.pages}}页</text>
+        </view>
+        <text class="record-note" wx:if="{{item.note}}">{{item.note}}</text>
+      </view>
+    </view>
+    <view class="empty-state-small" wx:else>
+      <text class="empty-text-small">暂无读书记录</text>
     </view>
   </view>
 </view>

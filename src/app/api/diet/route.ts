@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       records,
       todayCount: todayCount.total || 0,
-      maxDaily: 3,
+      maxDaily: 20,
     })
   } catch (error: any) {
     console.error('[API /diet] GET Error:', error)

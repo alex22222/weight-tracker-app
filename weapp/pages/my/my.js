@@ -20,6 +20,14 @@ Page({
     this.setData({ userInfo })
   },
 
+  // 跳转到首页目标（立flag）
+  goToGoals() {
+    app.globalData.showGoalModal = true
+    wx.switchTab({
+      url: '/pages/home/home'
+    })
+  },
+
   // 跳转到设置页面
   goToSettings() {
     wx.navigateTo({

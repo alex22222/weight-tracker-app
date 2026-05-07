@@ -5,7 +5,7 @@ import { analyzeDietImage } from '../../../../lib/ai-client'
 
 export const dynamic = 'force-dynamic'
 
-const MAX_DAILY_UPLOADS = 3
+const MAX_DAILY_UPLOADS = 20
 
 function getTodayString(): string {
   const now = new Date()
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (todayCount >= MAX_DAILY_UPLOADS) {
       return NextResponse.json(
-        { error: '今日上传次数已达上限（3次）', remainingToday: 0 },
+        { error: '今日上传次数已达上限（20次）', remainingToday: 0 },
         { status: 429 }
       )
     }
