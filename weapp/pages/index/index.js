@@ -71,10 +71,6 @@ Page({
     this.loadLastRecord()
   },
 
-  onShow() {
-    this.loadLastRecord()
-  },
-
   // 加载上次记录
   async loadLastRecord() {
     try {
@@ -110,8 +106,8 @@ Page({
 
   onShow() {
     console.log('【INDEX】Page onShow')
+    this.loadLastRecord()
     this.loadData()
-    this.loadActiveChannel()
   },
 
   // 加载数据 - 彻底重写，避免任何可能的 sort 调用错误
@@ -167,7 +163,17 @@ Page({
     } catch (overallError) {
       console.error('【INDEX】loadData 整体错误:', overallError)
     }
-    
+
+    // 确保头像从 globalData 同步
+    const curUserInfo = this.data.userInfo
+    const globalUserInfo = app.globalData.userInfo
+    if (globalUserInfo?.avatar && globalUserInfo.avatar !== curUserInfo?.avatar) {
+      this.setData({
+        userInfo: globalUserInfo,
+        avatarText: this.getAvatarText(globalUserInfo)
+      })
+    }
+
     // === 关键：确保 entries 一定是数组 ===
     if (!Array.isArray(entries)) {
       console.error('【INDEX】entries 不是数组，强制设为空数组')
