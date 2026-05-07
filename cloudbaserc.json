@@ -3,6 +3,7 @@
   "envId": "weight-tracker-1ghr085dd7d6cff2",
   "$schema": "https://framework-1258016615.tcloudbaseapp.com/schema/latest.json",
   "cloudrun": {
-    "name": "weight-tracker-api"
+    "name": "weight-tracker-api",
+    "serverTimeout": 60
   }
 }
