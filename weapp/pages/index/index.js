@@ -38,7 +38,6 @@ Page({
     isLoading: false,
     weight: '',
     note: '',
-    foodImage: '',
     date: '',
     settings: { height: 170, targetWeight: 65 },
     gender: 'male',
@@ -245,62 +244,8 @@ Page({
   onWeightInput(e) { this.setData({ weight: e.detail.value }) },
   onNoteInput(e) { this.setData({ note: e.detail.value }) },
 
-  // 选择食物照片
-  chooseFoodImage() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath
-        this.uploadFoodImage(tempFilePath)
-      }
-    })
-  },
 
-  // 上传食物照片
-  async uploadFoodImage(filePath) {
-    this.setData({ isLoading: true })
-
-    try {
-      const token = wx.getStorageSync('token')
-      const uploadRes = await new Promise((resolve, reject) => {
-        wx.uploadFile({
-          url: `${app.globalData.apiBaseUrl}/upload?token=${token}`,
-          filePath: filePath,
-          name: 'file',
-          success: resolve,
-          fail: reject
-        })
-      })
-
-      const data = JSON.parse(uploadRes.data)
-      if (data.url) {
-        this.setData({ foodImage: data.url })
-        wx.showToast({ title: '上传成功', icon: 'success' })
-      } else {
-        throw new Error(data.error || '上传失败')
-      }
-    } catch (err) {
-      wx.showToast({ title: err.message || '上传失败', icon: 'none' })
-    } finally {
-      this.setData({ isLoading: false })
-    }
-  },
-
-  // 预览图片
-  previewImage() {
-    wx.previewImage({
-      urls: [this.data.foodImage]
-    })
-  },
-
-  // 移除图片
-  removeImage() {
-    this.setData({ foodImage: '' })
-  },
-
-  async addEntry() {
+async addEntry() {
     const weight = parseFloat(this.data.weight)
     
     if (isNaN(weight) || weight <= 0 || weight > 500) {
@@ -317,13 +262,12 @@ Page({
         data: {
           weight,
           note: this.data.note || undefined,
-          imageUrl: this.data.foodImage || undefined,
           date: this.data.date
         }
       })
 
       wx.showToast({ title: '记录成功', icon: 'success' })
-      this.setData({ weight: '', note: '', foodImage: '', date: util.getTodayString() })
+      this.setData({ weight: '', note: '', date: util.getTodayString() })
       await this.loadData()
     } catch (err) {
       wx.showToast({ title: err.message || '记录失败', icon: 'none' })
@@ -432,15 +376,4 @@ Page({
   },
 
   onChartTouch() {},
-
-  // 预览历史记录图片
-  previewHistoryImage(e) {
-    const url = e.currentTarget.dataset.url
-    if (url) {
-      wx.previewImage({
-        urls: [url],
-        current: url
-      })
-    }
-  }
 })

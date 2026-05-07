@@ -113,20 +113,6 @@
         />
       </view>
 
-      <!-- 食物照片 -->
-      <view class="form-item form-item-full">
-        <text class="form-label">今日饮食 📸 (可选)</text>
-        <view class="photo-uploader">
-          <view class="photo-preview" wx:if="{{foodImage}}">
-            <image class="photo-img" src="{{foodImage}}" mode="aspectFill" bindtap="previewImage" />
-            <view class="photo-remove" bindtap="removeImage">✕</view>
-          </view>
-          <view class="photo-add" bindtap="chooseFoodImage" wx:if="{{!foodImage}}">
-            <text class="photo-add-icon">📷</text>
-            <text class="photo-add-text">添加照片</text>
-          </view>
-        </view>
-      </view>
     </view>
     
     <button class="btn-primary mt-3" bindtap="addEntry" disabled="{{!weight || isLoading}}">
@@ -160,9 +146,6 @@
             <text class="history-date">{{item.date}}</text>
           </view>
           <text class="history-note" wx:if="{{item.note}}">{{item.note}}</text>
-        </view>
-        <view class="history-image" wx:if="{{item.imageUrl}}" bindtap="previewHistoryImage" data-url="{{item.imageUrl}}">
-          <image class="history-img" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
         </view>
       </view>
     </view>
