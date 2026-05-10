@@ -1121,7 +1121,8 @@ const cloudbaseAdapter = {
   async getRunningEntriesByUser(userId: number | string): Promise<RunningEntry[]> {
     try {
       const uid = String(userId)
-      console.log('[DB] getRunningEntriesByUser, userId:', uid)
+      const uidNum = parseInt(String(userId), 10)
+      console.log('[DB] getRunningEntriesByUser, userId:', uid, 'num:', uidNum)
       let result: any
       let usedOrderBy = true
       try {
@@ -1136,8 +1137,30 @@ const cloudbaseAdapter = {
           .where({ userId: uid })
           .get()
       }
-      const data = result?.data || []
-      console.log('[DB] Running query result count:', data.length, 'usedOrderBy:', usedOrderBy)
+      let data = result?.data || []
+      console.log('[DB] Running string query result count:', data.length, 'usedOrderBy:', usedOrderBy)
+
+      // 兼容旧数据：如果字符串查询为空，尝试数字 userId
+      if (data.length === 0 && !isNaN(uidNum)) {
+        console.log('[DB] Trying numeric userId query for running')
+        let numResult: any
+        try {
+          numResult = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+            .where({ userId: uidNum })
+            .orderBy('date', 'desc')
+            .get()
+        } catch (orderByError) {
+          console.warn('[DB] Running numeric orderBy failed, fallback:', orderByError)
+          usedOrderBy = false
+          numResult = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+            .where({ userId: uidNum })
+            .get()
+        }
+        const numData = numResult?.data || []
+        console.log('[DB] Running numeric query result count:', numData.length)
+        data = numData
+      }
+
       const mapped = Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id || d.id })) : []
       // 如果没有 orderBy，在内存中按 date 降序排序
       if (!usedOrderBy) {
@@ -1152,12 +1175,22 @@ const cloudbaseAdapter = {
 
   async getLastRunningEntryByUser(userId: number | string): Promise<RunningEntry | null> {
     try {
-      const result = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
-        .where({ userId })
+      const uid = String(userId)
+      const uidNum = parseInt(String(userId), 10)
+      let result = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+        .where({ userId: uid })
         .orderBy('date', 'desc')
         .limit(1)
         .get()
-      const data = result.data || []
+      let data = result.data || []
+      if (data.length === 0 && !isNaN(uidNum)) {
+        result = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+          .where({ userId: uidNum })
+          .orderBy('date', 'desc')
+          .limit(1)
+          .get()
+        data = result.data || []
+      }
       return data[0] ? { ...data[0], id: data[0]._id } : null
     } catch (error) {
       console.error('Error getting last running entry:', error)
@@ -1189,7 +1222,8 @@ const cloudbaseAdapter = {
   async getCyclingEntriesByUser(userId: number | string): Promise<CyclingEntry[]> {
     try {
       const uid = String(userId)
-      console.log('[DB] getCyclingEntriesByUser, userId:', uid)
+      const uidNum = parseInt(String(userId), 10)
+      console.log('[DB] getCyclingEntriesByUser, userId:', uid, 'num:', uidNum)
       let result: any
       let usedOrderBy = true
       try {
@@ -1204,8 +1238,30 @@ const cloudbaseAdapter = {
           .where({ userId: uid })
           .get()
       }
-      const data = result?.data || []
-      console.log('[DB] Cycling query result count:', data.length, 'usedOrderBy:', usedOrderBy)
+      let data = result?.data || []
+      console.log('[DB] Cycling string query result count:', data.length, 'usedOrderBy:', usedOrderBy)
+
+      // 兼容旧数据：如果字符串查询为空，尝试数字 userId
+      if (data.length === 0 && !isNaN(uidNum)) {
+        console.log('[DB] Trying numeric userId query for cycling')
+        let numResult: any
+        try {
+          numResult = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+            .where({ userId: uidNum })
+            .orderBy('date', 'desc')
+            .get()
+        } catch (orderByError) {
+          console.warn('[DB] Cycling numeric orderBy failed, fallback:', orderByError)
+          usedOrderBy = false
+          numResult = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+            .where({ userId: uidNum })
+            .get()
+        }
+        const numData = numResult?.data || []
+        console.log('[DB] Cycling numeric query result count:', numData.length)
+        data = numData
+      }
+
       const mapped = Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id || d.id })) : []
       // 如果没有 orderBy，在内存中按 date 降序排序
       if (!usedOrderBy) {
@@ -1220,12 +1276,22 @@ const cloudbaseAdapter = {
 
   async getLastCyclingEntryByUser(userId: number | string): Promise<CyclingEntry | null> {
     try {
-      const result = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
-        .where({ userId })
+      const uid = String(userId)
+      const uidNum = parseInt(String(userId), 10)
+      let result = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+        .where({ userId: uid })
         .orderBy('date', 'desc')
         .limit(1)
         .get()
-      const data = result.data || []
+      let data = result.data || []
+      if (data.length === 0 && !isNaN(uidNum)) {
+        result = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+          .where({ userId: uidNum })
+          .orderBy('date', 'desc')
+          .limit(1)
+          .get()
+        data = result.data || []
+      }
       return data[0] ? { ...data[0], id: data[0]._id } : null
     } catch (error) {
       console.error('Error getting last cycling entry:', error)
