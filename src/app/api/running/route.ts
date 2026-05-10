@@ -59,8 +59,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ entry })
   } catch (error: any) {
-    console.error('[API /running] POST Error:', error)
-    return NextResponse.json({ error: '保存记录失败' }, { status: 500 })
+    console.error('[API /running] POST Error:', error?.message || error)
+    console.error('[API /running] POST Stack:', error?.stack)
+    return NextResponse.json({ error: '保存记录失败', detail: error?.message || String(error) }, { status: 500 })
   }
 }
 
