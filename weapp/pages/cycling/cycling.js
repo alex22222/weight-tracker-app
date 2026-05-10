@@ -28,8 +28,16 @@ Page({
 
   async loadData() {
     try {
+      console.log('[Cycling] loadData start')
       const result = await app.request({ url: '/cycling' })
-      const records = result.entries || []
+      console.log('[Cycling] API result type:', typeof result)
+      console.log('[Cycling] API result keys:', result ? Object.keys(result) : 'null')
+      console.log('[Cycling] API result:', result)
+      const records = (result && result.entries) || []
+      console.log('[Cycling] records count:', records.length)
+      if (records.length > 0) {
+        console.log('[Cycling] first record:', records[0])
+      }
 
       const totalDistance = records.reduce((sum, r) => sum + (parseFloat(r.distance) || 0), 0)
       const totalDuration = records.reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0)
@@ -44,6 +52,7 @@ Page({
       })
     } catch (err) {
       console.error('加载骑行数据失败:', err)
+      wx.showToast({ title: '加载失败: ' + (err.message || '未知错误'), icon: 'none' })
     }
   },
 

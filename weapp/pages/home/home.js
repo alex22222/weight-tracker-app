@@ -562,14 +562,14 @@ Page({
 
   // 跳转到跑步页面
   goToRunning() {
-    wx.switchTab({
+    wx.navigateTo({
       url: '/pages/running/running'
     })
   },
 
   // 跳转到骑行页面
   goToCycling() {
-    wx.switchTab({
+    wx.navigateTo({
       url: '/pages/cycling/cycling'
     })
   },

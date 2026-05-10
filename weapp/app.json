@@ -35,24 +35,16 @@
         "text": "首页"
       },
       {
-        "pagePath": "pages/diet/diet",
-        "text": "饮食"
+        "pagePath": "pages/index/index",
+        "text": "体重记录"
       },
       {
         "pagePath": "pages/reading/reading",
         "text": "读书记录"
       },
       {
-        "pagePath": "pages/index/index",
-        "text": "体重记录"
-      },
-      {
-        "pagePath": "pages/running/running",
-        "text": "跑步记录"
-      },
-      {
-        "pagePath": "pages/cycling/cycling",
-        "text": "骑行记录"
+        "pagePath": "pages/diet/diet",
+        "text": "饮食"
       },
       {
         "pagePath": "pages/my/my",

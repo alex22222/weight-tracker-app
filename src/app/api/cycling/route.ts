@@ -7,13 +7,17 @@ export const dynamic = 'force-dynamic'
 
 // GET /api/cycling - 获取用户的骑行记录
 export async function GET(request: NextRequest) {
+  console.log('[API /cycling] GET request received')
   try {
     const user = getUserFromRequest(request)
+    console.log('[API /cycling] User:', user?.userId)
     if (!user) {
       return NextResponse.json({ error: '请先登录' }, { status: 401 })
     }
 
+    console.log('[API /cycling] Fetching entries for user:', user.userId)
     const entries = await adapter.getCyclingEntriesByUser(user.userId)
+    console.log('[API /cycling] Entries fetched:', entries.length)
     return NextResponse.json({ entries })
   } catch (error: any) {
     console.error('[API /cycling] GET Error:', error)
@@ -23,6 +27,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/cycling - 添加骑行记录
 export async function POST(request: NextRequest) {
+  console.log('[API /cycling] POST request received')
   try {
     const user = getUserFromRequest(request)
     if (!user) {
@@ -30,6 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('[API /cycling] POST body:', body)
     const { distance, duration, note, date } = body
 
     const distanceVal = parseFloat(distance)
@@ -56,6 +62,7 @@ export async function POST(request: NextRequest) {
       date: dateValidation.value!,
       userId: user.userId,
     })
+    console.log('[API /cycling] Entry created:', entry)
 
     return NextResponse.json({ entry })
   } catch (error: any) {

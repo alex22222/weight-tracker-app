@@ -28,8 +28,16 @@ Page({
 
   async loadData() {
     try {
+      console.log('[Running] loadData start')
       const result = await app.request({ url: '/running' })
-      const records = result.entries || []
+      console.log('[Running] API result type:', typeof result)
+      console.log('[Running] API result keys:', result ? Object.keys(result) : 'null')
+      console.log('[Running] API result:', result)
+      const records = (result && result.entries) || []
+      console.log('[Running] records count:', records.length)
+      if (records.length > 0) {
+        console.log('[Running] first record:', records[0])
+      }
 
       const totalDistance = records.reduce((sum, r) => sum + (parseFloat(r.distance) || 0), 0)
       const totalDuration = records.reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0)
@@ -44,6 +52,7 @@ Page({
       })
     } catch (err) {
       console.error('加载跑步数据失败:', err)
+      wx.showToast({ title: '加载失败: ' + (err.message || '未知错误'), icon: 'none' })
     }
   },
 

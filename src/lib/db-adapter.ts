@@ -1110,21 +1110,40 @@ const cloudbaseAdapter = {
       duration: data.duration,
       note: data.note || null,
       date: data.date,
-      userId: data.userId,
+      userId: String(data.userId),
       createdAt: new Date(),
     }
+    console.log('[DB] createRunningEntry:', entryData)
     const { id } = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES).add(entryData)
     return { id, ...data } as RunningEntry
   },
 
   async getRunningEntriesByUser(userId: number | string): Promise<RunningEntry[]> {
     try {
-      const result = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
-        .where({ userId })
-        .orderBy('date', 'desc')
-        .get()
-      const data = result.data || []
-      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+      const uid = String(userId)
+      console.log('[DB] getRunningEntriesByUser, userId:', uid)
+      let result: any
+      let usedOrderBy = true
+      try {
+        result = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+          .where({ userId: uid })
+          .orderBy('date', 'desc')
+          .get()
+      } catch (orderByError) {
+        console.warn('[DB] Running orderBy failed, fallback to plain query:', orderByError)
+        usedOrderBy = false
+        result = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+          .where({ userId: uid })
+          .get()
+      }
+      const data = result?.data || []
+      console.log('[DB] Running query result count:', data.length, 'usedOrderBy:', usedOrderBy)
+      const mapped = Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id || d.id })) : []
+      // 如果没有 orderBy，在内存中按 date 降序排序
+      if (!usedOrderBy) {
+        return mapped.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      }
+      return mapped
     } catch (error) {
       console.error('Error getting running entries:', error)
       return []
@@ -1159,21 +1178,40 @@ const cloudbaseAdapter = {
       duration: data.duration,
       note: data.note || null,
       date: data.date,
-      userId: data.userId,
+      userId: String(data.userId),
       createdAt: new Date(),
     }
+    console.log('[DB] createCyclingEntry:', entryData)
     const { id } = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES).add(entryData)
     return { id, ...data } as CyclingEntry
   },
 
   async getCyclingEntriesByUser(userId: number | string): Promise<CyclingEntry[]> {
     try {
-      const result = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
-        .where({ userId })
-        .orderBy('date', 'desc')
-        .get()
-      const data = result.data || []
-      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+      const uid = String(userId)
+      console.log('[DB] getCyclingEntriesByUser, userId:', uid)
+      let result: any
+      let usedOrderBy = true
+      try {
+        result = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+          .where({ userId: uid })
+          .orderBy('date', 'desc')
+          .get()
+      } catch (orderByError) {
+        console.warn('[DB] Cycling orderBy failed, fallback to plain query:', orderByError)
+        usedOrderBy = false
+        result = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+          .where({ userId: uid })
+          .get()
+      }
+      const data = result?.data || []
+      console.log('[DB] Cycling query result count:', data.length, 'usedOrderBy:', usedOrderBy)
+      const mapped = Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id || d.id })) : []
+      // 如果没有 orderBy，在内存中按 date 降序排序
+      if (!usedOrderBy) {
+        return mapped.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      }
+      return mapped
     } catch (error) {
       console.error('Error getting cycling entries:', error)
       return []
