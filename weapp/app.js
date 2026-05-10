@@ -97,10 +97,14 @@ App({
 
   // 登录
   login(token, userInfo) {
+    if (!token) {
+      console.error('[App] login called without token, aborting')
+      return
+    }
     wx.setStorageSync('token', token)
-    wx.setStorageSync('userInfo', userInfo)
+    wx.setStorageSync('userInfo', userInfo || {})
     this.globalData.token = token
-    this.globalData.userInfo = userInfo
+    this.globalData.userInfo = userInfo || {}
     this.globalData.isLoggedIn = true
   },
 

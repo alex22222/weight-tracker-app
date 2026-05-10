@@ -1,5 +1,9 @@
 <!--pages/my/my.wxml-->
 <view class="container">
+  <view class="back-to-home" bindtap="goToHome">
+    <text class="back-arrow">‹</text>
+    <text class="back-text">返回首页</text>
+  </view>
   <!-- 功能入口 -->
   <view class="menu-section">
     <view class="menu-item" bindtap="goToGoals">

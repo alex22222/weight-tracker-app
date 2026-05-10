@@ -2,6 +2,7 @@
   "pages": [
     "pages/home/home",
     "pages/login/login",
+    "pages/onboarding/onboarding",
     "pages/privacy/privacy",
     "pages/agreement/agreement",
     "pages/test-login/test-login",
@@ -11,6 +12,8 @@
     "pages/feedback/feedback",
     "pages/settings/settings",
     "pages/diet/diet",
+    "pages/running/running",
+    "pages/cycling/cycling",
     "pages/forgot-password/forgot-password",
     "pages/logs/logs"
   ],
@@ -21,6 +24,7 @@
     "navigationBarTextStyle": "white"
   },
   "tabBar": {
+    "custom": true,
     "color": "#94a3b8",
     "selectedColor": "#f97316",
     "backgroundColor": "#ffffff",
@@ -41,6 +45,14 @@
       {
         "pagePath": "pages/index/index",
         "text": "体重记录"
+      },
+      {
+        "pagePath": "pages/running/running",
+        "text": "跑步记录"
+      },
+      {
+        "pagePath": "pages/cycling/cycling",
+        "text": "骑行记录"
       },
       {
         "pagePath": "pages/my/my",

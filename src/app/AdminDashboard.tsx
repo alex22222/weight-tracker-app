@@ -95,19 +95,20 @@ function StatCard({ icon: Icon, label, value, trend, color, delay = 0 }: any) {
 // 用户卡片组件
 function UserCard({ user, index, onView, onReset, onDelete }: any) {
   const [mounted, setMounted] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), index * 50)
     return () => clearTimeout(t)
   }, [index])
 
   const getAvatarDisplay = (avatarUrl?: string) => {
-    if (avatarUrl) {
+    if (avatarUrl && !avatarError) {
       return (
         <img
           src={avatarUrl}
           alt="头像"
           className="w-full h-full object-cover rounded-full"
-          onError={(e) => { e.currentTarget.style.display = 'none' }}
+          onError={() => setAvatarError(true)}
         />
       )
     }
@@ -404,14 +405,17 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
     return Math.round(weight / (heightInMeters * heightInMeters))
   }
 
+  // 头像加载错误状态
+  const [detailAvatarError, setDetailAvatarError] = useState(false)
+
   const getAvatarDisplay = (avatarUrl?: string, size = 'w-16 h-16') => {
-    if (avatarUrl) {
+    if (avatarUrl && !detailAvatarError) {
       return (
         <img
           src={avatarUrl}
           alt="头像"
           className={`${size} object-cover rounded-full`}
-          onError={(e) => { e.currentTarget.style.display = 'none' }}
+          onError={() => setDetailAvatarError(true)}
         />
       )
     }

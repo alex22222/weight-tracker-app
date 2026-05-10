@@ -40,3 +40,22 @@ export function formatShortDate(date: Date | string): string {
     day: 'numeric',
   })
 }
+
+// 相对日期格式（今天/昨天/N天前/X月X日）
+export function formatRelativeDate(dateStr: Date | string): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const diffDays = Math.floor((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24))
+
+  if (diffDays === 0) return '今天'
+  if (diffDays === 1) return '昨天'
+  if (diffDays <= 7) return `${diffDays}天前`
+  // 同年显示月日，跨年显示年月日
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${date.getMonth() + 1}月${date.getDate()}日`
+  }
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+}

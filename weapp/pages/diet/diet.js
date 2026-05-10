@@ -25,6 +25,10 @@ Page({
     this.clearPollTimer()
   },
 
+  goToHome() {
+    wx.switchTab({ url: '/pages/home/home' })
+  },
+
   clearPollTimer() {
     if (this.data.pollTimer) {
       clearInterval(this.data.pollTimer)

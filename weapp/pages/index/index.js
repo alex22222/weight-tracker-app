@@ -48,13 +48,18 @@ Page({
     bmiStyle: { bg: 'bg-gray-light', color: '#94a3b8', border: '2rpx solid #e2e8f0' },
     weightDiff: 0,
     chartData: [],
-    userInfo: null,
+    chartViewMode: 'day', // day | week | month
+    loadError: '',
 
     currentWeightText: '--',
     weightDiffText: '',
     weightDiffValue: '',
     weightDiffClass: '',
     _version: 'v2-' + Date.now() // 缓存破坏标记
+  },
+
+  goToHome() {
+    wx.switchTab({ url: '/pages/home/home' })
   },
 
   onLoad() {
@@ -82,7 +87,7 @@ Page({
         this.setData({
           lastRecord: {
             weight: entry.weight,
-            formattedDate: `${date.getMonth() + 1}月${date.getDate()}日`,
+            formattedDate: this.formatDisplayDate(entry.date),
             daysAgo: diffDays
           }
         })
@@ -136,16 +141,6 @@ Page({
           settings.targetWeight = s.targetWeight || 65
         }
         gender = settingsResponse.gender || settingsResponse.user?.gender || 'male'
-        
-        // 保存头像到 data
-        if (settingsResponse.user?.avatar) {
-          const newUserInfo = { ...app.globalData.userInfo, avatar: settingsResponse.user.avatar }
-          app.updateUserInfo(newUserInfo)
-          this.setData({ 
-            userInfo: newUserInfo,
-            avatarText: this.getAvatarText(newUserInfo)
-          })
-        }
       }
       
     } catch (overallError) {
@@ -176,13 +171,49 @@ Page({
     const weightDiffValue = Math.abs(weightDiff).toFixed(1)
     const weightDiffClass = weightDiff > 0 ? 'text-danger' : 'text-success'
     
-    // 生成图表数据 - 使用安全排序
+    // 生成图表数据 - 根据视图模式聚合
     let chartData = []
     try {
       if (sortedEntries.length > 0) {
-        const chartSorted = safeSort(sortedEntries, false).slice(-7)
-        chartData = chartSorted.map(e => ({
-          date: util.formatShortDate(e.date),
+        const mode = this.data.chartViewMode || 'day'
+        let aggregatedEntries = []
+
+        if (mode === 'day') {
+          // 按天去重，每天保留最后一条（最新的），显示最近5天
+          const dayMap = new Map()
+          for (const e of sortedEntries) {
+            const d = new Date(e.date)
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+            dayMap.set(key, e)
+          }
+          aggregatedEntries = Array.from(dayMap.values())
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .slice(-5)
+        } else if (mode === 'week') {
+          // 按周去重，每周保留最新一条（reverse 后新的会覆盖旧的）
+          const weekMap = new Map()
+          for (const e of [...sortedEntries].reverse()) {
+            const key = this.getWeekKey(e.date)
+            weekMap.set(key, e)
+          }
+          aggregatedEntries = Array.from(weekMap.values())
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .slice(-8)
+        } else if (mode === 'month') {
+          // 按月去重，每月保留最后一条
+          const monthMap = new Map()
+          for (const e of sortedEntries) {
+            const d = new Date(e.date)
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+            monthMap.set(key, e)
+          }
+          aggregatedEntries = Array.from(monthMap.values())
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+            .slice(-6)
+        }
+
+        chartData = aggregatedEntries.map(e => ({
+          date: this.formatChartDate(e.date, mode),
           weight: parseFloat(e.weight) || 0,
           fullDate: e.date
         }))
@@ -190,6 +221,12 @@ Page({
     } catch (chartError) {
       console.error('【INDEX】图表数据处理失败:', chartError)
     }
+    
+    // 为每条记录添加格式化日期
+    const entriesWithDate = sortedEntries.map(e => ({
+      ...e,
+      displayDate: this.formatDisplayDate(e.date)
+    }))
     
     console.log('【INDEX】更新页面数据:', { 
       currentWeight, 
@@ -199,7 +236,7 @@ Page({
     
     // 更新页面数据
     this.setData({
-      entries: sortedEntries, 
+      entries: entriesWithDate, 
       settings, 
       gender,
       currentWeight, 
@@ -261,6 +298,10 @@ async addEntry() {
     const { chartData } = this.data
     if (!Array.isArray(chartData) || chartData.length === 0) return
 
+    const sysInfo = wx.getSystemInfoSync()
+    const dpr = sysInfo.pixelRatio
+    const rpx = sysInfo.windowWidth / 750
+
     const query = wx.createSelectorQuery()
     query.select('#weightChart')
       .fields({ node: true, size: true })
@@ -269,7 +310,6 @@ async addEntry() {
         
         const canvas = res[0].node
         const ctx = canvas.getContext('2d')
-        const dpr = wx.getSystemInfoSync().pixelRatio
         
         canvas.width = res[0].width * dpr
         canvas.height = res[0].height * dpr
@@ -277,7 +317,7 @@ async addEntry() {
 
         const width = res[0].width
         const height = res[0].height
-        const padding = { top: 30, right: 20, bottom: 40, left: 50 }
+        const padding = { top: 30 * rpx, right: 20 * rpx, bottom: 40 * rpx, left: 50 * rpx }
         const chartWidth = width - padding.left - padding.right
         const chartHeight = height - padding.top - padding.bottom
 
@@ -300,26 +340,28 @@ async addEntry() {
           
           const weightValue = maxWeight - (weightRange / 4) * i
           ctx.fillStyle = '#64748b'
-          ctx.font = '22rpx sans-serif'
+          ctx.font = `${Math.round(22 * rpx)}px sans-serif`
           ctx.textAlign = 'right'
-          ctx.fillText(weightValue.toFixed(1), padding.left - 10, y + 6)
+          ctx.fillText(weightValue.toFixed(1), padding.left - 10 * rpx, y + 6 * rpx)
         }
 
-        if (chartData.length > 1) {
-          ctx.strokeStyle = '#f97316'
-          ctx.lineWidth = 3
-          ctx.lineCap = 'round'
-          ctx.lineJoin = 'round'
-          
-          ctx.beginPath()
-          chartData.forEach((d, i) => {
-            const x = padding.left + (chartWidth / (chartData.length - 1)) * i
-            const y = padding.top + chartHeight - ((d.weight - minWeight) / weightRange) * chartHeight
-            if (i === 0) ctx.moveTo(x, y)
-            else ctx.lineTo(x, y)
-          })
-          ctx.stroke()
+        // 绘制折线和渐变填充（至少1个点也画，方便后续扩展）
+        ctx.strokeStyle = '#f97316'
+        ctx.lineWidth = 3
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        
+        ctx.beginPath()
+        chartData.forEach((d, i) => {
+          const x = padding.left + (chartWidth / Math.max(chartData.length - 1, 1)) * i
+          const y = padding.top + chartHeight - ((d.weight - minWeight) / weightRange) * chartHeight
+          if (i === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        })
+        ctx.stroke()
 
+        // 填充渐变区域（至少2个点才填充，否则不好看）
+        if (chartData.length > 1) {
           ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight)
           ctx.lineTo(padding.left, padding.top + chartHeight)
           ctx.closePath()
@@ -331,12 +373,13 @@ async addEntry() {
           ctx.fill()
         }
 
+        // 绘制数据点和标签
         chartData.forEach((d, i) => {
           const x = padding.left + (chartWidth / Math.max(chartData.length - 1, 1)) * i
           const y = padding.top + chartHeight - ((d.weight - minWeight) / weightRange) * chartHeight
           
           ctx.beginPath()
-          ctx.arc(x, y, 6, 0, Math.PI * 2)
+          ctx.arc(x, y, 6 * rpx, 0, Math.PI * 2)
           ctx.fillStyle = 'white'
           ctx.fill()
           ctx.strokeStyle = '#f97316'
@@ -344,17 +387,73 @@ async addEntry() {
           ctx.stroke()
           
           ctx.beginPath()
-          ctx.arc(x, y, 3, 0, Math.PI * 2)
+          ctx.arc(x, y, 3 * rpx, 0, Math.PI * 2)
           ctx.fillStyle = '#f97316'
           ctx.fill()
 
           ctx.fillStyle = '#64748b'
-          ctx.font = '20rpx sans-serif'
+          ctx.font = `${Math.round(20 * rpx)}px sans-serif`
           ctx.textAlign = 'center'
-          ctx.fillText(d.date, x, height - 10)
+          ctx.fillText(d.date, x, height - 10 * rpx)
         })
       })
   },
 
   onChartTouch() {},
+
+  // 切换图表视图模式
+  switchChartView(e) {
+    const mode = e.currentTarget.dataset.mode
+    if (mode === this.data.chartViewMode) return
+    this.setData({ chartViewMode: mode }, () => {
+      this.loadData()
+    })
+  },
+
+  // 计算 ISO 周数 key
+  getWeekKey(dateStr) {
+    const d = new Date(dateStr)
+    d.setHours(0, 0, 0, 0)
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7))
+    const yearStart = new Date(d.getFullYear(), 0, 1)
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+    return `${d.getFullYear()}-W${weekNo}`
+  },
+
+  // 格式化图表日期标签
+  formatChartDate(dateStr, mode) {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    if (mode === 'day') {
+      return util.formatShortDate(dateStr)
+    }
+    if (mode === 'week') {
+      // 显示周号，如 "W12"
+      const weekKey = this.getWeekKey(dateStr)
+      const match = weekKey.match(/W(\d+)/)
+      return match ? 'W' + match[1] : util.formatShortDate(dateStr)
+    }
+    if (mode === 'month') {
+      return `${date.getMonth() + 1}月`
+    }
+    return util.formatShortDate(dateStr)
+  },
+
+  // 格式化日期显示（今天/昨天/N天前/X月X日）
+  formatDisplayDate(dateStr) {
+    if (!dateStr) return ''
+    const date = new Date(dateStr)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const diffDays = Math.floor((today - target) / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return '今天'
+    if (diffDays === 1) return '昨天'
+    if (diffDays <= 7) return `${diffDays}天前`
+    if (date.getFullYear() === now.getFullYear()) {
+      return `${date.getMonth() + 1}月${date.getDate()}日`
+    }
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
+  },
 })

@@ -36,13 +36,7 @@
         </view>
       </view>
       
-      <view class="avatar-divider"></view>
-      
-      <view class="avatar-upload-option" bindtap="uploadCustomAvatar">
-        <text class="upload-icon">📷</text>
-        <text class="upload-text">上传自己的照片</text>
-      </view>
-      
+      <!-- 头像预览 -->
       <view class="avatar-preview" wx:if="{{formData.avatar}}">
         <text class="preview-label">已选择：</text>
         <text class="preview-emoji">{{formData.avatar}}</text>

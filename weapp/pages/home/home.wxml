@@ -46,12 +46,12 @@
     </block>
   </view>
 
-  <!-- Slogan -->
-  <view class="slogan-bar">
-    <text class="slogan-text">身体和思想总要有个在路上</text>
-  </view>
+  <!--
+  Slogan 已移除 - 2026
+  -->
 
-  <!-- 语音打卡 -->
+  <!--
+  语音打卡功能 - 暂时注释，保留后续开发
   <view class="section-card voice-card {{isRecording ? 'recording' : ''}}" bindtouchstart="onVoicePressStart" bindtouchend="onVoicePressEnd">
     <view class="voice-card-inner">
       <view class="voice-card-icon">{{isRecording ? '⏺️' : '🎤'}}</view>
@@ -68,6 +68,7 @@
       <text wx:elif="{{voiceResult}}" class="voice-card-result">{{voiceResult}}</text>
     </view>
   </view>
+  -->
 
   <!-- 打卡网格 -->
   <view class="section-card">
@@ -76,24 +77,18 @@
         <view class="card-icon">📅</view>
         <text>快速记录</text>
       </view>
+      <view class="module-actions">
+        <view class="module-btn add" bindtap="openModuleManager">+</view>
+        <view class="module-btn remove" bindtap="toggleRemoveMode">−</view>
+      </view>
     </view>
     <view class="checkin-grid">
-      <view class="checkin-item {{fitnessChecked ? 'checked' : ''}}" bindtap="goToFitness">
-        <view class="checkin-icon">🏋️</view>
-        <view class="checkin-name">体重</view>
-        <view class="checkin-status">{{fitnessChecked ? '今日已打卡' : '今日未记录'}}</view>
-        <view class="checkin-check" wx:if="{{fitnessChecked}}">✓</view>
-      </view>
-      <view class="checkin-item {{readingChecked ? 'checked' : ''}}" bindtap="goToReading">
-        <view class="checkin-icon">📖</view>
-        <view class="checkin-name">读书</view>
-        <view class="checkin-status">{{readingChecked ? '今日已打卡' : '今日未记录'}}</view>
-        <view class="checkin-check" wx:if="{{readingChecked}}">✓</view>
-      </view>
-      <view class="checkin-item" bindtap="goToDiet">
-        <view class="checkin-icon">🍱</view>
-        <view class="checkin-name">饮食</view>
-        <view class="checkin-status">AI 算卡路里</view>
+      <view class="checkin-item {{item.checked ? 'checked' : ''}}" wx:for="{{quickModules}}" wx:key="key" bindtap="onQuickModuleTap" data-key="{{item.key}}">
+        <view class="checkin-icon">{{item.icon}}</view>
+        <view class="checkin-name">{{item.name}}</view>
+        <view class="checkin-status">{{item.status}}</view>
+        <view class="checkin-check" wx:if="{{item.checked}}">✓</view>
+        <view class="module-remove-mark" wx:if="{{isRemovingMode}}" catchtap="removeModule" data-key="{{item.key}}">✕</view>
       </view>
     </view>
   </view>
@@ -242,13 +237,6 @@
           <text class="avatar-name">{{item.name}}</text>
         </view>
       </view>
-      
-      <view class="avatar-divider"></view>
-      
-      <view class="avatar-upload-option" bindtap="chooseAvatar">
-        <text class="upload-icon">📷</text>
-        <text class="upload-text">上传自己的照片</text>
-      </view>
     </view>
   </view>
 </view>
@@ -316,5 +304,23 @@
   </view>
 </view>
 
-
-
+<!-- 模块管理弹窗 -->
+<view class="module-modal {{showModuleManager ? 'show' : ''}}" catchtouchmove="preventTouchMove">
+  <view class="module-overlay" bindtap="closeModuleManager"></view>
+  <view class="module-panel">
+    <view class="module-header">
+      <text class="module-title">管理模块</text>
+      <view class="module-close" bindtap="closeModuleManager">✕</view>
+    </view>
+    <view class="module-content">
+      <text class="module-hint">点击下方模块添加到快速记录</text>
+      <view class="module-grid">
+        <view class="module-option {{item.added ? 'added' : ''}}" wx:for="{{moduleDefs}}" wx:key="key" bindtap="{{item.added ? '' : 'addModule'}}" data-key="{{item.key}}">
+          <view class="module-option-icon">{{item.icon}}</view>
+          <text class="module-option-name">{{item.name}}</text>
+          <view class="module-option-badge" wx:if="{{item.added}}">已添加</view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

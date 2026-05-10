@@ -82,40 +82,15 @@ export async function POST(request: NextRequest) {
     
     console.log('[API /weight] Processing entry for user:', user.userId, 'date:', dateStr, 'weight:', weightValidation.value)
     
-    // 检查是否已有同一天的记录
-    const existingEntries = await adapter.getWeightEntriesByUser(user.userId)
-    const existingEntry = existingEntries.find(e => {
-      const entryDateStr = new Date(e.date).toISOString().split('T')[0]
-      return entryDateStr === dateStr
+    // 创建新记录（支持同一天多次记录）
+    const entry = await adapter.createWeightEntry({
+      weight: weightValidation.value!,
+      note: sanitizedNote || undefined,
+      imageUrl: imageUrl || undefined,
+      date: entryDate,
+      userId: user.userId,
     })
-    
-    let entry
-    if (existingEntry && existingEntry.id) {
-      // 验证记录所有权
-      if (String(existingEntry.userId) !== String(user.userId)) {
-        return NextResponse.json({ error: '无权修改此记录' }, { status: 403 })
-      }
-      
-      // 更新已有记录
-      console.log('[API /weight] Updating existing entry:', existingEntry.id)
-      entry = await adapter.updateWeightEntry(existingEntry.id, {
-        weight: weightValidation.value!,
-        note: sanitizedNote || undefined,
-        imageUrl: imageUrl || undefined,
-        date: entryDate,
-      })
-      console.log('[API /weight] Entry updated:', entry)
-    } else {
-      // 创建新记录
-      entry = await adapter.createWeightEntry({
-        weight: weightValidation.value!,
-        note: sanitizedNote || undefined,
-        imageUrl: imageUrl || undefined,
-        date: entryDate,
-        userId: user.userId,
-      })
-      console.log('[API /weight] Entry created:', entry)
-    }
+    console.log('[API /weight] Entry created:', entry)
 
     return NextResponse.json(entry)
   } catch (error: any) {

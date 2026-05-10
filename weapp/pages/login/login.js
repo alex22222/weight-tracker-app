@@ -118,6 +118,7 @@ Page({
         const savedToken = wx.getStorageSync('token')
         console.log('验证保存的 token:', savedToken ? savedToken.substring(0, 30) : '无')
         
+        this.setData({ isLoading: false })
         wx.showToast({
           title: result.user.isNewUser ? '注册成功' : '登录成功',
           icon: 'success'
@@ -128,7 +129,12 @@ Page({
           if (result.user.isNewUser) {
             // 新用户：清除引导完成标记，跳转到引导页
             wx.removeStorageSync('onboardingCompleted')
-            wx.redirectTo({ url: '/pages/onboarding/onboarding' })
+            wx.redirectTo({ 
+              url: '/pages/onboarding/onboarding',
+              fail: () => {
+                wx.switchTab({ url: '/pages/home/home' })
+              }
+            })
           } else {
             // 老用户：直接跳转到首页
             wx.switchTab({ url: '/pages/home/home' })
@@ -141,7 +147,7 @@ Page({
     } catch (err) {
       console.error('微信登录失败:', err)
       this.setData({
-        error: err.message || '微信登录失败，请重试',
+        error: typeof err === 'string' ? err : (err.message || err.errMsg || '微信登录失败，请重试'),
         isLoading: false
       })
     }
@@ -281,14 +287,27 @@ Page({
           needAuth: false
         })
 
+        // 验证服务器返回了有效的 token
+        if (!result || !result.token) {
+          throw new Error(result?.error || '服务器响应异常，请稍后重试')
+        }
+
         // 注册成功后自动登录
         app.login(result.token, result.user)
+        
+        this.setData({ isLoading: false })
         wx.showToast({ title: '注册成功', icon: 'success' })
 
         setTimeout(() => {
           // 新用户跳转到引导页
           wx.removeStorageSync('onboardingCompleted')
-          wx.redirectTo({ url: '/pages/onboarding/onboarding' })
+          wx.redirectTo({ 
+            url: '/pages/onboarding/onboarding',
+            fail: () => {
+              // redirectTo 失败时回退到首页
+              wx.switchTab({ url: '/pages/home/home' })
+            }
+          })
         }, 500)
       } else {
         // 登录
@@ -299,7 +318,13 @@ Page({
           needAuth: false
         })
 
+        if (!result || !result.token) {
+          throw new Error(result?.error || '用户名或密码错误')
+        }
+
         app.login(result.token, result.user)
+        
+        this.setData({ isLoading: false })
         wx.showToast({ title: '登录成功', icon: 'success' })
 
         setTimeout(() => {
@@ -307,7 +332,11 @@ Page({
         }, 500)
       }
     } catch (err) {
-      this.setData({ error: err.message || '请求失败', isLoading: false })
+      console.error('登录/注册失败:', err)
+      this.setData({ 
+        error: typeof err === 'string' ? err : (err.message || err.errMsg || '请求失败，请检查网络连接'),
+        isLoading: false 
+      })
     }
   },
 
@@ -323,14 +352,24 @@ Page({
         needAuth: false
       })
 
+      if (!result || !result.token) {
+        throw new Error('游客登录失败，请稍后重试')
+      }
+
       app.login(result.token, result.user)
-      wx.showToast({ title: '游客登录成功', icon: 'success' })
+      
+      this.setData({ isLoading: false })
+      wx.showToast({ title: '登录成功', icon: 'success' })
 
       setTimeout(() => {
         wx.switchTab({ url: '/pages/home/home' })
       }, 500)
     } catch (err) {
-      this.setData({ error: err.message || '登录失败', isLoading: false })
+      console.error('游客登录失败:', err)
+      this.setData({ 
+        error: typeof err === 'string' ? err : (err.message || err.errMsg || '登录失败，请检查网络'),
+        isLoading: false 
+      })
     }
   }
 })

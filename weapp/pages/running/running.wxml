@@ -1,0 +1,81 @@
+<view class="container">
+  <view class="back-to-home" bindtap="goToHome">
+    <text class="back-arrow">‹</text>
+    <text class="back-text">返回首页</text>
+  </view>
+  <view class="page-header">
+    <text class="page-title">🏃 跑步记录</text>
+    <text class="page-subtitle">记录每一次奔跑</text>
+  </view>
+
+  <!-- 统计卡片 -->
+  <view class="stats-row">
+    <view class="stat-card">
+      <view class="stat-value">{{totalDistance}}</view>
+      <view class="stat-label">总距离 (km)</view>
+    </view>
+    <view class="stat-card">
+      <view class="stat-value">{{totalDuration}}</view>
+      <view class="stat-label">总时长 (min)</view>
+    </view>
+  </view>
+
+  <!-- 记录表单 -->
+  <view class="card">
+    <view class="section-title">
+      <text class="title-icon">✏️</text>
+      <text>添加记录</text>
+    </view>
+    <view class="form-row">
+      <view class="form-item">
+        <text class="form-label">日期</text>
+        <picker mode="date" value="{{date}}" bindchange="onDateChange">
+          <view class="form-picker">{{date}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="form-row">
+      <view class="form-item flex-1">
+        <text class="form-label">距离 (km)</text>
+        <input class="form-input" type="digit" value="{{distance}}" bindinput="onDistanceInput" placeholder="例如: 5.2" />
+      </view>
+      <view class="form-item flex-1">
+        <text class="form-label">时长 (分钟)</text>
+        <input class="form-input" type="number" value="{{duration}}" bindinput="onDurationInput" placeholder="例如: 30" />
+      </view>
+    </view>
+    <view class="form-row">
+      <view class="form-item">
+        <text class="form-label">备注</text>
+        <input class="form-input" value="{{note}}" bindinput="onNoteInput" placeholder="可选: 路线、感受..." />
+      </view>
+    </view>
+    <button class="btn-primary {{isSubmitting ? 'disabled' : ''}}" bindtap="submitRecord" disabled="{{isSubmitting}}">
+      {{isSubmitting ? '保存中...' : '保存记录'}}
+    </button>
+  </view>
+
+  <!-- 记录列表 -->
+  <view class="card" wx:if="{{records.length > 0}}">
+    <view class="section-title">
+      <text class="title-icon">📋</text>
+      <text>历史记录</text>
+    </view>
+    <view class="record-list">
+      <view class="record-item" wx:for="{{records}}" wx:key="id">
+        <view class="record-main">
+          <text class="record-value">{{item.distance}} km / {{item.duration}} min</text>
+          <text class="record-date">{{item.displayDate}}</text>
+        </view>
+        <text class="record-note {{item.note ? '' : 'empty'}}">{{item.note || '无备注'}}</text>
+        <view class="record-delete" bindtap="deleteRecord" data-id="{{item.id}}">🗑️</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty-state" wx:if="{{records.length === 0}}">
+    <text class="empty-icon">🏃</text>
+    <text class="empty-text">还没有跑步记录</text>
+    <text class="empty-sub">快去添加你的第一次跑步吧！</text>
+  </view>
+</view>

@@ -37,6 +37,8 @@ export const COLLECTIONS = {
   VERIFICATION_CODES: 'verification_codes',
   BOOK_RECOMMENDATIONS: 'book_recommendations',
   DIET_RECORDS: 'diet_records',
+  RUNNING_ENTRIES: 'running_entries',
+  CYCLING_ENTRIES: 'cycling_entries',
 }
 
 // ==================== 常量定义 ====================
@@ -94,6 +96,26 @@ export interface ReadingEntry {
   id?: number | string
   bookName: string
   pages: number
+  note?: string | null
+  date: Date
+  createdAt?: Date
+  userId?: number | string
+}
+
+export interface RunningEntry {
+  id?: number | string
+  distance: number
+  duration: number
+  note?: string | null
+  date: Date
+  createdAt?: Date
+  userId?: number | string
+}
+
+export interface CyclingEntry {
+  id?: number | string
+  distance: number
+  duration: number
   note?: string | null
   date: Date
   createdAt?: Date
@@ -1079,6 +1101,104 @@ const cloudbaseAdapter = {
       console.error('Error getting reading entry by date:', error)
       return null
     }
+  },
+
+  // ========== 跑步记录相关 ==========
+  async createRunningEntry(data: { distance: number; duration: number; note?: string; date: Date; userId: number | string }): Promise<RunningEntry> {
+    const entryData: any = {
+      distance: data.distance,
+      duration: data.duration,
+      note: data.note || null,
+      date: data.date,
+      userId: data.userId,
+      createdAt: new Date(),
+    }
+    const { id } = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES).add(entryData)
+    return { id, ...data } as RunningEntry
+  },
+
+  async getRunningEntriesByUser(userId: number | string): Promise<RunningEntry[]> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+        .where({ userId })
+        .orderBy('date', 'desc')
+        .get()
+      const data = result.data || []
+      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+    } catch (error) {
+      console.error('Error getting running entries:', error)
+      return []
+    }
+  },
+
+  async getLastRunningEntryByUser(userId: number | string): Promise<RunningEntry | null> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+        .where({ userId })
+        .orderBy('date', 'desc')
+        .limit(1)
+        .get()
+      const data = result.data || []
+      return data[0] ? { ...data[0], id: data[0]._id } : null
+    } catch (error) {
+      console.error('Error getting last running entry:', error)
+      return null
+    }
+  },
+
+  async deleteRunningEntry(id: number | string): Promise<void> {
+    await tcbDb.collection(COLLECTIONS.RUNNING_ENTRIES)
+      .doc(String(id))
+      .remove()
+  },
+
+  // ========== 骑行记录相关 ==========
+  async createCyclingEntry(data: { distance: number; duration: number; note?: string; date: Date; userId: number | string }): Promise<CyclingEntry> {
+    const entryData: any = {
+      distance: data.distance,
+      duration: data.duration,
+      note: data.note || null,
+      date: data.date,
+      userId: data.userId,
+      createdAt: new Date(),
+    }
+    const { id } = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES).add(entryData)
+    return { id, ...data } as CyclingEntry
+  },
+
+  async getCyclingEntriesByUser(userId: number | string): Promise<CyclingEntry[]> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+        .where({ userId })
+        .orderBy('date', 'desc')
+        .get()
+      const data = result.data || []
+      return Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id })) : []
+    } catch (error) {
+      console.error('Error getting cycling entries:', error)
+      return []
+    }
+  },
+
+  async getLastCyclingEntryByUser(userId: number | string): Promise<CyclingEntry | null> {
+    try {
+      const result = await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+        .where({ userId })
+        .orderBy('date', 'desc')
+        .limit(1)
+        .get()
+      const data = result.data || []
+      return data[0] ? { ...data[0], id: data[0]._id } : null
+    } catch (error) {
+      console.error('Error getting last cycling entry:', error)
+      return null
+    }
+  },
+
+  async deleteCyclingEntry(id: number | string): Promise<void> {
+    await tcbDb.collection(COLLECTIONS.CYCLING_ENTRIES)
+      .doc(String(id))
+      .remove()
   },
 
   async getReadingStreak(userId: number | string): Promise<number> {

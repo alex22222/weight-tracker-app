@@ -2,8 +2,11 @@
 const app = getApp()
 const util = require('../../utils/util.js')
 
+/*
+  语音打卡功能 - 暂时注释，保留后续开发
 const recorderManager = wx.getRecorderManager()
 const audioContext = wx.createInnerAudioContext()
+*/
 
 Page({
   data: {
@@ -11,8 +14,9 @@ Page({
     avatarText: '用',
     welcomeName: '用户',
     todayDate: '',
-    isRecording: false,
-    voiceResult: '',
+    // 语音打卡功能已注释
+    // isRecording: false,
+    // voiceResult: '',
 
     // 今日记录状态
     fitnessChecked: false,
@@ -73,16 +77,34 @@ Page({
       { id: 'monkey', emoji: '🐵', name: '猴子' },
       { id: 'pig', emoji: '🐷', name: '小猪' },
     ],
-    
 
+    // 模块配置
+    enabledModules: ['weight', 'reading', 'diet'],
+    showModuleManager: false,
+    isRemovingMode: false,
+    moduleDefs: [
+      { key: 'weight', name: '体重', icon: '🏋️', color: '#f97316', added: true },
+      { key: 'reading', name: '读书', icon: '📖', color: '#8b5cf6', added: true },
+      { key: 'diet', name: '饮食', icon: '🍱', color: '#10b981', added: true },
+      { key: 'running', name: '跑步', icon: '🏃', color: '#f97316', added: false },
+      { key: 'cycling', name: '骑行', icon: '🚴', color: '#3b82f6', added: false },
+    ],
+
+    // 跑步/骑行数据
+    runningChecked: false,
+    cyclingChecked: false,
+    latestRunningText: '--',
+    latestCyclingText: '--',
   },
 
   onLoad() {
     this.initData()
-    this.initVoiceRecorder()
+    // this.initVoiceRecorder()  // 语音打卡功能已注释
   },
 
-  // 初始化录音管理器
+  /*
+    语音打卡功能 - 暂时注释，保留后续开发
+  初始化录音管理器
   initVoiceRecorder() {
     recorderManager.onStart = () => {
       console.log('[Voice] recorder started')
@@ -114,8 +136,11 @@ Page({
       }
     }
   },
+  */
 
-  // 开始语音录音
+  /*
+    语音打卡功能 - 暂时注释，保留后续开发
+  开始语音录音
   onVoicePressStart() {
     if (!app.globalData.isLoggedIn) {
       wx.showToast({ title: '请先登录', icon: 'none' })
@@ -136,8 +161,11 @@ Page({
   onVoicePressEnd() {
     recorderManager.stop()
   },
+  */
 
-  // 上传录音到后端进行语音识别
+  /*
+    语音打卡功能 - 暂时注释，保留后续开发
+  上传录音到后端进行语音识别
   async uploadAndTranscribe(filePath) {
     this.setData({ isRecording: true, voiceResult: '' })
     try {
@@ -190,8 +218,11 @@ Page({
       this.setData({ isRecording: false })
     }
   },
+  */
 
   // 通过语音创建体重记录
+  /*
+    语音打卡功能 - 暂时注释，保留后续开发
   async createVoiceWeightEntry(weight) {
     try {
       await app.request({
@@ -214,6 +245,7 @@ Page({
       wx.showToast({ title: err.message || '记录失败', icon: 'none' })
     }
   },
+  */
 
   onShow() {
     console.log('[Home] onShow, globalData:', {
@@ -246,13 +278,17 @@ Page({
     const today = new Date()
     const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
     const todayDate = `${today.getMonth() + 1}月${today.getDate()}日 ${weekDays[today.getDay()]}`
-    
+    const enabledModules = wx.getStorageSync('enabledModules') || ['weight', 'reading', 'diet']
+
     this.setData({
       isLoggedIn: app.globalData.isLoggedIn,
       userInfo: userInfo,
       avatarText: this.getAvatarText(userInfo),
       welcomeName: (userInfo?.nickname || userInfo?.username || '用户'),
-      todayDate: todayDate
+      todayDate: todayDate,
+      enabledModules,
+    }, () => {
+      this.computeQuickModules()
     })
   },
 
@@ -262,31 +298,19 @@ Page({
   },
 
   async loadData() {
-    // 每次加载数据时清理语音记录状态
-    this.setData({ voiceResult: '' })
-    // 更新登录状态
     this.setData({ isLoggedIn: app.globalData.isLoggedIn })
 
-    // 未登录时只加载公开数据
     if (!app.globalData.token) {
       console.log('[Home] 未登录，跳过个人数据加载')
       return
     }
-    
+
     console.log('[Home] 开始加载数据...')
     try {
-      // 加载体重数据（体重记录状态）
       await this.loadFitnessStatus()
-      
-      // 加载统计数据
       await this.loadStats()
-      
-      // 加载目标列表
       await this.loadGoals()
-      
-      // 加载设置
       await this.loadSettings()
-      
       console.log('[Home] 数据加载完成')
     } catch (err) {
       console.error('[Home] 加载首页数据失败:', err)
@@ -355,21 +379,38 @@ Page({
   // 加载统计数据
   async loadStats() {
     try {
-      // 获取体重记录
-      const weightResult = await app.request({ url: '/weight' })
-      const weightEntries = weightResult.entries || []
-      const fitnessStreak = this.calculateStreak(weightEntries)
-      
-      // 获取读书记录
-      const readingResult = await app.request({ url: '/reading' })
-      const readingEntries = readingResult.entries || []
-      const readingStreak = readingResult.streak || 0
-      
-      // 检查今天是否已读书记录
       const today = util.getTodayString()
+      const promises = []
+
+      // 体重
+      promises.push(app.request({ url: '/weight' }).catch(() => ({ entries: [] })))
+      // 读书
+      promises.push(app.request({ url: '/reading' }).catch(() => ({ entries: [], streak: 0 })))
+      // 跑步
+      promises.push(app.request({ url: '/running' }).catch(() => ({ entries: [] })))
+      // 骑行
+      promises.push(app.request({ url: '/cycling' }).catch(() => ({ entries: [] })))
+
+      const [weightResult, readingResult, runningResult, cyclingResult] = await Promise.all(promises)
+
+      const weightEntries = weightResult.entries || []
+      const readingEntries = readingResult.entries || []
+      const runningEntries = runningResult.entries || []
+      const cyclingEntries = cyclingResult.entries || []
+
+      const fitnessStreak = this.calculateStreak(weightEntries)
+      const readingStreak = readingResult.streak || 0
+
       const todayReadingEntry = readingEntries.find(e => e.date === today)
-      
-      // 格式化日期显示
+      const todayRunningEntry = runningEntries.find(e => {
+        const d = new Date(e.date).toISOString().split('T')[0]
+        return d === today
+      })
+      const todayCyclingEntry = cyclingEntries.find(e => {
+        const d = new Date(e.date).toISOString().split('T')[0]
+        return d === today
+      })
+
       const formattedWeightEntries = weightEntries.slice(0, 10).map(e => ({
         ...e,
         displayDate: this.formatDisplayDate(e.date)
@@ -378,19 +419,26 @@ Page({
         ...e,
         displayDate: this.formatDisplayDate(e.date)
       }))
-      
-      // 最新数据
+
       const latestWeight = weightEntries.length > 0 ? weightEntries[0].weight : null
       const latestReading = readingEntries.length > 0 ? readingEntries[0] : null
-      
+      const latestRunning = runningEntries.length > 0 ? runningEntries[0] : null
+      const latestCycling = cyclingEntries.length > 0 ? cyclingEntries[0] : null
+
       this.setData({
         fitnessStreak,
         readingStreak,
         readingChecked: !!todayReadingEntry,
+        runningChecked: !!todayRunningEntry,
+        cyclingChecked: !!todayCyclingEntry,
         weightEntries: formattedWeightEntries,
         readingEntries: formattedReadingEntries,
         latestWeightText: latestWeight ? parseFloat(latestWeight).toFixed(1) : '--',
-        latestReadingText: latestReading ? `${latestReading.pages}页` : '--'
+        latestReadingText: latestReading ? `${latestReading.pages}页` : '--',
+        latestRunningText: latestRunning ? `${latestRunning.distance}km` : '--',
+        latestCyclingText: latestCycling ? `${latestCycling.distance}km` : '--',
+      }, () => {
+        this.computeQuickModules()
       })
     } catch (err) {
       console.error('加载统计失败:', err)
@@ -409,6 +457,20 @@ Page({
     if (diffDays === 0) return '今天'
     if (diffDays === 1) return '昨天'
     return `${date.getMonth() + 1}月${date.getDate()}日`
+  },
+
+  // 计算快速记录模块显示数据
+  computeQuickModules() {
+    const { enabledModules, fitnessChecked, readingChecked, runningChecked, cyclingChecked } = this.data
+    const moduleMap = {
+      weight: { key: 'weight', name: '体重', icon: '🏋️', checked: fitnessChecked, status: fitnessChecked ? '今日已打卡' : '今日未记录', action: 'goToFitness' },
+      reading: { key: 'reading', name: '读书', icon: '📖', checked: readingChecked, status: readingChecked ? '今日已打卡' : '今日未记录', action: 'goToReading' },
+      diet: { key: 'diet', name: '饮食', icon: '🍱', checked: false, status: 'AI 算卡路里', action: 'goToDiet' },
+      running: { key: 'running', name: '跑步', icon: '🏃', checked: runningChecked, status: runningChecked ? '今日已记录' : '记录跑步', action: 'goToRunning' },
+      cycling: { key: 'cycling', name: '骑行', icon: '🚴', checked: cyclingChecked, status: cyclingChecked ? '今日已记录' : '记录骑行', action: 'goToCycling' },
+    }
+    const quickModules = enabledModules.map(key => moduleMap[key]).filter(Boolean)
+    this.setData({ quickModules })
   },
 
   // 计算连续记录天数
@@ -460,6 +522,23 @@ Page({
     }
   },
 
+  // 快速记录模块点击
+  onQuickModuleTap(e) {
+    if (this.data.isRemovingMode) return
+    const key = e.currentTarget.dataset.key
+    const actionMap = {
+      weight: 'goToFitness',
+      reading: 'goToReading',
+      diet: 'goToDiet',
+      running: 'goToRunning',
+      cycling: 'goToCycling',
+    }
+    const method = actionMap[key]
+    if (method && this[method]) {
+      this[method]()
+    }
+  },
+
   // 跳转到健身页面
   goToFitness() {
     wx.switchTab({
@@ -479,6 +558,82 @@ Page({
     wx.switchTab({
       url: '/pages/diet/diet'
     })
+  },
+
+  // 跳转到跑步页面
+  goToRunning() {
+    wx.switchTab({
+      url: '/pages/running/running'
+    })
+  },
+
+  // 跳转到骑行页面
+  goToCycling() {
+    wx.switchTab({
+      url: '/pages/cycling/cycling'
+    })
+  },
+
+  // 打开模块管理器
+  openModuleManager() {
+    const enabled = this.data.enabledModules
+    const moduleDefs = this.data.moduleDefs.map(d => ({
+      ...d,
+      added: enabled.includes(d.key)
+    }))
+    this.setData({ showModuleManager: true, isRemovingMode: false, moduleDefs })
+  },
+
+  // 关闭模块管理器
+  closeModuleManager() {
+    this.setData({ showModuleManager: false, isRemovingMode: false })
+  },
+
+  // 切换到删除模式
+  toggleRemoveMode() {
+    this.setData({ isRemovingMode: !this.data.isRemovingMode })
+  },
+
+  // 添加模块到快速记录
+  addModule(e) {
+    const key = e.currentTarget.dataset.key
+    const enabled = [...this.data.enabledModules]
+    if (!enabled.includes(key)) {
+      enabled.push(key)
+      wx.setStorageSync('enabledModules', enabled)
+      const moduleDefs = this.data.moduleDefs.map(d => ({
+        ...d,
+        added: enabled.includes(d.key)
+      }))
+      this.setData({ enabledModules: enabled, moduleDefs })
+      this.computeQuickModules()
+      this.refreshTabBar()
+    }
+  },
+
+  // 从快速记录移除模块
+  removeModule(e) {
+    const key = e.currentTarget.dataset.key
+    const enabled = this.data.enabledModules.filter(k => k !== key)
+    if (enabled.length === 0) {
+      wx.showToast({ title: '至少保留一个模块', icon: 'none' })
+      return
+    }
+    wx.setStorageSync('enabledModules', enabled)
+    const moduleDefs = this.data.moduleDefs.map(d => ({
+      ...d,
+      added: enabled.includes(d.key)
+    }))
+    this.setData({ enabledModules: enabled, isRemovingMode: false, moduleDefs })
+    this.computeQuickModules()
+    this.refreshTabBar()
+  },
+
+  // 刷新自定义 tabBar
+  refreshTabBar() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().refreshTabs()
+    }
   },
 
   // 打开设置面板
@@ -508,7 +663,7 @@ Page({
     this.setData({ showAvatarSelector: false })
   },
 
-  // 选择预设头像
+  // 选择预设头像（仅支持 emoji，不支持自定义上传）
   selectPresetAvatar(e) {
     const avatar = e.currentTarget.dataset.avatar
     this.setData({ 
@@ -633,60 +788,6 @@ Page({
     } catch (err) {
       console.error('保存设置失败:', err)
       wx.showToast({ title: '保存失败', icon: 'none' })
-    } finally {
-      wx.hideLoading()
-    }
-  },
-
-  // 选择头像
-  chooseAvatar() {
-    wx.chooseMedia({
-      count: 1,
-      mediaType: ['image'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFilePath = res.tempFiles[0].tempFilePath
-        this.uploadFile(tempFilePath)
-      },
-      fail: () => {
-        wx.showToast({ title: '选择图片失败', icon: 'none' })
-      }
-    })
-  },
-
-  // 上传文件
-  async uploadFile(filePath) {
-    wx.showLoading({ title: '上传中...' })
-    const token = wx.getStorageSync('token')
-    // token 通过 query 参数传递
-    const url = `${app.globalData.apiBaseUrl}/upload?token=${encodeURIComponent(token)}`
-
-    try {
-      const res = await new Promise((resolve, reject) => {
-        wx.uploadFile({
-          url,
-          filePath,
-          name: 'file',
-          success: resolve,
-          fail: reject
-        })
-      })
-
-      const data = JSON.parse(res.data)
-      if (data.url) {
-        // 使用临时 URL 立即显示头像，使用 fileID 保存到数据库（不会过期）
-        this.setData({ 
-          'userInfo.avatar': data.url,           // 临时 URL：前端立即显示
-          tempAvatar: data.fileID || data.url,   // fileID：保存到数据库
-          showAvatarSelector: false
-        })
-        const userInfo = this.data.userInfo
-        wx.setStorageSync('userInfo', userInfo)
-        wx.showToast({ title: '头像已上传', icon: 'success' })
-      }
-    } catch (err) {
-      console.error('上传失败:', err)
-      wx.showToast({ title: '上传失败', icon: 'none' })
     } finally {
       wx.hideLoading()
     }

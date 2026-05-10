@@ -162,3 +162,23 @@ button[disabled] {
 .bg-gray-light { background-color: #f1f5f9; }
 
 .shadow-sm { box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04); }
+
+/* 返回首页按钮 */
+.back-to-home {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  margin-bottom: 16rpx;
+  padding: 12rpx 0;
+}
+
+.back-arrow {
+  font-size: 36rpx;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.back-text {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+}

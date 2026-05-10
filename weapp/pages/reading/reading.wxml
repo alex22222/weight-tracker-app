@@ -1,5 +1,9 @@
 <!--pages/reading/reading.wxml-->
 <view class="container">
+  <view class="back-to-home" bindtap="goToHome">
+    <text class="back-arrow">‹</text>
+    <text class="back-text">返回首页</text>
+  </view>
   <!-- 头部 -->
   <view class="header">
     <view class="header-icon">📖</view>

@@ -1,5 +1,9 @@
 <!--pages/index/index.wxml-->
 <view class="container">
+  <view class="back-to-home" bindtap="goToHome">
+    <text class="back-arrow">‹</text>
+    <text class="back-text">返回首页</text>
+  </view>
   <!-- 统计卡片区域 -->
   <view class="stats-grid">
     <!-- 当前体重 -->
@@ -112,7 +116,12 @@
   <view class="card" wx:if="{{chartData.length > 0}}">
     <view class="section-title">
       <text class="title-icon">📈</text>
-      <text>体重趋势 (近7次)</text>
+      <text>体重趋势</text>
+    </view>
+    <view class="chart-view-tabs">
+      <view class="chart-view-tab {{chartViewMode === 'day' ? 'active' : ''}}" bindtap="switchChartView" data-mode="day">日</view>
+      <view class="chart-view-tab {{chartViewMode === 'week' ? 'active' : ''}}" bindtap="switchChartView" data-mode="week">周</view>
+      <view class="chart-view-tab {{chartViewMode === 'month' ? 'active' : ''}}" bindtap="switchChartView" data-mode="month">月</view>
     </view>
     <view class="chart-container">
       <canvas type="2d" id="weightChart" class="chart-canvas" bindtouchstart="onChartTouch"></canvas>
@@ -130,7 +139,7 @@
         <view class="history-main">
           <view class="history-info">
             <text class="history-weight">{{item.weight}} kg</text>
-            <text class="history-date">{{item.date}}</text>
+            <text class="history-date">{{item.displayDate}}</text>
           </view>
           <text class="history-note" wx:if="{{item.note}}">{{item.note}}</text>
         </view>

@@ -30,6 +30,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ entry })
     }
 
+    if (type === 'running') {
+      const entry = await adapter.getLastRunningEntryByUser(user.userId)
+      return NextResponse.json({ entry })
+    }
+
+    if (type === 'cycling') {
+      const entry = await adapter.getLastCyclingEntryByUser(user.userId)
+      return NextResponse.json({ entry })
+    }
+
     return NextResponse.json({ error: '无效的类型' }, { status: 400 })
   } catch (error) {
     console.error('获取最近记录失败:', error)

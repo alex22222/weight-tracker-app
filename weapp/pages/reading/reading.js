@@ -25,6 +25,10 @@ Page({
     recommendBooks: []
   },
 
+  goToHome() {
+    wx.switchTab({ url: '/pages/home/home' })
+  },
+
   onLoad() {
     this.loadData()
   },

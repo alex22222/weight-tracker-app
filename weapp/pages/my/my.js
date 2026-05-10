@@ -6,6 +6,10 @@ Page({
     userInfo: {}
   },
 
+  goToHome() {
+    wx.switchTab({ url: '/pages/home/home' })
+  },
+
   onLoad() {
     this.loadUserInfo()
   },

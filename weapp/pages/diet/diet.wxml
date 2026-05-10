@@ -1,4 +1,8 @@
 <view class="container">
+  <view class="back-to-home" bindtap="goToHome">
+    <text class="back-arrow">‹</text>
+    <text class="back-text">返回首页</text>
+  </view>
   <!-- 上传区域 -->
   <view class="upload-section">
     <view class="upload-title">上传今日饮食</view>
