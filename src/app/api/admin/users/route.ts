@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
         username: u.username,
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,
+        lastLoginAt: u.lastLoginAt,
+        totalUsageTime: u.totalUsageTime || 0,
       }))
 
     return NextResponse.json(users)

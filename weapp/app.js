@@ -1,10 +1,32 @@
 // app.js
 const config = require('./config.js')
 
+// 使用时长上报间隔（毫秒）
+const USAGE_REPORT_INTERVAL = 30000
+
 App({
   onLaunch() {
     // 检查登录状态
     this.checkLoginStatus()
+    // 如果已登录，启动使用时长统计
+    if (this.globalData.isLoggedIn) {
+      this.startUsageTracking()
+    }
+  },
+
+  onShow() {
+    // 应用回到前台，恢复计时
+    if (this.globalData.isLoggedIn && !this.globalData.usageStartTime) {
+      this.startUsageTracking()
+    }
+  },
+
+  onHide() {
+    // 应用进入后台，立即上报当前累积时长
+    if (this.globalData.isLoggedIn) {
+      this.reportUsageTime()
+      this.pauseUsageTracking()
+    }
   },
 
   // 检查登录状态
@@ -45,7 +67,68 @@ App({
     isLoggedIn: false,
     token: null,
     userInfo: null,
-    apiBaseUrl: config.apiBaseUrl
+    apiBaseUrl: config.apiBaseUrl,
+    // 使用时长统计
+    usageStartTime: null,    // 本次计时开始时间戳
+    usageAccumulated: 0,     // 本次累积秒数（未上报部分）
+    usageTimer: null,        // 定时上报 timer
+  },
+
+  // 开始使用时长统计
+  startUsageTracking() {
+    if (this.globalData.usageStartTime) return
+    this.globalData.usageStartTime = Date.now()
+    // 启动定时上报
+    if (!this.globalData.usageTimer) {
+      this.globalData.usageTimer = setInterval(() => {
+        this.reportUsageTime()
+      }, USAGE_REPORT_INTERVAL)
+    }
+    console.log('[App] 使用时长统计已启动')
+  },
+
+  // 暂停使用时长统计（应用进入后台）
+  pauseUsageTracking() {
+    if (this.globalData.usageStartTime) {
+      const now = Date.now()
+      const delta = Math.floor((now - this.globalData.usageStartTime) / 1000)
+      this.globalData.usageAccumulated += delta
+      this.globalData.usageStartTime = null
+    }
+    // 清除定时器，避免后台继续上报
+    if (this.globalData.usageTimer) {
+      clearInterval(this.globalData.usageTimer)
+      this.globalData.usageTimer = null
+    }
+    console.log('[App] 使用时长统计已暂停，累积:', this.globalData.usageAccumulated)
+  },
+
+  // 上报使用时长
+  async reportUsageTime() {
+    if (!this.globalData.isLoggedIn || !this.globalData.token) return
+
+    let delta = this.globalData.usageAccumulated
+    if (this.globalData.usageStartTime) {
+      const now = Date.now()
+      delta += Math.floor((now - this.globalData.usageStartTime) / 1000)
+      this.globalData.usageStartTime = now
+    }
+    this.globalData.usageAccumulated = 0
+
+    if (delta <= 0) return
+
+    try {
+      await this.request({
+        url: '/usage',
+        method: 'POST',
+        data: { deltaSeconds: delta }
+      })
+      console.log('[App] 使用时长上报成功:', delta, '秒')
+    } catch (err) {
+      // 上报失败，把时长加回累积值
+      this.globalData.usageAccumulated += delta
+      console.error('[App] 使用时长上报失败:', err)
+    }
   },
 
   // 封装请求方法
@@ -102,10 +185,22 @@ App({
     this.globalData.token = token
     this.globalData.userInfo = userInfo || {}
     this.globalData.isLoggedIn = true
+    // 启动使用时长统计
+    this.startUsageTracking()
   },
 
   // 登出
   logout() {
+    // 先上报当前使用时长
+    this.reportUsageTime()
+    // 停止计时
+    if (this.globalData.usageTimer) {
+      clearInterval(this.globalData.usageTimer)
+      this.globalData.usageTimer = null
+    }
+    this.globalData.usageStartTime = null
+    this.globalData.usageAccumulated = 0
+    // 清除登录状态
     wx.removeStorageSync('token')
     wx.removeStorageSync('userInfo')
     this.globalData.token = null

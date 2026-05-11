@@ -136,6 +136,7 @@ export interface User {
   createdAt?: Date
   updatedAt?: Date
   lastLoginAt?: Date | null
+  totalUsageTime?: number
 }
 
 export interface UserSettings {
@@ -366,6 +367,18 @@ const cloudbaseAdapter = {
       .doc(String(id))
     await doc.update({
       lastLoginAt: new Date(),
+      updatedAt: new Date(),
+    })
+  },
+
+  async updateUserUsageTime(id: number | string, deltaSeconds: number): Promise<void> {
+    const user = await this.getUserById(id)
+    if (!user) return
+    const current = user.totalUsageTime || 0
+    const doc = await tcbDb.collection(COLLECTIONS.USERS)
+      .doc(String(id))
+    await doc.update({
+      totalUsageTime: current + deltaSeconds,
       updatedAt: new Date(),
     })
   },

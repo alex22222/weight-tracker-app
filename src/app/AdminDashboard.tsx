@@ -20,6 +20,8 @@ interface UserData {
   username: string
   createdAt: string
   updatedAt: string
+  lastLoginAt?: string | null
+  totalUsageTime?: number
   settings?: {
     id: number
     height: number
@@ -43,6 +45,16 @@ interface WeightEntry {
 
 interface UserDetail extends UserData {
   weightEntries: WeightEntry[]
+}
+
+// 格式化使用时长
+function formatUsageTime(seconds: number): string {
+  if (seconds < 60) return `${seconds}秒`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟`
+  const hours = Math.floor(seconds / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
+  if (mins === 0) return `${hours}小时`
+  return `${hours}小时${mins}分钟`
 }
 
 // 默认头像
@@ -150,9 +162,13 @@ function UserCard({ user, index, onView, onReset, onDelete }: any) {
             <span className="font-medium">{user._count?.weightEntries || 0}</span>
             <span>条记录</span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5 text-xs text-slate-500" title="累计使用时长">
+            <Clock className="w-3.5 h-3.5" />
+            <span>{formatUsageTime(user.totalUsageTime || 0)}</span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-slate-500" title="最后登录时间">
             <Calendar className="w-3.5 h-3.5" />
-            <span>{new Date(user.createdAt).toLocaleDateString('zh-CN')}</span>
+            <span>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('zh-CN') : '未登录'}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
