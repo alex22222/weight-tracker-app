@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-05-11T15:08:43.001Z",
+  "type": "sqlite",
+  "source": "./prisma/dev.db",
+  "files": [
+    {
+      "name": "dev_2026-05-11T15-08-42-942Z.db",
+      "type": "db-copy"
+    },
+    {
+      "name": "dev_2026-05-11T15-08-42-942Z.sql",
+      "type": "sql-dump"
+    }
+  ]
+}

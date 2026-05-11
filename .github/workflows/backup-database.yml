@@ -1,0 +1,88 @@
+name: L1 Full Database Backup
+
+on:
+  schedule:
+    # 每2天北京时间 03:00 执行 (UTC 19:00)
+    - cron: '0 19 */2 * *'
+  workflow_dispatch:
+
+env:
+  ENV_ID: weight-tracker-1ghr085dd7d6cff2
+
+jobs:
+  backup-sqlite:
+    name: Backup SQLite (Development)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Restore database from cache
+        uses: actions/cache@v4
+        with:
+          path: prisma/dev.db
+          key: dev-db-${{ github.run_id }}
+          restore-keys: |
+            dev-db-
+
+      - name: Run SQLite backup
+        env:
+          DATABASE_URL: file:./prisma/dev.db
+          BACKUP_DIR: ./backups
+          BACKUP_RETENTION_DAYS: 30
+        run: node scripts/backup-database.js
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sqlite-backup-${{ github.run_id }}
+          path: backups/${{ github.run_id }}/**
+          retention-days: 30
+
+  backup-cloudbase:
+    name: Backup CloudBase (Production)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Run CloudBase backup
+        env:
+          NODE_ENV: production
+          CLOUDBASE_ENV_ID: ${{ env.ENV_ID }}
+          CB_SECRET_ID: ${{ secrets.TENCENT_CLOUD_SECRET_ID }}
+          CB_SECRET_KEY: ${{ secrets.TENCENT_CLOUD_SECRET_KEY }}
+          BACKUP_DIR: ./backups
+          BACKUP_RETENTION_DAYS: 30
+        run: node scripts/backup-database.js
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudbase-backup-${{ github.run_id }}
+          path: backups/${{ github.run_id }}/**
+          retention-days: 30
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Backup failed at $(date)"
+          echo "Run ID: ${{ github.run_id }}"
+          echo "Environment: ${{ env.ENV_ID }}"

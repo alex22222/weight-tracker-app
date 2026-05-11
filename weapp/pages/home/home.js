@@ -27,11 +27,15 @@ Page({
     fitnessStreak: 0,
     readingStreak: 0,
     
-    // 记录列表展开状态
-    showWeightList: true,
-    showReadingList: false,
+    // 记录列表
+    activeRecordType: '',
+    activeRecordTitle: '',
+    activeRecordIcon: '',
     weightEntries: [],
     readingEntries: [],
+    runningEntries: [],
+    cyclingEntries: [],
+    dietEntries: [],
     latestWeightText: '--',
     latestReadingText: '--',
     
@@ -317,16 +321,6 @@ Page({
     }
   },
 
-  // 切换体重记录列表显示
-  toggleWeightList() {
-    this.setData({ showWeightList: !this.data.showWeightList })
-  },
-
-  // 切换读书记录列表显示
-  toggleReadingList() {
-    this.setData({ showReadingList: !this.data.showReadingList })
-  },
-
   // 加载设置
   async loadSettings() {
     try {
@@ -390,13 +384,19 @@ Page({
       promises.push(app.request({ url: '/running' }).catch(() => ({ entries: [] })))
       // 骑行
       promises.push(app.request({ url: '/cycling' }).catch(() => ({ entries: [] })))
+      // 饮食
+      promises.push(app.request({ url: '/diet' }).catch(() => ({ records: [] })))
 
-      const [weightResult, readingResult, runningResult, cyclingResult] = await Promise.all(promises)
+      const [weightResult, readingResult, runningResult, cyclingResult, dietResult] = await Promise.all(promises)
 
       const weightEntries = weightResult.entries || []
       const readingEntries = readingResult.entries || []
       const runningEntries = runningResult.entries || []
       const cyclingEntries = cyclingResult.entries || []
+      const dietEntries = (dietResult.records || []).map(r => ({
+        ...r,
+        displayDate: this.formatDisplayDate(r.createdAt),
+      }))
 
       const fitnessStreak = this.calculateStreak(weightEntries)
       const readingStreak = readingResult.streak || 0
@@ -433,12 +433,16 @@ Page({
         cyclingChecked: !!todayCyclingEntry,
         weightEntries: formattedWeightEntries,
         readingEntries: formattedReadingEntries,
+        runningEntries: runningEntries.slice(0, 10).map(e => ({ ...e, displayDate: this.formatDisplayDate(e.date) })),
+        cyclingEntries: cyclingEntries.slice(0, 10).map(e => ({ ...e, displayDate: this.formatDisplayDate(e.date) })),
+        dietEntries: dietEntries.slice(0, 10),
         latestWeightText: latestWeight ? parseFloat(latestWeight).toFixed(1) : '--',
         latestReadingText: latestReading ? `${latestReading.pages}页` : '--',
         latestRunningText: latestRunning ? `${latestRunning.distance}km` : '--',
         latestCyclingText: latestCycling ? `${latestCycling.distance}km` : '--',
       }, () => {
         this.computeQuickModules()
+        this.determineDefaultRecordType()
       })
     } catch (err) {
       console.error('加载统计失败:', err)
@@ -457,6 +461,53 @@ Page({
     if (diffDays === 0) return '今天'
     if (diffDays === 1) return '昨天'
     return `${date.getMonth() + 1}月${date.getDate()}日`
+  },
+
+  // 自动判断默认展示的记录类型（第一个有历史记录的）
+  determineDefaultRecordType() {
+    const recordTypes = [
+      { key: 'weight', entries: this.data.weightEntries, title: '体重记录', icon: '⚖️' },
+      { key: 'reading', entries: this.data.readingEntries, title: '读书记录', icon: '📖' },
+      { key: 'running', entries: this.data.runningEntries, title: '跑步记录', icon: '🏃' },
+      { key: 'cycling', entries: this.data.cyclingEntries, title: '骑行记录', icon: '🚴' },
+      { key: 'diet', entries: this.data.dietEntries, title: '饮食记录', icon: '🍱' },
+    ]
+    for (const t of recordTypes) {
+      if (t.entries.length > 0) {
+        this.setData({
+          activeRecordType: t.key,
+          activeRecordTitle: t.title,
+          activeRecordIcon: t.icon,
+        })
+        return
+      }
+    }
+    // 都没有数据，默认显示体重
+    this.setData({
+      activeRecordType: 'weight',
+      activeRecordTitle: '体重记录',
+      activeRecordIcon: '⚖️',
+    })
+  },
+
+  // 切换记录类型
+  switchRecordType(e) {
+    const type = e.currentTarget.dataset.type
+    const typeMap = {
+      weight: { title: '体重记录', icon: '⚖️' },
+      reading: { title: '读书记录', icon: '📖' },
+      running: { title: '跑步记录', icon: '🏃' },
+      cycling: { title: '骑行记录', icon: '🚴' },
+      diet: { title: '饮食记录', icon: '🍱' },
+    }
+    const info = typeMap[type]
+    if (info) {
+      this.setData({
+        activeRecordType: type,
+        activeRecordTitle: info.title,
+        activeRecordIcon: info.icon,
+      })
+    }
   },
 
   // 计算快速记录模块显示数据

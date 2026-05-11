@@ -6,7 +6,8 @@ import {
   LogOut, Users, Trash2, Edit2, X, Save, Search, TrendingUp, Scale,
   User, ChevronLeft, Key, MessageSquare, CheckCircle, Clock, AlertCircle,
   Activity, Award, Calendar, ArrowUpRight, ArrowDownRight, Filter,
-  Mail, Phone, Package, Shield, MoreHorizontal, Eye
+  Mail, Phone, Package, Shield, MoreHorizontal, Eye,
+  Database, Download, RotateCcw, HardDrive, FolderOpen, FileJson, FileCode
 } from 'lucide-react'
 
 interface AdminDashboardProps {
@@ -247,11 +248,16 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
   const [isEditing, setIsEditing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'users' | 'feedback'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'feedback' | 'backup'>('users')
 
   const [feedbackList, setFeedbackList] = useState<any[]>([])
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [feedbackFilter, setFeedbackFilter] = useState<string>('all')
+
+  const [backups, setBackups] = useState<any[]>([])
+  const [backupLoading, setBackupLoading] = useState(false)
+  const [backupStatus, setBackupStatus] = useState<any>(null)
+  const [restoreLoading, setRestoreLoading] = useState<string | null>(null)
 
   const [editForm, setEditForm] = useState({
     username: '',
@@ -390,6 +396,53 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
     } catch (error) {
       console.error('Error updating feedback:', error)
     }
+  }
+
+  const fetchBackups = async () => {
+    try {
+      setBackupLoading(true)
+      const res = await fetch(`/api/admin/backups?adminId=${adminId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setBackups(data.backups || [])
+        setBackupStatus(data.status || null)
+      }
+    } catch (error) {
+      console.error('Error fetching backups:', error)
+    } finally {
+      setBackupLoading(false)
+    }
+  }
+
+  const handleRestore = async (date: string) => {
+    if (!confirm(`确定要从 ${date} 的备份还原数据库吗？\n\n⚠️ 此操作将覆盖当前数据库！\n⚠️ 当前数据库会自动备份。`)) return
+    try {
+      setRestoreLoading(date)
+      const res = await fetch('/api/admin/backups/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId, date }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        alert(`✅ 数据库已成功从 ${date} 还原！\n原数据库已备份为: ${data.currentDbBackup}`)
+      } else {
+        alert(`❌ 还原失败: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error restoring backup:', error)
+      alert('❌ 还原失败')
+    } finally {
+      setRestoreLoading(null)
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
   const filteredUsers = users.filter(user =>
@@ -686,6 +739,17 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
                     </span>
                   )}
                 </button>
+                <button
+                  onClick={() => { setActiveTab('backup'); fetchBackups() }}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'backup'
+                      ? 'bg-white text-indigo-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Database className="w-4 h-4" />
+                  备份管理
+                </button>
               </div>
 
               {/* 移动端标签 */}
@@ -695,11 +759,13 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
                   onChange={(e) => {
                     setActiveTab(e.target.value as 'users' | 'feedback')
                     if (e.target.value === 'feedback') fetchFeedback()
+                    if (e.target.value === 'backup') fetchBackups()
                   }}
                   className="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value="users">用户管理</option>
                   <option value="feedback">反馈管理</option>
+                  <option value="backup">备份管理</option>
                 </select>
               </div>
 
@@ -858,6 +924,156 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
                   />
                 ))
               )}
+            </div>
+          </div>
+        ) : activeTab === 'backup' ? (
+          /* 备份管理 */
+          <div className="space-y-8">
+            {/* 备份状态概览 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard icon={HardDrive} label="备份总数" value={backupStatus?.totalBackups || 0} color="emerald" delay={0} />
+              <StatCard icon={FolderOpen} label="备份总大小" value={formatFileSize(backupStatus?.totalSizeBytes || 0)} color="blue" delay={50} />
+              <StatCard icon={Clock} label="最近备份" value={backupStatus?.lastBackupAt ? new Date(backupStatus.lastBackupAt).toLocaleDateString('zh-CN') : '无'} color="purple" delay={100} />
+              <StatCard icon={Database} label="最早备份" value={backupStatus?.oldestBackupAt ? new Date(backupStatus.oldestBackupAt).toLocaleDateString('zh-CN') : '无'} color="amber" delay={150} />
+            </div>
+
+            {/* 备份列表 */}
+            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <Database className="w-5 h-5 text-indigo-500" />
+                    备份列表
+                  </h2>
+                  <p className="text-sm text-slate-500 mt-0.5">每2天自动执行，保留30天 + 月度归档</p>
+                </div>
+                <button
+                  onClick={fetchBackups}
+                  className="p-2.5 bg-slate-50 hover:bg-indigo-50 rounded-xl transition-colors group"
+                  title="刷新"
+                >
+                  <RotateCcw className="w-4 h-4 text-slate-500 group-hover:text-indigo-600 transition-colors" />
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                {backupLoading ? (
+                  <div className="p-8 space-y-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 animate-pulse">
+                        <div className="w-10 h-10 bg-slate-100 rounded-xl" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-100 rounded w-32" />
+                          <div className="h-3 bg-slate-100 rounded w-48" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : backups.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <FolderOpen className="w-8 h-8 text-slate-300" />
+                    </div>
+                    <p className="text-slate-500 font-medium">暂无备份数据</p>
+                    <p className="text-sm text-slate-400 mt-1">备份将在定时任务执行后生成</p>
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="text-left py-3.5 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">日期</th>
+                        <th className="text-left py-3.5 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">类型</th>
+                        <th className="text-left py-3.5 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">大小</th>
+                        <th className="text-left py-3.5 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">文件数</th>
+                        <th className="text-left py-3.5 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">备份文件</th>
+                        <th className="text-right py-3.5 px-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {backups.map((backup) => (
+                        <tr key={backup.date} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 bg-emerald-50 rounded-lg flex items-center justify-center">
+                                <Calendar className="w-4 h-4 text-emerald-600" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-800">{backup.date}</p>
+                                <p className="text-xs text-slate-400">{new Date(backup.timestamp).toLocaleString('zh-CN')}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                              backup.type === 'sqlite'
+                                ? 'bg-blue-50 text-blue-600'
+                                : backup.type === 'cloudbase'
+                                ? 'bg-purple-50 text-purple-600'
+                                : 'bg-slate-50 text-slate-600'
+                            }`}>
+                              {backup.type === 'sqlite' ? 'SQLite' : backup.type === 'cloudbase' ? 'CloudBase' : backup.type}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6 text-sm text-slate-600 font-medium">{formatFileSize(backup.size)}</td>
+                          <td className="py-4 px-6 text-sm text-slate-600">{backup.fileCount} 个</td>
+                          <td className="py-4 px-6">
+                            <div className="flex flex-wrap gap-1.5">
+                              {backup.files?.slice(0, 3).map((f: string) => (
+                                <span key={f} className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-50 border border-slate-100 rounded-md text-xs text-slate-500">
+                                  {f.endsWith('.json') ? <FileJson className="w-3 h-3" /> : f.endsWith('.sql') ? <FileCode className="w-3 h-3" /> : <FolderOpen className="w-3 h-3" />}
+                                  {f}
+                                </span>
+                              ))}
+                              {backup.files?.length > 3 && (
+                                <span className="text-xs text-slate-400 px-1">+{backup.files.length - 3}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* 下载按钮组 */}
+                              <div className="relative group">
+                                <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
+                                  <Download className="w-4 h-4" />
+                                </button>
+                                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl border border-slate-100 shadow-lg shadow-slate-200/50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
+                                  {backup.files?.map((f: string) => (
+                                    <a
+                                      key={f}
+                                      href={`/api/admin/backups/download?adminId=${adminId}&date=${backup.date}&file=${encodeURIComponent(f)}`}
+                                      className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                                    >
+                                      <Download className="w-3.5 h-3.5" />
+                                      {f}
+                                    </a>
+                                  ))}
+                                </div>
+                              </div>
+                              {/* 还原按钮 */}
+                              <button
+                                onClick={() => handleRestore(backup.date)}
+                                disabled={restoreLoading === backup.date || backup.type === 'cloudbase'}
+                                className={`p-2 rounded-xl transition-all ${
+                                  backup.type === 'cloudbase'
+                                    ? 'text-slate-300 cursor-not-allowed'
+                                    : 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                }`}
+                                title={backup.type === 'cloudbase' ? 'CloudBase 请使用 CLI 还原' : '一键还原数据库'}
+                              >
+                                {restoreLoading === backup.date ? (
+                                  <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                  <RotateCcw className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </div>
         )}

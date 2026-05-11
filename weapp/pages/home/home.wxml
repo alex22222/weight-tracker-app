@@ -93,29 +93,24 @@
     </view>
   </view>
 
-  <!-- 统计卡片 -->
-  <view class="stats-row">
-    <view class="stat-card clickable" bindtap="toggleWeightList">
-      <view class="stat-icon orange">⚖️</view>
-      <view class="stat-value">{{latestWeightText}}</view>
-      <view class="stat-label">体重记录  <text class="stat-count">已记录 {{totalCheckIns}} 条</text></view>
-    </view>
-    <view class="stat-card clickable" bindtap="toggleReadingList">
-      <view class="stat-icon purple">📖</view>
-      <view class="stat-value">{{latestReadingText}}</view>
-      <view class="stat-label">读书记录</view>
-    </view>
-  </view>
-
-  <!-- 体重记录列表 -->
-  <view class="section-card record-section" wx:if="{{showWeightList}}">
+  <!-- 历史记录 -->
+  <view class="section-card record-section">
     <view class="card-header">
       <view class="card-title">
-        <view class="card-icon">⚖️</view>
-        <text>体重记录</text>
+        <view class="card-icon">{{activeRecordIcon}}</view>
+        <text>{{activeRecordTitle}}</text>
       </view>
     </view>
-    <view class="record-list" wx:if="{{weightEntries.length > 0}}">
+    <!-- 记录类型标签 -->
+    <view class="record-tabs">
+      <view class="record-tab {{activeRecordType === 'weight' ? 'active' : ''}}" bindtap="switchRecordType" data-type="weight">体重</view>
+      <view class="record-tab {{activeRecordType === 'reading' ? 'active' : ''}}" bindtap="switchRecordType" data-type="reading">读书</view>
+      <view class="record-tab {{activeRecordType === 'running' ? 'active' : ''}}" bindtap="switchRecordType" data-type="running">跑步</view>
+      <view class="record-tab {{activeRecordType === 'cycling' ? 'active' : ''}}" bindtap="switchRecordType" data-type="cycling">骑行</view>
+      <view class="record-tab {{activeRecordType === 'diet' ? 'active' : ''}}" bindtap="switchRecordType" data-type="diet">饮食</view>
+    </view>
+    <!-- 体重记录 -->
+    <view class="record-list" wx:if="{{activeRecordType === 'weight' && weightEntries.length > 0}}">
       <view class="record-item" wx:for="{{weightEntries}}" wx:key="id">
         <view class="record-main">
           <text class="record-value">{{item.weight}} kg</text>
@@ -124,20 +119,8 @@
         <text class="record-note {{item.note ? '' : 'empty'}}">{{item.note || '暂无备注'}}</text>
       </view>
     </view>
-    <view class="empty-state-small" wx:else>
-      <text class="empty-text-small">暂无体重记录</text>
-    </view>
-  </view>
-
-  <!-- 读书记录列表 -->
-  <view class="section-card record-section" wx:if="{{showReadingList}}">
-    <view class="card-header">
-      <view class="card-title">
-        <view class="card-icon">📖</view>
-        <text>读书记录</text>
-      </view>
-    </view>
-    <view class="record-list" wx:if="{{readingEntries.length > 0}}">
+    <!-- 读书记录 -->
+    <view class="record-list" wx:if="{{activeRecordType === 'reading' && readingEntries.length > 0}}">
       <view class="record-item" wx:for="{{readingEntries}}" wx:key="id">
         <view class="record-main">
           <text class="record-book">《{{item.bookName}}》</text>
@@ -146,8 +129,40 @@
         <text class="record-note" wx:if="{{item.note}}">{{item.note}}</text>
       </view>
     </view>
-    <view class="empty-state-small" wx:else>
-      <text class="empty-text-small">暂无读书记录</text>
+    <!-- 跑步记录 -->
+    <view class="record-list" wx:if="{{activeRecordType === 'running' && runningEntries.length > 0}}">
+      <view class="record-item" wx:for="{{runningEntries}}" wx:key="id">
+        <view class="record-main">
+          <text class="record-value">{{item.distance}} km / {{item.duration}} min</text>
+          <text class="record-date">{{item.displayDate}}</text>
+        </view>
+        <text class="record-note {{item.note ? '' : 'empty'}}">{{item.note || '无备注'}}</text>
+      </view>
+    </view>
+    <!-- 骑行记录 -->
+    <view class="record-list" wx:if="{{activeRecordType === 'cycling' && cyclingEntries.length > 0}}">
+      <view class="record-item" wx:for="{{cyclingEntries}}" wx:key="id">
+        <view class="record-main">
+          <text class="record-value">{{item.distance}} km / {{item.duration}} min</text>
+          <text class="record-date">{{item.displayDate}}</text>
+        </view>
+        <text class="record-note {{item.note ? '' : 'empty'}}">{{item.note || '无备注'}}</text>
+      </view>
+    </view>
+    <!-- 饮食记录 -->
+    <view class="record-list" wx:if="{{activeRecordType === 'diet' && dietEntries.length > 0}}">
+      <view class="record-item" wx:for="{{dietEntries}}" wx:key="id">
+        <view class="record-main">
+          <text class="record-value">{{item.calories}} kcal</text>
+          <text class="record-date">{{item.displayDate}}</text>
+        </view>
+        <text class="record-note" wx:if="{{item.foodItems}}">{{item.foodItems}}</text>
+        <text class="record-note empty" wx:elif="{{item.analysis}}">{{item.analysis}}</text>
+      </view>
+    </view>
+    <!-- 空状态 -->
+    <view class="empty-state-small" wx:if="{{(activeRecordType === 'weight' && weightEntries.length === 0) || (activeRecordType === 'reading' && readingEntries.length === 0) || (activeRecordType === 'running' && runningEntries.length === 0) || (activeRecordType === 'cycling' && cyclingEntries.length === 0) || (activeRecordType === 'diet' && dietEntries.length === 0)}}">
+      <text class="empty-text-small">暂无记录</text>
     </view>
   </view>
 </view>
