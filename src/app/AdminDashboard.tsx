@@ -788,7 +788,7 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-        {activeTab === 'users' ? (
+        {activeTab === 'users' && (
           <div className="space-y-8">
             {/* 统计卡片 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -862,8 +862,8 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
               )}
             </div>
           </div>
-        ) : (
-          /* 反馈管理 */
+        )}
+        {activeTab === 'feedback' && (
           <div className="space-y-8">
             {/* 反馈统计 */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -926,8 +926,8 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
               )}
             </div>
           </div>
-        ) : activeTab === 'backup' ? (
-          /* 备份管理 */
+        )}
+        {activeTab === 'backup' && (
           <div className="space-y-8">
             {/* 备份状态概览 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
