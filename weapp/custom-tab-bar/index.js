@@ -49,11 +49,36 @@ Component({
 
     switchTab(e) {
       const { index } = e.currentTarget.dataset
-      const url = this.data.tabs[index]?.pagePath
-      if (!url) return
+      const tab = this.data.tabs[index]
+      if (!tab) return
+
+      const url = tab.pagePath
+      // 原生 tabBar.list 中的页面（最多5个）
+      const tabBarPages = [
+        'pages/home/home',
+        'pages/index/index',
+        'pages/reading/reading',
+        'pages/diet/diet',
+        'pages/my/my',
+      ]
+      const pagePath = url.replace(/^\//, '')
+
+      // 如果已经在当前页面，不重复跳转
+      const pages = getCurrentPages()
+      if (pages.length > 0) {
+        const currentPage = pages[pages.length - 1]
+        if (currentPage.route === pagePath) {
+          return
+        }
+      }
 
       this.setData({ selected: index })
-      wx.switchTab({ url })
+
+      if (tabBarPages.includes(pagePath)) {
+        wx.switchTab({ url })
+      } else {
+        wx.navigateTo({ url })
+      }
     },
   },
 })
