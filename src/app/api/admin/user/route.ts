@@ -83,11 +83,13 @@ export async function PUT(request: NextRequest) {
     }
 
     // 更新用户设置
-    if (updateData.height !== undefined || updateData.targetWeight !== undefined || updateData.gender !== undefined) {
+    if (updateData.height !== undefined || updateData.targetWeight !== undefined || updateData.gender !== undefined || updateData.age !== undefined || updateData.avatar !== undefined) {
       await adapter.updateUserSettings(userId, {
         height: updateData.height,
         targetWeight: updateData.targetWeight,
         gender: updateData.gender,
+        age: updateData.age,
+        avatar: updateData.avatar,
       })
     }
 

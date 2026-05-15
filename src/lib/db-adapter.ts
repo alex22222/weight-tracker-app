@@ -499,7 +499,7 @@ const cloudbaseAdapter = {
     return { id, ...data } as UserSettings
   },
 
-  async updateUserSettings(userId: number | string, data: { height?: number; targetWeight?: number; gender?: string }): Promise<UserSettings> {
+  async updateUserSettings(userId: number | string, data: { height?: number; targetWeight?: number; gender?: string; age?: number; avatar?: string }): Promise<UserSettings> {
     const settings = await cloudbaseAdapter.getUserSettings(userId)
     if (settings?.id) {
       const doc = await tcbDb.collection(COLLECTIONS.USER_SETTINGS)

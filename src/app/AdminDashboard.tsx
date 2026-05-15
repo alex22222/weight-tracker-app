@@ -30,6 +30,7 @@ interface UserData {
     age: number
     avatar: string
   } | null
+  weightEntriesCount?: number
   _count?: {
     weightEntries: number
   }
@@ -105,95 +106,161 @@ function StatCard({ icon: Icon, label, value, trend, color, delay = 0 }: any) {
   )
 }
 
-// 用户卡片组件
-function UserCard({ user, index, onView, onReset, onDelete }: any) {
-  const [mounted, setMounted] = useState(false)
-  const [avatarError, setAvatarError] = useState(false)
-  useEffect(() => {
-    const t = setTimeout(() => setMounted(true), index * 50)
-    return () => clearTimeout(t)
-  }, [index])
+// 头像显示组件
+function AvatarDisplay({ avatarUrl, size = 'w-8 h-8', className = '' }: { avatarUrl?: string; size?: string; className?: string }) {
+  const [error, setError] = useState(false)
+  if (avatarUrl && !error) {
+    return (
+      <img
+        src={avatarUrl}
+        alt="头像"
+        className={`${size} object-cover rounded-full ${className}`}
+        onError={() => setError(true)}
+      />
+    )
+  }
+  return (
+    <div className={`bg-gradient-to-br from-indigo-400 to-purple-500 rounded-full flex items-center justify-center ${size} ${className}`}>
+      <User className="w-1/2 h-1/2 text-white" />
+    </div>
+  )
+}
 
-  const getAvatarDisplay = (avatarUrl?: string) => {
-    if (avatarUrl && !avatarError) {
-      return (
-        <img
-          src={avatarUrl}
-          alt="头像"
-          className="w-full h-full object-cover rounded-full"
-          onError={() => setAvatarError(true)}
-        />
-      )
+// 编辑用户弹窗组件
+function EditUserModal({ user, isOpen, onClose, onSave }: {
+  user: UserData | null
+  isOpen: boolean
+  onClose: () => void
+  onSave: (userId: number, data: any) => void
+}) {
+  const [form, setForm] = useState({
+    username: '',
+    avatar: '',
+    gender: 'male',
+    height: '',
+    age: '',
+    targetWeight: '',
+  })
+
+  useEffect(() => {
+    if (user) {
+      setForm({
+        username: user.username || '',
+        avatar: user.settings?.avatar || '',
+        gender: user.settings?.gender || 'male',
+        height: String(user.settings?.height || ''),
+        age: String(user.settings?.age || ''),
+        targetWeight: String(user.settings?.targetWeight || ''),
+      })
     }
-    return <DefaultAvatar className="w-full h-full" />
+  }, [user])
+
+  if (!isOpen || !user) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSave(user.id, {
+      username: form.username,
+      settings: {
+        avatar: form.avatar,
+        gender: form.gender,
+        height: form.height ? Number(form.height) : undefined,
+        age: form.age ? Number(form.age) : undefined,
+        targetWeight: form.targetWeight ? Number(form.targetWeight) : undefined,
+      },
+    })
   }
 
   return (
-    <div
-      className={`bg-white rounded-2xl border border-slate-100 p-5 hover:shadow-lg hover:shadow-slate-200/50 hover:border-slate-200 transition-all duration-300 group ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-    >
-      <div className="flex items-start gap-4">
-        <div className="relative flex-shrink-0">
-          <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-slate-100 group-hover:border-indigo-200 transition-colors">
-            {getAvatarDisplay(user.settings?.avatar)}
-          </div>
-          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full border-2 border-white flex items-center justify-center">
-            <div className="w-2 h-2 bg-white rounded-full" />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 truncate">{user.username || '未命名用户'}</h3>
-            <span className="text-xs text-slate-400 font-medium">#{String(user.id).slice(-4)}</span>
-          </div>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {user.settings ? `${user.settings.height}cm · ${user.settings.gender === 'male' ? '男' : '女'} · ${user.settings.age}岁` : '未设置个人信息'}
-          </p>
-          {user.settings && (
-            <p className="text-xs text-slate-400 mt-1">目标体重 {user.settings.targetWeight}kg</p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-50">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <Scale className="w-3.5 h-3.5" />
-            <span className="font-medium">{user._count?.weightEntries || 0}</span>
-            <span>条记录</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500" title="累计使用时长">
-            <Clock className="w-3.5 h-3.5" />
-            <span>{formatUsageTime(user.totalUsageTime || 0)}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-500" title="最后登录时间">
-            <Calendar className="w-3.5 h-3.5" />
-            <span>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('zh-CN') : '未登录'}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => onView(user.id)}
-            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-            title="查看详情"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onReset(user.id, user.username || '未命名用户')}
-            className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-all"
-            title="重置密码"
-          >
-            <Key className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(user.id)}
-            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-            title="删除用户"
-          >
-            <Trash2 className="w-4 h-4" />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-800">编辑用户</h3>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+            <X className="w-5 h-5 text-slate-400" />
           </button>
         </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">用户名</label>
+              <input
+                type="text"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">性别</label>
+              <select
+                value={form.gender}
+                onChange={(e) => setForm({ ...form, gender: e.target.value })}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              >
+                <option value="male">男</option>
+                <option value="female">女</option>
+                <option value="other">其他</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">身高 (cm)</label>
+              <input
+                type="number"
+                value={form.height}
+                onChange={(e) => setForm({ ...form, height: e.target.value })}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">年龄</label>
+              <input
+                type="number"
+                value={form.age}
+                onChange={(e) => setForm({ ...form, age: e.target.value })}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">目标体重 (kg)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={form.targetWeight}
+                onChange={(e) => setForm({ ...form, targetWeight: e.target.value })}
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-600 mb-1.5">头像链接</label>
+              <input
+                type="text"
+                value={form.avatar}
+                onChange={(e) => setForm({ ...form, avatar: e.target.value })}
+                placeholder="https://example.com/avatar.jpg"
+                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 bg-slate-100 text-slate-700 font-medium rounded-xl hover:bg-slate-200 transition-colors"
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-2.5 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-all flex items-center justify-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              保存修改
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
@@ -284,6 +351,9 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
     avatar: '',
   })
 
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<UserData | null>(null)
+
   useEffect(() => {
     fetchUsers()
   }, [])
@@ -350,6 +420,41 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
       }
     } catch (error) {
       console.error('Error updating user:', error)
+    }
+  }
+
+  const handleOpenEditModal = (user: UserData) => {
+    setEditingUser(user)
+    setEditModalOpen(true)
+  }
+
+  const handleSaveEditModal = async (userId: number, data: any) => {
+    try {
+      const res = await fetch('/api/admin/user', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminId,
+          userId,
+          username: data.username,
+          avatar: data.settings.avatar,
+          gender: data.settings.gender,
+          height: data.settings.height,
+          age: data.settings.age,
+          targetWeight: data.settings.targetWeight,
+        }),
+      })
+      if (res.ok) {
+        await fetchUsers()
+        setEditModalOpen(false)
+        setEditingUser(null)
+      } else {
+        const err = await res.json()
+        alert(err.error || '保存失败')
+      }
+    } catch (error) {
+      console.error('Error updating user:', error)
+      alert('保存失败')
     }
   }
 
@@ -497,7 +602,7 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
     return today === userDate
   }).length
 
-  const totalRecords = users.reduce((sum, u) => sum + (u._count?.weightEntries || 0), 0)
+  const totalRecords = users.reduce((sum, u) => sum + (u.weightEntriesCount ?? u._count?.weightEntries ?? 0), 0)
 
   // ========== 用户详情页 ==========
   if (selectedUser) {
@@ -828,9 +933,9 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
               </div>
             </div>
 
-            {/* 用户卡片网格 */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
+            {/* 用户列表表格 */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-slate-800">用户列表</h2>
                 <span className="text-sm text-slate-500">
                   共 <span className="font-semibold text-slate-700">{filteredUsers.length}</span> 位用户
@@ -838,45 +943,124 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
               </div>
 
               {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <div className="p-8 space-y-4">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="bg-white rounded-2xl border border-slate-100 p-5 animate-pulse">
-                      <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 bg-slate-100 rounded-2xl" />
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-slate-100 rounded w-24" />
-                          <div className="h-3 bg-slate-100 rounded w-32" />
-                        </div>
-                      </div>
-                      <div className="mt-4 pt-4 border-t border-slate-50 flex justify-between">
-                        <div className="h-3 bg-slate-100 rounded w-20" />
-                        <div className="h-3 bg-slate-100 rounded w-16" />
+                    <div key={i} className="flex items-center gap-4 animate-pulse">
+                      <div className="w-8 h-8 bg-slate-100 rounded-full" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-slate-100 rounded w-32" />
+                        <div className="h-3 bg-slate-100 rounded w-48" />
                       </div>
                     </div>
                   ))}
                 </div>
               ) : filteredUsers.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-3xl border border-slate-100">
+                <div className="text-center py-16">
                   <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                     <Search className="w-8 h-8 text-slate-300" />
                   </div>
                   <p className="text-slate-500 font-medium">没有找到匹配的用户</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {filteredUsers.map((user, index) => (
-                    <UserCard
-                      key={user.id}
-                      user={user}
-                      index={index}
-                      onView={fetchUserDetail}
-                      onReset={handleResetPassword}
-                      onDelete={handleDeleteUser}
-                    />
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">ID</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">用户</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">性别</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">身高</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">年龄</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">目标体重</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">记录数</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">使用时长</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">注册时间</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">最后登录</th>
+                        <th className="text-right py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((user) => (
+                        <tr key={user.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3 px-4 text-sm text-slate-500 font-mono">#{String(user.id).slice(-4)}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <AvatarDisplay avatarUrl={user.settings?.avatar} size="w-8 h-8" />
+                              <span className="text-sm font-medium text-slate-800">{user.username || '未命名'}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-600">
+                            {user.settings?.gender === 'male' ? '男' : user.settings?.gender === 'female' ? '女' : '其他'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-600">
+                            {user.settings?.height ? `${user.settings.height}cm` : '-'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-600">
+                            {user.settings?.age ? `${user.settings.age}岁` : '-'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-600">
+                            {user.settings?.targetWeight ? `${user.settings.targetWeight}kg` : '-'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-medium bg-indigo-50 text-indigo-600">
+                              {user.weightEntriesCount ?? user._count?.weightEntries ?? 0}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-600">
+                            {formatUsageTime(user.totalUsageTime || 0)}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-500">
+                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString('zh-CN') : '-'}
+                          </td>
+                          <td className="py-3 px-4 text-sm text-slate-500">
+                            {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('zh-CN') : '未登录'}
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() => handleOpenEditModal(user)}
+                                className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                                title="编辑"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => fetchUserDetail(user.id)}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                title="查看详情"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleResetPassword(user.id, user.username || '未命名用户')}
+                                className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                title="重置密码"
+                              >
+                                <Key className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="删除"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
+
+            <EditUserModal
+              user={editingUser}
+              isOpen={editModalOpen}
+              onClose={() => { setEditModalOpen(false); setEditingUser(null) }}
+              onSave={handleSaveEditModal}
+            />
           </div>
         )}
         {activeTab === 'feedback' && (

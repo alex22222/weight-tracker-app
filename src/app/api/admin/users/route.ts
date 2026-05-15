@@ -26,18 +26,35 @@ export async function GET(request: NextRequest) {
     const allUsers = await adapter.getAllUsers()
     
     // 过滤掉 admin 自己
-    const users = allUsers
-      .filter(u => u.username !== 'admin')
-      .map(u => ({
-        id: u.id,
-        username: u.username,
-        createdAt: u.createdAt,
-        updatedAt: u.updatedAt,
-        lastLoginAt: u.lastLoginAt,
-        totalUsageTime: u.totalUsageTime || 0,
-      }))
+    const normalUsers = allUsers.filter(u => u.username !== 'admin')
 
-    return NextResponse.json(users)
+    // 批量获取所有体重记录（避免 N+1 查询）
+    const allWeightEntries = await adapter.getAllWeightEntries()
+
+    // 并行获取每个用户的 settings
+    const enrichedUsers = await Promise.all(
+      normalUsers
+        .filter(u => u.id !== undefined)
+        .map(async (u) => {
+          const userId = u.id!
+          const settings = await adapter.getUserSettings(userId)
+          const weightEntriesCount = allWeightEntries.filter(
+            w => String(w.userId) === String(userId)
+          ).length
+          return {
+            id: userId,
+            username: u.username,
+            createdAt: u.createdAt,
+            updatedAt: u.updatedAt,
+            lastLoginAt: u.lastLoginAt,
+            totalUsageTime: u.totalUsageTime || 0,
+            settings,
+            weightEntriesCount,
+          }
+        })
+    )
+
+    return NextResponse.json(enrichedUsers)
   } catch (error) {
     console.error('Error fetching users:', error)
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
