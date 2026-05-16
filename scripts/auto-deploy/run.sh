@@ -1,53 +1,51 @@
 #!/bin/bash
-# 智能自动部署启动脚本
+# CloudBase 自动化部署启动脚本 v3.0
 
 set -e
 
 echo "========================================"
-echo "  智能自动化部署系统 v2.0"
+echo "  🚀 CloudBase 自动化部署系统 v3.0"
 echo "========================================"
 echo ""
 
-# 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/../.."
 
 echo "📁 项目目录: $(pwd)"
 echo ""
 
-# 步骤1: 预修复
-echo "🔧 步骤 1/3: 执行预修复..."
+# 步骤1: 部署前检查
+echo "🔧 步骤 1/2: 执行部署前检查..."
 node scripts/auto-deploy/fix-common-issues.js
 
 echo ""
-echo "⏳ 等待 3 秒..."
-sleep 3
+echo "⏳ 等待 2 秒..."
+sleep 2
 
 # 步骤2: 执行自动部署
 echo ""
-echo "🚀 步骤 2/3: 开始自动部署..."
-echo "   (此过程会自动监控状态、分析错误、修复问题并重试)"
+echo "🚀 步骤 2/2: 开始自动部署..."
+echo "   (本地构建 standalone → 上传 → 健康检查)"
 echo ""
 
 node scripts/auto-deploy/auto-deploy-v2.js
 
-# 步骤3: 部署后检查
 if [ $? -eq 0 ]; then
-    echo ""
-    echo "✅ 步骤 3/3: 部署成功！"
-    echo ""
-    echo "执行健康检查..."
-    curl -s "https://weight-tracker-api-236729-9-1328081868.sh.run.tcloudbase.com/api/health" | head -1
     echo ""
     echo "========================================"
     echo "  🎉 全部完成！"
     echo "========================================"
 else
     echo ""
-    echo "❌ 步骤 3/3: 部署失败"
+    echo "========================================"
+    echo "  ❌ 部署遇到问题"
+    echo "========================================"
     echo ""
-    echo "========================================"
-    echo "  请检查上面的日志"
-    echo "========================================"
+    echo "建议操作："
+    echo "1. 查看上方日志中的错误信息"
+    echo "2. 登录 CloudBase 控制台查看构建日志："
+    echo "   https://tcb.cloud.tencent.com/dev?envId=weight-tracker-1ghr085dd7d6cff2#/platform-run/service/detail?serverName=weight-tracker-api&tabId=deploy"
+    echo "3. 或直接使用简化脚本部署："
+    echo "   bash scripts/deploy.sh"
     exit 1
 fi
