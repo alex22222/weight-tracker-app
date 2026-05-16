@@ -341,6 +341,7 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
   const [backupLoading, setBackupLoading] = useState(false)
   const [backupStatus, setBackupStatus] = useState<any>(null)
   const [restoreLoading, setRestoreLoading] = useState<string | null>(null)
+  const [downloadingFile, setDownloadingFile] = useState<string | null>(null)
 
   const [editForm, setEditForm] = useState({
     username: '',
@@ -1317,21 +1318,54 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
                           <td className="py-4 px-6">
                             <div className="flex items-center justify-end gap-2">
                               {/* 下载按钮组 */}
-                              <div className="relative group">
+                              <div className="relative group/menu">
                                 <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all">
                                   <Download className="w-4 h-4" />
                                 </button>
-                                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl border border-slate-100 shadow-lg shadow-slate-200/50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10">
-                                  {backup.files?.map((f: string) => (
-                                    <a
-                                      key={f}
-                                      href={`/api/admin/backups/download?adminId=${adminId}&date=${backup.date}&file=${encodeURIComponent(f)}`}
-                                      className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors first:rounded-t-xl last:rounded-b-xl"
-                                    >
-                                      <Download className="w-3.5 h-3.5" />
-                                      {f}
-                                    </a>
-                                  ))}
+                                {/* 下拉菜单：使用 padding 代替 margin 避免间隙导致的 hover 丢失 */}
+                                <div className="absolute right-0 top-full pt-1 w-48 hidden group-hover/menu:block z-10">
+                                  <div className="bg-white rounded-xl border border-slate-100 shadow-lg shadow-slate-200/50 overflow-hidden">
+                                    {backup.files?.map((f: string) => (
+                                      <button
+                                        key={f}
+                                        onClick={async () => {
+                                          setDownloadingFile(`${backup.date}/${f}`)
+                                          try {
+                                            const res = await fetch(
+                                              `/api/admin/backups/download?adminId=${adminId}&date=${backup.date}&file=${encodeURIComponent(f)}`
+                                            )
+                                            if (!res.ok) {
+                                              const err = await res.json().catch(() => ({}))
+                                              alert(`下载失败: ${err.error || res.statusText}`)
+                                              return
+                                            }
+                                            const blob = await res.blob()
+                                            const url = window.URL.createObjectURL(blob)
+                                            const a = document.createElement('a')
+                                            a.href = url
+                                            a.download = f
+                                            document.body.appendChild(a)
+                                            a.click()
+                                            a.remove()
+                                            window.URL.revokeObjectURL(url)
+                                          } catch (e) {
+                                            alert('下载失败，请重试')
+                                          } finally {
+                                            setDownloadingFile(null)
+                                          }
+                                        }}
+                                        disabled={downloadingFile === `${backup.date}/${f}`}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-indigo-600 transition-colors disabled:opacity-50 text-left"
+                                      >
+                                        {downloadingFile === `${backup.date}/${f}` ? (
+                                          <div className="w-3.5 h-3.5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                          <Download className="w-3.5 h-3.5" />
+                                        )}
+                                        {f}
+                                      </button>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                               {/* 还原按钮 */}
