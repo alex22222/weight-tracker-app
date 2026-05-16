@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+set timeout 600
+
+# 检查环境变量
+if {![info exists env(TENCENTCLOUD_SECRET_ID)] || ![info exists env(TENCENTCLOUD_SECRET_KEY)]} {
+    puts "❌ Error: TENCENTCLOUD_SECRET_ID 和 TENCENTCLOUD_SECRET_KEY 环境变量必须预先设置"
+    exit 1
+}
+
+# 启动部署命令
+spawn tcb cloudrun deploy -e weight-tracker-1ghr085dd7d6cff2 -s weight-tracker-api --port 80 --source . --force
+
+# 处理灰度部署提示
+expect {
+    "是否启用灰度部署" {
+        send "\r"
+        exp_continue
+    }
+    "确认继续部署" {
+        send "Y\r"
+        exp_continue
+    }
+    "部署成功" {
+        puts "\n✅ 部署成功！"
+        exit 0
+    }
+    "部署失败" {
+        puts "\n❌ 部署失败！"
+        exit 1
+    }
+    timeout {
+        puts "\n⏱️ 部署超时！"
+        exit 1
+    }
+    eof
+}
