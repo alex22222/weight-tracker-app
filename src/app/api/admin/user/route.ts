@@ -38,6 +38,9 @@ export async function GET(request: NextRequest) {
     // 获取用户设置
     const settings = await adapter.getUserSettings(userId)
 
+    // 获取用户体重记录
+    const weightEntries = await adapter.getWeightEntriesByUser(userId)
+
     // 转换 cloud:// 头像 URL
     if (settings?.avatar) {
       settings.avatar = await resolveFileUrl(settings.avatar) || settings.avatar
@@ -46,6 +49,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ...user,
       settings,
+      weightEntries,
     })
   } catch (error) {
     console.error('Error fetching user:', error)
