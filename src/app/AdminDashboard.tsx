@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import {
   LogOut, Users, Trash2, Edit2, X, Save, Search, TrendingUp, Scale,
   User, ChevronLeft, Key, MessageSquare, CheckCircle, Clock, AlertCircle,
-  Activity, Award, Calendar, ArrowUpRight, ArrowDownRight, Filter,
+  Activity, Award, Calendar, ArrowUpRight, ArrowDownRight, ArrowUp, ArrowDown, Filter,
   Mail, Phone, Package, Shield, MoreHorizontal, Eye,
   Database, Download, RotateCcw, HardDrive, FolderOpen, FileJson, FileCode
 } from 'lucide-react'
@@ -354,6 +354,12 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserData | null>(null)
 
+  // 排序状态：默认按最后登录时间倒序
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({
+    key: 'lastLoginAt',
+    direction: 'desc',
+  })
+
   useEffect(() => {
     fetchUsers()
   }, [])
@@ -568,6 +574,85 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
 
   const filteredUsers = users.filter(user =>
     (user.username?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  )
+
+  // 排序逻辑
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    let aVal: any
+    let bVal: any
+
+    switch (sortConfig.key) {
+      case 'id':
+        aVal = a.id
+        bVal = b.id
+        break
+      case 'username':
+        aVal = a.username || ''
+        bVal = b.username || ''
+        break
+      case 'gender':
+        aVal = a.settings?.gender || ''
+        bVal = b.settings?.gender || ''
+        break
+      case 'height':
+        aVal = a.settings?.height || 0
+        bVal = b.settings?.height || 0
+        break
+      case 'age':
+        aVal = a.settings?.age || 0
+        bVal = b.settings?.age || 0
+        break
+      case 'targetWeight':
+        aVal = a.settings?.targetWeight || 0
+        bVal = b.settings?.targetWeight || 0
+        break
+      case 'records':
+        aVal = a.weightEntriesCount ?? a._count?.weightEntries ?? 0
+        bVal = b.weightEntriesCount ?? b._count?.weightEntries ?? 0
+        break
+      case 'usageTime':
+        aVal = a.totalUsageTime || 0
+        bVal = b.totalUsageTime || 0
+        break
+      case 'createdAt':
+        aVal = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        bVal = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        break
+      case 'lastLoginAt':
+        aVal = a.lastLoginAt ? new Date(a.lastLoginAt).getTime() : 0
+        bVal = b.lastLoginAt ? new Date(b.lastLoginAt).getTime() : 0
+        break
+      default:
+        return 0
+    }
+
+    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
+    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
+    return 0
+  })
+
+  // 排序表头组件
+  const SortHeader = ({ label, sortKey }: { label: string; sortKey: string }) => (
+    <th
+      onClick={() => handleSort(sortKey)}
+      className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:bg-slate-100 transition-colors select-none"
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {sortConfig.key === sortKey && (
+          sortConfig.direction === 'asc'
+            ? <ArrowUp className="w-3 h-3 text-indigo-500" />
+            : <ArrowDown className="w-3 h-3 text-indigo-500" />
+        )}
+      </div>
+    </th>
   )
 
   const filteredFeedback = feedbackList.filter(f =>
@@ -966,21 +1051,21 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/50">
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">ID</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">用户</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">性别</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">身高</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">年龄</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">目标体重</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">记录数</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">使用时长</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">注册时间</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">最后登录</th>
+                        <SortHeader label="ID" sortKey="id" />
+                        <SortHeader label="用户" sortKey="username" />
+                        <SortHeader label="性别" sortKey="gender" />
+                        <SortHeader label="身高" sortKey="height" />
+                        <SortHeader label="年龄" sortKey="age" />
+                        <SortHeader label="目标体重" sortKey="targetWeight" />
+                        <SortHeader label="记录数" sortKey="records" />
+                        <SortHeader label="使用时长" sortKey="usageTime" />
+                        <SortHeader label="注册时间" sortKey="createdAt" />
+                        <SortHeader label="最后登录" sortKey="lastLoginAt" />
                         <th className="text-right py-3 px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">操作</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredUsers.map((user) => (
+                      {sortedUsers.map((user) => (
                         <tr key={user.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                           <td className="py-3 px-4 text-sm text-slate-500 font-mono">#{String(user.id).slice(-4)}</td>
                           <td className="py-3 px-4">
