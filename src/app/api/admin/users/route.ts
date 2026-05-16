@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
           return {
             id: userId,
             username: u.username,
+            nickname: u.nickname,
             createdAt: u.createdAt,
             updatedAt: u.updatedAt,
             lastLoginAt: u.lastLoginAt,

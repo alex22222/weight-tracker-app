@@ -18,6 +18,7 @@ interface AdminDashboardProps {
 interface UserData {
   id: number
   username: string
+  nickname?: string | null
   createdAt: string
   updatedAt: string
   lastLoginAt?: string | null
@@ -740,7 +741,12 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
                 </div>
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-2xl font-bold text-slate-800">{selectedUser.username}</h2>
+                <h2 className="text-2xl font-bold text-slate-800">
+                  {selectedUser.nickname || selectedUser.username}
+                </h2>
+                {selectedUser.nickname && (
+                  <p className="text-sm text-slate-400 mt-0.5">@{selectedUser.username}</p>
+                )}
                 <p className="text-sm text-slate-500 mt-1">
                   注册于 {new Date(selectedUser.createdAt).toLocaleString('zh-CN')}
                 </p>
@@ -1072,7 +1078,14 @@ export default function AdminDashboard({ adminId, onLogout }: AdminDashboardProp
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
                               <AvatarDisplay avatarUrl={user.settings?.avatar} size="w-8 h-8" />
-                              <span className="text-sm font-medium text-slate-800">{user.username || '未命名'}</span>
+                              <div className="min-w-0">
+                                <span className="text-sm font-medium text-slate-800 block truncate">
+                                  {user.nickname || user.username || '未命名'}
+                                </span>
+                                {user.nickname && user.username && (
+                                  <span className="text-xs text-slate-400 block truncate">@{user.username}</span>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="py-3 px-4 text-sm text-slate-600">
