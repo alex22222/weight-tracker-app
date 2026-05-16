@@ -88,6 +88,26 @@ export async function resolveFileUrl(fileIDOrUrl?: string | null): Promise<strin
   }
 }
 
+// 批量转换 CloudBase fileID 为临时访问 URL
+export async function resolveFileUrls(fileIDs: (string | undefined | null)[]): Promise<Record<string, string>> {
+  const uniqueFileIDs = Array.from(new Set(fileIDs.filter(Boolean) as string[])).filter(id => id.startsWith('cloud://'))
+  if (uniqueFileIDs.length === 0) return {}
+  try {
+    if (!app?.getTempFileURL) return {}
+    const result = await app.getTempFileURL({ fileList: uniqueFileIDs })
+    const map: Record<string, string> = {}
+    for (const item of result.fileList || []) {
+      if (item.fileID && item.tempFileURL) {
+        map[item.fileID] = item.tempFileURL
+      }
+    }
+    return map
+  } catch (e) {
+    console.error('[resolveFileUrls] Failed:', e)
+    return {}
+  }
+}
+
 export async function testCloudBaseConnection(): Promise<{ success: boolean; error?: string }> {
   try {
     if (!app?.database) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
+import { resolveFileUrls } from '../../../../lib/cloudbase'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -53,6 +54,15 @@ export async function GET(request: NextRequest) {
           }
         })
     )
+
+    // 批量转换 cloud:// 头像 URL 为临时 HTTP URL
+    const avatars = enrichedUsers.map(u => u.settings?.avatar)
+    const urlMap = await resolveFileUrls(avatars)
+    for (const user of enrichedUsers) {
+      if (user.settings?.avatar && urlMap[user.settings.avatar]) {
+        user.settings.avatar = urlMap[user.settings.avatar]
+      }
+    }
 
     return NextResponse.json(enrichedUsers)
   } catch (error) {

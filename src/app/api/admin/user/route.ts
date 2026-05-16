@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { adapter } from '../../../../lib/db-adapter'
+import { resolveFileUrl } from '../../../../lib/cloudbase'
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic'
@@ -36,6 +37,11 @@ export async function GET(request: NextRequest) {
 
     // 获取用户设置
     const settings = await adapter.getUserSettings(userId)
+
+    // 转换 cloud:// 头像 URL
+    if (settings?.avatar) {
+      settings.avatar = await resolveFileUrl(settings.avatar) || settings.avatar
+    }
 
     return NextResponse.json({
       ...user,
