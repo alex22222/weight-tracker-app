@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * CloudBase 自动化部署系统 v3.0
- * 改进：本地构建 standalone → 上传部署 → 健康检查
+ * 改进：本地构建验证 → 源代码上传 → CloudBase 云端构建
  */
 
 const { execSync, spawn } = require('child_process');
@@ -13,8 +13,8 @@ const CONFIG = {
   serviceName: 'weight-tracker-api',
   projectRoot: path.resolve(__dirname, '../..'),
   maxRetries: 3,
-  healthCheckTimeout: 300000, // 5分钟
-  pollInterval: 30000, // 30秒
+  healthCheckTimeout: 600000,
+  pollInterval: 30000,
 };
 
 const Colors = {
@@ -63,29 +63,19 @@ function execAsync(command, options = {}) {
       cwd: options.cwd || CONFIG.projectRoot,
       stdio: ['ignore', 'pipe', 'pipe']
     });
-
     let stdout = '';
     let stderr = '';
-
     child.stdout.on('data', (data) => {
       stdout += data.toString();
       if (!options.silent) process.stdout.write(data);
     });
-
     child.stderr.on('data', (data) => {
       stderr += data.toString();
       if (!options.silent) process.stderr.write(data);
     });
-
     child.on('close', (code) => {
-      resolve({
-        success: code === 0,
-        output: stdout,
-        stderr: stderr,
-        exitCode: code
-      });
+      resolve({ success: code === 0, output: stdout, stderr: stderr, exitCode: code });
     });
-
     child.on('error', (err) => {
       resolve({ success: false, error: err.message, output: stdout, stderr });
     });
@@ -96,7 +86,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// ==================== 部署流程 ====================
 class DeploymentManager {
   constructor() {
     this.attempt = 0;
@@ -146,19 +135,18 @@ class DeploymentManager {
     
     const cliCheck = exec('tcb --version', { silent: true });
     if (!cliCheck.success) {
-      log('ERROR', 'CloudBase CLI 未安装，请先运行: npm install -g @cloudbase/cli');
+      log('ERROR', 'CloudBase CLI 未安装');
       return false;
     }
     log('SUCCESS', `CloudBase CLI: ${cliCheck.output.trim()}`);
 
     const loginCheck = exec('tcb env list', { silent: true });
     if (!loginCheck.success) {
-      log('ERROR', 'CloudBase 登录失败，请先运行: tcb login');
+      log('ERROR', 'CloudBase 登录失败');
       return false;
     }
     log('SUCCESS', 'CloudBase 登录正常');
 
-    // 检查 node_modules
     if (!fs.existsSync(path.join(CONFIG.projectRoot, 'node_modules'))) {
       log('WARN', 'node_modules 不存在，正在安装依赖...');
       const install = exec('npm install --legacy-peer-deps', { timeout: 300000 });
@@ -172,67 +160,32 @@ class DeploymentManager {
   }
 
   async deployCycle() {
-    // 步骤1: 构建
-    log('INFO', '步骤 1/4: 本地构建项目...');
+    // 步骤1: 本地构建验证
+    log('INFO', '步骤 1/3: 本地构建验证...');
     
     const buildResult = exec('npm run build', { timeout: 300000 });
     if (!buildResult.success) {
-      log('ERROR', `构建失败: ${buildResult.stderr || buildResult.error}`);
-      return false;
-    }
-    
-    if (!fs.existsSync(path.join(CONFIG.projectRoot, '.next/standalone'))) {
-      log('ERROR', '构建失败: .next/standalone 目录不存在');
+      log('ERROR', `本地构建失败: ${buildResult.stderr || buildResult.error}`);
       return false;
     }
     log('SUCCESS', '本地构建成功');
 
-    // 步骤2: 准备 standalone
-    log('INFO', '步骤 2/4: 准备 standalone 目录...');
+    // 步骤2: 本地验证
+    log('INFO', '步骤 2/3: 本地验证启动...');
     
-    const standaloneDir = path.join(CONFIG.projectRoot, '.next/standalone');
-    
-    // 复制静态资源
-    const staticSrc = path.join(CONFIG.projectRoot, '.next/static');
-    const staticDst = path.join(standaloneDir, '.next/static');
-    if (fs.existsSync(staticSrc)) {
-      execSync(`cp -r "${staticSrc}" "${path.join(standaloneDir, '.next/')}"`, { stdio: 'ignore' });
-    }
-    
-    // 复制 public
-    const publicSrc = path.join(CONFIG.projectRoot, 'public');
-    const publicDst = path.join(standaloneDir, 'public');
-    if (fs.existsSync(publicSrc)) {
-      execSync(`cp -r "${publicSrc}" "${standaloneDir}/"`, { stdio: 'ignore' });
-    }
-
-    // 写入 Dockerfile（强制 PORT=80）
-    const dockerfile = path.join(standaloneDir, 'Dockerfile');
-    fs.writeFileSync(dockerfile, `FROM node:18-alpine
-WORKDIR /app
-COPY . .
-ENV NODE_ENV=production HOSTNAME=0.0.0.0
-EXPOSE 80
-CMD ["sh", "-c", "PORT=80 node server.js"]
-`);
-
-    log('SUCCESS', 'standalone 目录准备完成');
-
-    // 步骤3: 本地验证
-    log('INFO', '步骤 3/4: 本地验证启动...');
-    
-    const localOk = await this.localVerify(standaloneDir);
+    const localOk = await this.localVerify();
     if (!localOk) {
-      log('ERROR', '本地验证失败，standalone 服务无法启动');
+      log('ERROR', '本地验证失败');
       return false;
     }
     log('SUCCESS', '本地验证通过');
 
-    // 步骤4: 部署
-    log('INFO', '步骤 4/4: 提交部署到 CloudBase...');
+    // 步骤3: 部署
+    log('INFO', '步骤 3/3: 提交部署到 CloudBase...');
+    log('INFO', '云端将执行 npm ci + npm run build，约需 5-10 分钟');
     
     const deployResult = await execAsync(
-      `echo "n" | tcb cloudrun deploy -e ${CONFIG.envId} -s ${CONFIG.serviceName} --port 80 --source "${standaloneDir}" --force`,
+      `echo "n" | tcb cloudrun deploy -e ${CONFIG.envId} -s ${CONFIG.serviceName} --port 80 --source . --force`,
       { silent: false, timeout: 300000 }
     );
 
@@ -242,35 +195,33 @@ CMD ["sh", "-c", "PORT=80 node server.js"]
     }
 
     if (!deployResult.output.includes('提交容器型云托管') && !deployResult.output.includes('已完成')) {
-      log('ERROR', '部署提交异常，请检查输出');
+      log('ERROR', '部署提交异常');
       return false;
     }
 
     log('SUCCESS', '部署已提交');
 
-    // 步骤5: 远程健康检查
+    // 步骤4: 远程健康检查
     return await this.healthCheck();
   }
 
-  async localVerify(standaloneDir) {
-    const testPort = 3456;
-    
+  async localVerify() {
     return new Promise((resolve) => {
-      const child = spawn('node', ['server.js'], {
-        cwd: standaloneDir,
-        env: { ...process.env, PORT: String(testPort), HOSTNAME: '0.0.0.0' },
+      const child = spawn('npx', ['next', 'start'], {
+        cwd: CONFIG.projectRoot,
+        env: { ...process.env, PORT: '3456', HOSTNAME: '0.0.0.0' },
         stdio: 'ignore'
       });
 
       const timeout = setTimeout(() => {
         child.kill();
         resolve(false);
-      }, 15000);
+      }, 20000);
 
-      const checkHealth = async () => {
-        await sleep(3000);
+      const check = async () => {
+        await sleep(5000);
         try {
-          const result = await execAsync(`curl -s -o /dev/null -w "%{http_code}" http://localhost:${testPort}/api/health`, { silent: true });
+          const result = await execAsync('curl -s -o /dev/null -w "%{http_code}" http://localhost:3456/api/health', { silent: true });
           if (result.success && result.output.trim() === '200') {
             clearTimeout(timeout);
             child.kill();
@@ -279,10 +230,9 @@ CMD ["sh", "-c", "PORT=80 node server.js"]
           }
         } catch (e) {}
         
-        // 再试一次
-        await sleep(3000);
+        await sleep(5000);
         try {
-          const result = await execAsync(`curl -s -o /dev/null -w "%{http_code}" http://localhost:${testPort}/api/health`, { silent: true });
+          const result = await execAsync('curl -s -o /dev/null -w "%{http_code}" http://localhost:3456/api/health', { silent: true });
           if (result.success && result.output.trim() === '200') {
             clearTimeout(timeout);
             child.kill();
@@ -296,17 +246,15 @@ CMD ["sh", "-c", "PORT=80 node server.js"]
         resolve(false);
       };
 
-      checkHealth();
+      check();
     });
   }
 
   async healthCheck() {
-    log('INFO', '等待 CloudBase 容器启动 (最多 5 分钟)...');
+    log('INFO', '等待 CloudBase 容器启动 (最多 10 分钟)...');
     
     const healthUrl = `https://${CONFIG.serviceName}-${CONFIG.envId}.sh.run.tcloudbase.com/api/health`;
     const startTime = Date.now();
-    
-    let lastChunk = '';
     
     while (Date.now() - startTime < CONFIG.healthCheckTimeout) {
       await sleep(CONFIG.pollInterval);
@@ -315,45 +263,34 @@ CMD ["sh", "-c", "PORT=80 node server.js"]
       const remaining = Math.round((CONFIG.healthCheckTimeout - (Date.now() - startTime)) / 1000);
       
       try {
-        // 检查健康
         const healthResult = await execAsync(`curl -s -m 10 "${healthUrl}"`, { silent: true });
         if (healthResult.success && healthResult.output.includes('"status":"ok"')) {
           log('SUCCESS', `健康检查通过！(${elapsed}秒)`);
-          
-          // 额外检查：确认 JS chunk 已更新
-          const pageResult = await execAsync(`curl -s -m 10 "https://${CONFIG.serviceName}-${CONFIG.envId}.sh.run.tcloudbase.com/" | grep -o 'page-[a-z0-9]*\.js' | head -1`, { silent: true });
-          if (pageResult.success && pageResult.output.trim()) {
-            log('INFO', `当前页面 chunk: ${pageResult.output.trim()}`);
-          }
-          
           return true;
         }
         
-        // 检查页面是否返回 200
         const pageCheck = await execAsync(`curl -s -o /dev/null -w "%{http_code}" -m 10 "https://${CONFIG.serviceName}-${CONFIG.envId}.sh.run.tcloudbase.com/"`, { silent: true });
         const pageCode = pageCheck.output?.trim();
         
         if (pageCode === '503' || pageCode === '502') {
-          log('WARN', `[${elapsed}s] 服务返回 ${pageCode}，可能仍在启动中... (剩余 ${remaining}s)`);
+          log('WARN', `[${elapsed}s] 服务返回 ${pageCode}，可能仍在启动... (剩余 ${remaining}s)`);
         } else if (pageCode === '200') {
           log('INFO', `[${elapsed}s] 页面返回 200，等待健康检查通过... (剩余 ${remaining}s)`);
         } else {
           log('WARN', `[${elapsed}s] 状态: HTTP ${pageCode}，继续等待... (剩余 ${remaining}s)`);
         }
-        
       } catch (e) {
         log('WARN', `[${elapsed}s] 连接失败，继续等待... (剩余 ${remaining}s)`);
       }
     }
     
-    log('ERROR', '健康检查超时（5分钟）');
+    log('ERROR', '健康检查超时（10分钟）');
     log('INFO', '请通过 CloudBase 控制台查看构建日志：');
     log('INFO', `https://tcb.cloud.tencent.com/dev?envId=${CONFIG.envId}#/platform-run/service/detail?serverName=${CONFIG.serviceName}&tabId=deploy`);
     return false;
   }
 }
 
-// ==================== 主入口 ====================
 async function main() {
   const manager = new DeploymentManager();
   const success = await manager.run();
